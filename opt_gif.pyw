@@ -13,7 +13,7 @@ def main(filename, *options):
     exitcode = 0
     if filename[-4:].lower() != '.gif': #try recompress
         return 1
-    tofilename = filegen.unused_filename('.gif', folder=os.path.dirname(filename) or '.')
+    tofilename = filegen.unused_filename('.gif')
     gif('"%s"'%filename, tofilename, options and ' '.join(options) or None)
     if os.path.exists(tofilename):
         if os.stat(tofilename)[6] < os.stat(filename)[6]:
