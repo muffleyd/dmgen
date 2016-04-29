@@ -1,4 +1,4 @@
-import os, sys
+import os
 import subprocess
 import threaded_worker
 import filegen
@@ -90,7 +90,7 @@ def do2(filename, target=None, options='', tw=None):
 def do(filename, options='', tw=None):
     return do2(filename, None, options, tw)
 
-def do_many(files, options='', threads=None):
+def do_many(files, options='', threads=None, verbose=True):
 ##    global worker #global for debugging purposes
     if isinstance(files, basestring):
         files = filegen.ifiles_in(files)
@@ -115,18 +115,21 @@ def do_many(files, options='', threads=None):
                 if newsize < size:
                     endsize += newsize
                     startsize += size
-                    print '%s %d %.1f%%'%(front, newsize - size,
-                                          100*float(newsize)/size)
-                elif newsize == size:
-                    print '%s no diff'%front
-                else:
-                    print '%s worse'%front
-                if out:
-                    print 'output:',out
-    if startsize:
+                if verbose:
+                    if newsize < size:
+                        print '%s %d %.1f%%'%(front, newsize - size,
+                                              100*float(newsize)/size)
+                    elif newsize == size:
+                        print '%s no diff'%front
+                    else:
+                        print '%s worse'%front
+                    if out:
+                        print 'output:',out
+    if verbose and startsize:
         print '%d -> %d (%.1f%%)'%(startsize, endsize, 100. * endsize / startsize)
     return failed
 if __name__ == '__main__' and 'idlelib' not in dir():
+    import sys
     if os.path.exists(sys.argv[1]) and not os.path.isfile(sys.argv[1]):
         do_many(sys.argv[1], ' '.join(sys.argv[2:]))
     else:
