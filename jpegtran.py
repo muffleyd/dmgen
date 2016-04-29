@@ -88,46 +88,7 @@ def do2(filename, target=None, options='', tw=None):
     return filename, out, initsize, newsize
 
 def do(filename, options='', tw=None):
-    initsize = size = os.stat(filename)[6]
-    folder, tfile = os.path.split(filename)
-    if filegen.TEMPfolder:
-        folder = filegen.TEMPfolder
-    temp1 = filegen.unused_filename('_'+tfile, folder=folder)
-    temp2 = filegen.unused_filename('_prog_'+tfile, [temp1], folder=folder)
-    if tw is None:
-        _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES))
-    else:
-        _tw = tw
-    try:
-        gets = (_tw.put(filename, temp1, options, func=_tw.func or jpeg),
-                _tw.put(filename, temp2, '-progressive ' + options, func=_tw.func or jpeg))
-        newfile = None
-        for get in gets:
-            temp, out, err = _tw.get(get)
-            if err or out:
-                raise Exception(err or out)
-            if os.path.exists(temp):
-                newsize = os.stat(temp)[6]
-                if newsize and newsize < size:
-                    newfile = temp
-                    size = newsize
-            if err:
-                out += '\nError: ' + err
-        if newfile:
-            os.remove(filename)
-            os.rename(newfile, filename)
-    finally:
-        if tw is None:
-            _tw.close(wait=1)
-        try:
-            if os.path.exists(temp1):
-                os.remove(temp1)
-            if os.path.exists(temp2):
-                os.remove(temp2)
-        except:
-##            print '%s %s %s'%(filename, temp1, temp2)
-            raise
-    return filename, out, initsize, newsize
+    return do2(filename, None, options, tw)
 
 def do_many(files, options='', threads=None):
 ##    global worker #global for debugging purposes
