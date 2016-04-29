@@ -130,7 +130,8 @@ def do_many(files, options='', threads=None, verbose=True):
     return failed
 if __name__ == '__main__' and 'idlelib' not in dir():
     import sys
-    if os.path.exists(sys.argv[1]) and not os.path.isfile(sys.argv[1]):
-        do_many(sys.argv[1], ' '.join(sys.argv[2:]))
-    else:
-        do(sys.argv[1], ' '.join(sys.argv[2:]))
+    if len(sys.argv) > 1:
+        if os.path.exists(sys.argv[1]) and not os.path.isfile(sys.argv[1]):
+            do_many(sys.argv[1], ' '.join(sys.argv[2:]))
+        else:
+            do(sys.argv[1], ' '.join(sys.argv[2:]))
