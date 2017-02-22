@@ -170,8 +170,10 @@ class threadsafeSTDOUT:
         #this issue isn't printing at the same time, it's a thread printing
         #such that the IDLE output window shifts everything up that breaks it
         self.writing.acquire()
-        self.stdout.write(str(s) + (newline and '\n' or ' '))
-        self.writing.release()
+        try:
+            self.stdout.write(str(s) + (newline and '\n' or ' '))
+        finally:
+            self.writing.release()
     write = Print
 
 if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
