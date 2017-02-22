@@ -29,6 +29,7 @@ def implode(file, folder, prefix=''):
         new = tar_base + '_r%d.gif'%i
         i += 1
     os.rename(os.path.join(folder, 'a.gif'), new)
+    return new
 
 def recolor(file, colormod=.5, prefix='m_'):
     if not os.path.isfile(file) and os.path.exists(file):
