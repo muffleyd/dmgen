@@ -163,13 +163,24 @@ def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
         pow = 2**x
         if verbose:
             print num, '->', (num-pow, num+pow), '->',
-        prevsize, prevoptions = check(worker, filename, tempf,
+        prevsize, prevoptions, every = check(worker, filename, tempf,
                               ['/b%d'%(num-pow), '/b%d'%(num+pow)],
                               options, prevsize, prevoptions)
         num = get_slashb(prevoptions)
         if verbose:
             print num, prevsize, prevoptions
     return prevoptions
+
+def strip_option(options, char):
+    char = '/' + char
+    if char in options:
+        ind = options.index(char)
+        try:
+            end = options.index(' ', ind) + 1
+        except ValueError:
+            end = len(options)
+        return options[:ind] + options[end:]
+    return options
 
 def check(worker, filename, tempf, options, andoptions='',
           msize=None, moptions=None):
@@ -185,7 +196,8 @@ def check(worker, filename, tempf, options, andoptions='',
         mod = 0
     for index in xrange(mod, len(options)):
         options[index] = worker.get(options[index])
-    return min(options, key=operator.itemgetter(0))
+    winner = min(options, key=operator.itemgetter(0))
+    return winner[0], winner[1], options
 
 def get_slashb(options): #/b is always last, make sure of that!
     return int(options[options.rindex('/b')+2:])
@@ -197,7 +209,7 @@ class NotAnException(Exception):
 
 TEMPprefix = 'pngout_TEMP_'
 
-def find_best_compression(filename, threads=2, depth=5,
+def find_best_compression(filename, threads=3, depth=5,
                           remove_not_png=True, verbose=True):
     assert os.path.exists(filename)
     pathjoin = os.path.join
@@ -230,14 +242,22 @@ def find_best_compression(filename, threads=2, depth=5,
                 colors_options = colors_options[:-1] + '8' #make this better
         if verbose:
             print colors_options
-        size256, options = check(worker, filename, tempf,
-                                 ['/f0', '/f5'], colors_options)
-        if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
-            raise NotAnException()
+        size_start, options, every = check(worker, filename, tempf,
+                                           ['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'],
+                                           #/s3 would be nice but seems to use a different algorithm and leads to
+                                           # a bad selection when paired with /s0 later on
+                                           colors_options + ' /s2')
+        options = strip_option(options, 's')
         if verbose:
+            print 'prelim', size_start, options
+        if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
+            size256, boptions, every = check(worker, filename, tempf,
+                                 ['/b256'], options)
             print size256, options
-        size_b, boptions = check(worker, filename, tempf,
-                                 ['/b128', '/b512'], options)
+            raise NotAnException()
+        size_b, boptions, every = check(worker, filename, tempf,
+                                 ['/b128', '/b256', '/b512'], options)
+        size256 = every[1][0]
         if verbose:
             print size_b, boptions
         if depth < 3 or (hasattr(depth, '__iter__') and 2 not in depth):
@@ -260,7 +280,7 @@ def find_best_compression(filename, threads=2, depth=5,
             if verbose:
                 print 'slashbfinder:', smallestsize, smallestoptions
             while 1:
-                smallestsize, prevb = check(worker, filename, tempf,
+                smallestsize, prevb, every = check(worker, filename, tempf,
                                 ['/b%d'%(get_slashb(smallestoptions) * 2)],
                                  options, smallestsize, smallestoptions)
                 if verbose:
