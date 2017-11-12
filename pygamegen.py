@@ -357,6 +357,8 @@ def wait_for_key(keys=[pygame.K_ESCAPE]):
     return wait_for_input([], keys)[1]
 
 def wait_for_input(buttons=[1,0,1], keys=[pygame.K_ESCAPE], quit=True):
+    return wait_for_input2(buttons, keys, False, quit)
+def wait_for_input2(buttons=[1,0,1], keys=[pygame.K_ESCAPE], move=False, quit=True):
     pygame.event.clear()
     maxbutton = len(buttons)
     if not hasattr(buttons, '__iter__'):
@@ -373,6 +375,8 @@ def wait_for_input(buttons=[1,0,1], keys=[pygame.K_ESCAPE], quit=True):
                 return e.type, e.button
         elif e.type == pygame.QUIT:
             return e.type, 1
+        elif move and e.type == pygame.MOUSEMOTION:
+            return e.type, e
 
 def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     TITLE = None
