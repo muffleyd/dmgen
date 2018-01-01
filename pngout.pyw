@@ -110,7 +110,7 @@ def _colors_in(filename):
     try:
         c = pygamegen._colors_in(filename, True)
     except Exception,e:
-        print 'error checking image color data', e
+##        print 'error checking image color data', filename, e
         return ''
 
     grey = len(c) <= 256
@@ -338,27 +338,36 @@ def do_many(files, depth=5, threads=CORES):
     inworker = threaded_worker.threaded_worker(_run, threads)
     failed = []
 ##    pstdout, out = sys.stdout, open('output.txt','w')
-    gen.toggle_printing()
-    try:
-        for x in files:
-            worker.put(x, inworker, depth)
-        for x in xrange(1, len(files)+1):
-            this = files[x-1]
-            try:
-                worker.get(x)
-            except KeyboardInterrupt:
-                raise
-            except Exception, e:
-                failed.append((this, e))
-##            else:
-##                print >>pstdout, this
-##                out.write(this+'\n')
-    finally:
-##        out.close()
-        gen.toggle_printing()
-        worker.close(now=1)
-        inworker.close(now=1, wait=1)
-        worker.wait()
+    fdata = []
+    with gen.empty_printer():
+        try:
+            for x in files:
+                fdata.append((x, os.stat(x)[6]))
+                worker.put(x, inworker, depth)
+            for x in xrange(1, len(files)+1):
+                this, size = fdata[x-1]
+                front = '%d/%d %s:'%(x, len(files), this)
+                try:
+                    options = worker.get(x)
+                except KeyboardInterrupt:
+                    raise
+                except Exception, e:
+                    failed.append((this, e))
+                    gen.real_print(front + ' error')
+                    continue
+                newsize = os.stat(this)[6]
+                if newsize < size:
+                    s = '%s %d %.1f%%'%(front, newsize - size,
+                                        100*float(newsize)/size)
+                elif newsize == size:
+                    s = '%s no diff'%front
+                else:
+                    s = '%s worse'%front
+                gen.real_print(s)
+        finally:
+            worker.close(now=1)
+            inworker.close(now=1, wait=1)
+            worker.wait()
     return failed
 
 

@@ -68,6 +68,8 @@ def toggle_printing():
     global _gen_stdout
     _gen_stdout, sys.stdout = sys.stdout, _gen_stdout
     return not isinstance(sys.stdout, empty_printer)
+def real_print(val):
+    sys.stdout.realwrite(val + "\n")
 
 try:
     _gen_stdin
