@@ -265,20 +265,19 @@ def img_diff(one, two, empty=(0, 130, 0)):
     assert size == two.get_size()
     if len(empty) == 3:
         empty = ''.join((chr(empty[0]), chr(empty[1]), chr(empty[2]), chr(255)))
-    newone = []
-    newtwo = []
-    onen = iter(pygame.image.tostring(one, 'RGBA'))
-    ntwon = iter(pygame.image.tostring(two, 'RGBA')).next
-    nonen = onen.next
-    for o in onen:
-        first_rgba = o, nonen(), nonen(), nonen()
-        second_rgba = ntwon(), ntwon(), ntwon(), ntwon()
-        if first_rgba == second_rgba:
-            newone.append(empty)
-            newtwo.append(empty)
-        else:
-            newone.append(''.join(first_rgba))
-            newtwo.append(''.join(second_rgba))
+    pixels = size[0] * size[1]
+    newone = list(empty * pixels)
+    newtwo = newone[:]
+##    print len(n), len(n[0]), len(n[0][0]), size
+    onen = iter(pygame.image.tostring(one, 'RGBA')).next
+    twon = iter(pygame.image.tostring(two, 'RGBA')).next
+    for xy in xrange(0, pixels * 4, 4):
+        first_rgba = onen(), onen(), onen(), onen()
+        second_rgba = twon(), twon(), twon(), twon()
+        if first_rgba != second_rgba:
+##            print first_rgba, second_rgba, len(newone) / size[0], len(newone) % size[1]
+            newone[xy:xy+4] = first_rgba
+            newtwo[xy:xy+4] = second_rgba
     return (pygame.image.frombuffer(''.join(newone), size, 'RGBA'),
             pygame.image.frombuffer(''.join(newtwo), size, 'RGBA'))
 
