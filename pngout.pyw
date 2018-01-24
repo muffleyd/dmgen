@@ -341,21 +341,24 @@ def do_many(files, depth=5, threads=CORES):
     fdata = []
     with gen.empty_printer():
         try:
-            for x in files:
-                fdata.append((x, os.stat(x)[6]))
-                worker.put(x, inworker, depth)
-            for x in xrange(1, len(files)+1):
-                this, size = fdata[x-1]
-                front = '%d/%d %s:'%(x, len(files), this)
+            for index, filename in enumerate(files):
+                fdata.append((filename, os.stat(filename)[6]))
+                worker.put(filename, inworker, depth, alsoreturn=index)
+            for x in xrange(len(files)):
                 try:
-                    options = worker.get(x)
+                    options, alsoreturn = worker.get()
+                    
+                    index = alsoreturn[0]
+                    filename, size = fdata[index]
+                    front = '%d/%d %s:'%(x + 1, len(files), filename)
+                    
                 except KeyboardInterrupt:
                     raise
                 except Exception, e:
-                    failed.append((this, e))
-                    gen.real_print(front + ' error')
+                    failed.append((filename, e))
+                    gen.real_print('error: ' + str(e))
                     continue
-                newsize = os.stat(this)[6]
+                newsize = os.stat(filename)[6]
                 if newsize < size:
                     s = '%s %d %.1f%%'%(front, newsize - size,
                                         100*float(newsize)/size)
