@@ -12,6 +12,11 @@ import pygame
 import gen, filegen
 import webgen
 
+try:
+    import screen
+except ImportError:
+    screen = None
+
 def mk_rect(point1, point2):
     rect = pygame.Rect(point1, (0, 0))
     if point1[0] < point2[0]:
@@ -130,6 +135,16 @@ def fit_to(image, dims=(1920, 1080)):
 def get_at_mouse():
     pygame.event.pump()
     return pygame.display.get_surface().get_at(pygame.mouse.get_pos())
+
+
+def get_at_mouse_until_click():
+    while 1:
+        time.sleep(.05)
+        color = get_at_mouse()
+        pygame.display.set_caption('%s: %s'%(pygame.mouse.get_pos(), str(color)))
+        if pygame.mouse.get_pressed()[0]:
+            break
+
 
 def invert(surf):
     if isinstance(surf, basestring):
@@ -299,6 +314,31 @@ def colors_in(pic, includealpha=False):
     return [tuple(ord(i) for i in indivs) for indivs in
             _colors_in(pic, includealpha)]
 
+def colors_info(pic, includealpha=False):
+    if isinstance(pic, str):
+        pic = pygame.image.load(pic)
+    if includealpha:
+        format = 'RGBA'
+    else:
+        format = 'RGB'
+    mod = len(format)
+    data = pygame.image.tostring(pic, format)
+    color_lookup = {}
+    ret = {}
+    for i in xrange(0, len(data), mod):
+        color = data[i:i+mod]
+        mapped = color_lookup.get(color)
+        if not mapped:
+            mapped = tuple(ord(i) for i in color)
+            color_lookup[color] = mapped
+##        print color, mapped
+        if mapped not in ret:
+            ret[mapped] = 1
+        else:
+            ret[mapped] += 1
+##    print color_lookup
+    return ret
+
 def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
     RANGE = defrange
     topleft = pic.get_at((0,0))
@@ -389,6 +429,7 @@ def wait_for_input2(buttons=[1,0,1], keys=[pygame.K_ESCAPE], move=False, quit=Tr
         elif move and e.type == pygame.MOUSEMOTION:
             return e.type, e
 
+SCREEN = 'GET_SCREEN_DIMS'
 def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     TITLE = None
     size = [0, 0]
@@ -446,18 +487,21 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
         except:
             pass
         if scale == 1 and fitto:
+            if fitto is SCREEN:
+                fitto = screen.main()
+                fitto = (fitto[0], fitto[1] - 30)
             image = fit_to(image, fitto)
             size = image.get_size()
         elif scale != 1:
             size = (int(round(size[0]*scale)), int(round(size[1]*scale)))
             image = pygame.transform.smoothscale(image, size)
 ##    print pic,size, fitto
-    screen = pygame.display.set_mode(size)
-    pygame.display.update(screen.blit(image, image.get_rect()))
+    display = pygame.display.set_mode(size)
+    pygame.display.update(display.blit(image, image.get_rect()))
 ##    print title
     if TITLE:
         pygame.display.set_caption(str(TITLE))
-    return screen
+    return display
             
 def re_alpha_nemo(image):
     do_s = not pygame.display.get_surface()
