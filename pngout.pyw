@@ -356,7 +356,7 @@ def do_many(files, depth=5, threads=CORES):
                     raise
                 except Exception, e:
                     failed.append((filename, e))
-                    gen.real_print('error: ' + str(e))
+                    gen.real_print('%s error %s'%(front, str(e)))
                     continue
                 newsize = os.stat(filename)[6]
                 if newsize < size:
@@ -369,7 +369,7 @@ def do_many(files, depth=5, threads=CORES):
                 gen.real_print(s)
         finally:
             worker.close(now=1)
-            inworker.close(now=1, wait=1)
+            inworker.close(now=1)
             worker.wait()
     return failed
 
