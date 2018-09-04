@@ -1,7 +1,7 @@
 import os, httplib, urllib, urllib2, cookielib, time
 from cStringIO import StringIO
 
-__all__ = ['FIREFOXHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', '_ungzip_site', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
+__all__ = ['BROWSERHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', '_ungzip_site', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
 
 try:
     import gzip
@@ -24,14 +24,22 @@ CHARSET = {}#'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
 
 #fools webserver into thinking I'm firefox, if they don't look too closely
 #otherwise, sometimes it will not return nicely formated data
-FIREFOXHEADER = {}
+BROWSERHEADER = {}
 def enable_firefox_mode():
-    global FIREFOXHEADER
-    FIREFOXHEADER['User-Agent'] = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.17) Gecko/2009122116 Firefox/3.0.17 (.NET CLR 3.5.30729)'
+    global BROWSERHEADER
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.17) Gecko/2009122116 Firefox/3.0.17 (.NET CLR 3.5.30729)'
 def disable_firefox_mode():
-    global FIREFOXHEADER
-    del FIREFOXHEADER['User-Agent']
+    global BROWSERHEADER
+    del BROWSERHEADER['User-Agent']
 enable_firefox_mode()
+
+def enable_chrome_mode():
+    global BROWSERHEADER
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
+def disable_chrome_mode():
+    global BROWSERHEADER
+    del BROWSERHEADER['User-Agent']
+
 
 def get_last_modified(response):
     return (response.headers.has_key('last-modified') and
@@ -84,7 +92,7 @@ class _special_response(urllib.addinfourl):
 def _ungzip_site(obj):
     return gzip.GzipFile(fileobj=StringIO(obj.read())).read()
 
-def urlopen(url, data=None, read=True, header={}, firefox=FIREFOXHEADER,
+def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
             dounicode=True, unquote=True, lastmod=0):
     header = dict(header)
     if lastmod:
