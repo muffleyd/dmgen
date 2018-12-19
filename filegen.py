@@ -328,11 +328,22 @@ def makedirs(*dirs):
         if not os.path.exists(dir):
             os.makedirs(dir)
 
+ENABLE_SCANDIR = True
+scandir = False
+if ENABLE_SCANDIR:
+    try:
+        import scandir
+    except ImportError:
+        scandir = False
+
 def ifiles_in(directory='.', include='', includeend='', exclude=[]): #generator for files_in
     if type(exclude) != set:
         exclude = set(isinstance(exclude, basestring) and [exclude] or exclude)
     pathsep = os.path.sep
-    walker = os.walk(directory)
+    if scandir:
+        walker = scandir.walk(directory)
+    else:
+        walker = os.walk(directory)
     includeend = includeend.lower()
 
     #to avoid returning "./filename"
