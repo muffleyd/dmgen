@@ -5,6 +5,16 @@ import random
 from itertools import chain
 import threaded_worker
 import hashlib
+try:
+    import scandir
+except ImportError:
+    scandir = False
+
+#scandir.walk is just better
+if scandir:
+    _walk = scandir.walk
+else:
+    _walk = os.walk
 
 def extensionis(filename, ext):
     if ext[0] != '.':
@@ -73,8 +83,8 @@ def assert_file_trees(one, two, justcomparefiles=0):
             raise Exception("Folder '%s' does not exist."%one)
         raise Exception("Folder '%s' does not exist."%two)
 
-    t = os.walk(two)
-    for i in os.walk(one):
+    t = _walk(two)
+    for i in _walk(one):
         j = t.next()
         if not justcomparefiles:
             if j[1] != i[1]:
@@ -328,22 +338,11 @@ def makedirs(*dirs):
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-ENABLE_SCANDIR = True
-scandir = False
-if ENABLE_SCANDIR:
-    try:
-        import scandir
-    except ImportError:
-        scandir = False
-
 def ifiles_in(directory='.', include='', includeend='', exclude=[]): #generator for files_in
     if type(exclude) != set:
         exclude = set(isinstance(exclude, basestring) and [exclude] or exclude)
     pathsep = os.path.sep
-    if scandir:
-        walker = scandir.walk(directory)
-    else:
-        walker = os.walk(directory)
+    walker = _walk(directory)
     includeend = includeend.lower()
 
     #to avoid returning "./filename"
@@ -392,7 +391,7 @@ def foldersfiles_in(directory='', includes=[], exclude=[]):
 def folder_stats(directory):
     types = {}
     folders = 0
-    for i in os.walk(directory):
+    for i in _walk(directory):
         folders += len(i[1])
         for j in i[2]:
             ext = os.path.splitext(j)[1][1:]
