@@ -555,18 +555,15 @@ def remove_duplicates(it, todo=None):
     #takes in an iterable, and removes duplicate entries (makes it like a set)
     # but stays in order
     curind = 0
-    data = {} #TODO use a deque or Queue here instead?
+    done = set()
+    data2 = []
     for i in it:
-        if not data.has_key(i):
-            data[i] = curind
-            curind += 1
-    data2 = [None]*curind
-    for val, ind in data.iteritems():
-        data2[ind] = val
+        if i not in done:
+            data2.append(i)
     typeit = todo and todo or type(it)
     if typeit == str:
         return ''.join(data2)
-    if typeit == type(data2):
+    if isinstance(data2, typeit):
         return data2
     return typeit(data2)
 
