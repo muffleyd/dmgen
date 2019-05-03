@@ -373,14 +373,23 @@ def do_many(files, depth=5, threads=CORES):
             worker.wait()
     return failed
 
+def is_png(filename):
+    # TODO actually check the file header
+    return filename.lower()[-4:] == '.png'
 
 def main(filename, threads=0, depth=5):
     threads = int(threads)
     if not threads:
         threads = CORES
-    find_best_compression(os.path.abspath(filename), threads, int(depth))
-    if filename[-4:].lower() != '.png':
-        os.remove(filename)
+    if os.path.exists(filename):
+        if os.path.isfile(filename):
+            find_best_compression(os.path.abspath(filename), threads, int(depth))
+            if filename[-4:].lower() != '.png':
+                os.remove(filename)
+        else:
+            do_many([i for i in filegen.ifiles_in(filename) if is_png(i)], threads, int(depth))
+    else:
+        raise ValueError('File not found %s'%filename)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
