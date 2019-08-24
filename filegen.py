@@ -41,23 +41,6 @@ def search_files(folder, filename='', substr=None, ignorecase=True,
     return yes
 
 
-def _read2():#fileo, num, type='b'): #'b' for bits, 'B' for Bytes
-    tbyte = ''
-    data = ''
-    while 1:
-        self, num, type = yield data
-        print(self, num, type)
-_read2 = _read2().send
-_read2(None)
-##def read2(fileo, num, type='b'):
-##    return _read2((fileo, num, type))
-class open2(file):
-    """open2(name[, mode[, buffering]])"""
-    def read2(self, num, type='b'):
-        return _read2((self, num, type))
-
-##file.read2 = read2
-
 def rewrite_file(filename):
     """for the love of god, don't use this on any important files"""
     print("for the love of god, don't use this on any important files")
@@ -120,10 +103,10 @@ def assert_files(file1, file2, f1size=None, f2size=None, start=0):
     if start:
         f1.seek(start)
         f2.seek(start)
-    for cycles in range(1, (f1size / _CHUNKSIZE) + 2):
-##        print float(cycles) / (f1size / _CHUNKSIZE)
+    for cycles in range(1, (f1size // _CHUNKSIZE) + 2):
+##        print float(cycles) / (f1size // _CHUNKSIZE)
         if f1.read(_CHUNKSIZE) != f2.read(_CHUNKSIZE):
-            return False, (_CHUNKSIZE/cycles)-_CHUNKSIZE
+            return False, (_CHUNKSIZE // cycles)-_CHUNKSIZE
     return True, -1
 
 def copyfile(one, two, mode=None):
@@ -153,16 +136,16 @@ def replaceinfile(filename, str1, strrep):
     a.write(b)
     a.close()
 
-def iter_file(file, chunksize=16384, filelen=None):
+def iter_file(file, chunksize=16384, filelen=None, mode='rb'):
     if isinstance(file, str): #filename
         if filelen is None:
             filelen = int(os.stat(file)[6])
-        file = open(file, 'rb')
+        file = open(file, mode)
     #file must now be a file-like object
     elif filelen is None:
         raise ValueError("File size must be given for file-like object.")
 
-    for cycles in range(1, int(filelen / chunksize) + 2):
+    for cycles in range(1, (filelen // chunksize) + 2):
         yield file.read(chunksize)
 
 def _get_duplicate_filesS(li, minsize=1):
@@ -208,7 +191,7 @@ def get_duplicate_files(li, minsize=1, BLOCKSIZE=2**14, firstblocksize=32):
             if len(i) > 1: #if the block is not unique in this set of files
                 o_files.update(i)
         #..and then check large blocks at a time
-        for i in range(1 + (size - firstblocksize) / BLOCKSIZE):
+        for i in range(1 + (size - firstblocksize) // BLOCKSIZE):
             #data[string] -> [filename1, filename2, etc]
             data = dict_of_data(o_files, BLOCKSIZE)
             for i in data.values():
@@ -257,8 +240,6 @@ def get_same_as_many_files(files, li, minsize=1): #def get_same_as_many_files2(f
         if abspath(i) in filesset:
             continue #don't compare a file to itself
         targetlist = samesizes.get(os.stat(i)[6])
-        if targetlist < minsize: # [] < 1, or ['a.txt'] < 1 ?  ummm, wut
-            continue
         if targetlist is not None:
             targetlist.append(i)
     del filesset, files, li #all files are correctly in both dicts, so bye bye!
@@ -306,8 +287,6 @@ def get_same_as_many_files2(files, li, minsize=1):
         if not isfile(i) or filesset.get(abspath(i)):
             continue #don't compare a file to itself
         targetlist = filessizes.get(os.stat(i)[6])
-        if targetlist < minsize:
-            continue
         if targetlist is not None:
             targetlist[1].append(i)
     del filesset, files, li #all files are correctly in both dicts, so bye bye!
@@ -493,7 +472,7 @@ def split_file(what, many):
     a = open(what, 'rb')
     try:
         size = int(os.stat(what)[6])
-        splitpoints = [i * (size / many) for i in range(many)] + [size]
+        splitpoints = [i * (size // many) for i in range(many)] + [size]
         folder = '.'.join(what.split('.')[:-1])
         if not os.path.exists(folder):
             os.mkdir(folder)
