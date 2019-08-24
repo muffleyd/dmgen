@@ -49,7 +49,7 @@ def copytree(base, what, dest, excludes, timetoreset, andcopy=True):
     if (os.path.exists(curdir_dest) and
         os.stat(sepjoin((base, what))).st_atime <= os.stat(curdir_dest).st_atime):
         return
-    curdir, folders, files = os.walk(sepjoin((base, what))).next()
+    curdir, folders, files = next(os.walk(sepjoin((base, what))))
 ##    if check_excludes(os.path.split(curdir)[1], excludes):
     if check_excludes(sepjoin((base, what)), excludes):
 ##        postit(Event(SKIPFILE, {'file': os.path.split(curdir)[1]}))
@@ -111,17 +111,17 @@ def docopy(includes, dest, excludes, cleanbasedir=False, timetoreset=0.0):
             else:
                 copytree(base, name, dest, excludes, timetoreset)
         postit(Event(QUIT, {'ex': None}))
-    except Exception,a:
+    except Exception as a:
         postit(Event(QUIT, {'ex': sys.exc_info()}))
 ##        raise
 
 def handle_exc(e=None):
-    print "EXCEPTION!!!-------------------------"
+    print("EXCEPTION!!!-------------------------")
     if not e:
         traceback.print_exc(),
     else:
-        print traceback.print_exception(*e)#''.join(traceback.format_exception(*e))
-    print "EXCEPTION!!!-------------------------"
+        print(traceback.print_exception(*e))#''.join(traceback.format_exception(*e))
+    print("EXCEPTION!!!-------------------------")
 
 def print_(worker, info):
     _func = lambda e: None
@@ -129,7 +129,7 @@ def print_(worker, info):
     def doeval(func, e):
         ff = func(e)
         if ff:
-            print ff
+            print(ff)
             if ff[-9:] in ('(100.00%)', 'REMOVING)', '(NOEXIST)'):
                 return _func
         return func
@@ -163,7 +163,7 @@ def print_(worker, info):
             val /= by
             return '%s%s'%(val < 0 and '-' or '', gen.rinsertevery(abs(val), 3, ','))
         def info_dir(where):
-            size = 0L
+            size = 0
             num = 0
             for i in filegen.ifiles_in(where):
                 num += 1
@@ -174,7 +174,7 @@ def print_(worker, info):
         size_add = 0
         size_remove = 0
 
-    xr1000 = xrange(500)
+    xr1000 = range(500)
     toreplace = os.sep + '.'
     curq = EVENTQUEUE
     doneremove = False
@@ -190,17 +190,17 @@ def print_(worker, info):
                             curq = SECONDQUEUE
                             curq.append(e)
                             if len(curq) > 1:
-                                print '\n----------------- COPYING -----------------\n'
+                                print('\n----------------- COPYING -----------------\n')
                             continue
                         else:
                             if e.type == NEWFILE:
-                                print 'file copy pending: %s'%e.file
+                                print('file copy pending: %s'%e.file)
                                 if info:
                                     file_add += 1
                                     size_add += os.stat(e.file)[6]
                             elif e.type in (REMOVEFILE, REMOVEFILEQUIET):
                                 if e.type == REMOVEFILE:
-                                    print 'file removal: %s'%e.file
+                                    print('file removal: %s'%e.file)
                                     if info:
                                         if os.path.isfile(e.file):
                                             file_remove += 1
@@ -228,15 +228,15 @@ def print_(worker, info):
                         elif e.type == QUIT:
                             if e.ex:
                                 handle_exc(e.ex)
-                                raw_input()
+                                input()
                             if info and (file_add or file_remove or size_add or size_remove):
-                                print 'new files    ',file_add
-                                print 'removed files',file_remove
-                                print 'new Kbytes ',mk_num(size_add)
-                                print 'less Kbytes',mk_num(size_remove)
-                                print
-                                print 'diff files  ',file_add - file_remove
-                                print 'diff KBytes ',mk_num(size_add-size_remove)
+                                print('new files    ',file_add)
+                                print('removed files',file_remove)
+                                print('new Kbytes ',mk_num(size_add))
+                                print('less Kbytes',mk_num(size_remove))
+                                print()
+                                print('diff files  ',file_add - file_remove)
+                                print('diff KBytes ',mk_num(size_add-size_remove))
                             return e.ex
                         else:
                             continue
@@ -256,7 +256,7 @@ def stripsplit(i, sep=','):
 
 def main(copy, dest, excludes=[], cleanbasedir=False, timetoupdate=0.0, orders='orders.txt', niceend=True, info=True):
     assert isinstance(dest, str), TypeError('destination must be a string (got %s)'%type(dest))
-    if isinstance(copy, basestring):
+    if isinstance(copy, str):
         copy = [copy]
     if len(copy) == 1:
         dest = os.path.join(dest, os.path.split(copy[0])[1])
@@ -271,7 +271,7 @@ def main(copy, dest, excludes=[], cleanbasedir=False, timetoupdate=0.0, orders='
                 demand, file1, file2 = stripsplit(i)
                 if demand.lower() == 'rename':
                     os.rename(os.path.join(dest, file1), os.path.join(dest, file2))
-                    print 'renamed "%s" -> "%s"'% (file1, file2)
+                    print('renamed "%s" -> "%s"'% (file1, file2))
         open(orders, 'w').close()
 
     with gen.timer():

@@ -2,8 +2,8 @@ MONITOR2_X = 0#-1920
 MONITOR2_Y = 0
 
 def main():
-    import Tkinter
-    root = Tkinter.Tk()
+    import tkinter
+    root = tkinter.Tk()
     WIDTH = root.winfo_screenwidth()
     HEIGHT = root.winfo_screenheight()
     return WIDTH, HEIGHT

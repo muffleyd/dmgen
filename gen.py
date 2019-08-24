@@ -1,7 +1,7 @@
 import time
 curtime = time.time
 import sys, os
-import getpass, itertools, math, random, threading, Queue
+import getpass, itertools, math, random, threading, queue
 import types
 from collections import deque
 ##from filegen import *
@@ -35,7 +35,7 @@ class nested_context:
                 if noraise:
                     etype = exc = tb = None
         if exc:
-            raise etype, exc, tb
+            raise etype(exc).with_traceback(tb)
         return noraise
 
 class empty_printer:
@@ -87,7 +87,7 @@ class stdin:
         self.data.append(s)
     def readline_P(self):
         s = self.readline_NP()
-        print s
+        print(s)
         return s
     def readline_NP(self):
         return self.data.popleft()
@@ -103,7 +103,7 @@ class print_capture(stdin):
     def __exit__(self, a, b, c):
         sys.stdout = self.oldstdout
         if self.doprint:
-            print ''.join(self.data)
+            print(''.join(self.data))
 ##        for i in self.data:
 ##            print i,
 try:
@@ -143,7 +143,7 @@ def print_main(out=None):#, gen=False):
             where.write(d[2])
             inputq.put(d[3].readline().strip())
         else:
-            print >> where, d[0]
+            print(d[0], file=where)
 ##        if gen:
 ##            yield None
 def Raw_Input(q='', OUT=None, IN=None):
@@ -152,8 +152,8 @@ def Raw_Input(q='', OUT=None, IN=None):
 def print_empty():
     #dunno if this is a good idea
     global pqueue, inputq
-    pqueue = Queue.Queue()
-    inputq = Queue.Queue(1)
+    pqueue = queue.Queue()
+    inputq = queue.Queue(1)
 print_empty() #defines them
 
 
@@ -192,7 +192,7 @@ else:
 
 def divisors(number):
     fnumber = float(number)
-    return [i for i in xrange(2, number) if number / i == fnumber / i]
+    return [i for i in range(2, number) if number / i == fnumber / i]
 
 def primerange(limit, primes=None):
     if not primes:
@@ -201,9 +201,9 @@ def primerange(limit, primes=None):
             primes.append(False)
         primes[1] = False
         primes[2] = True
-    for i in xrange(3, int(math.ceil(limit ** .5))):
+    for i in range(3, int(math.ceil(limit ** .5))):
         if primes[i]:
-            for j in xrange(i*2, limit, i):
+            for j in range(i*2, limit, i):
                 primes[j] = False
     return primes
 
@@ -212,13 +212,13 @@ def primeslist(limit):
     
 
 def factorial(n):
-    for x in xrange(n-1, 0, -1):
+    for x in range(n-1, 0, -1):
         n *= x
     return n
 
 def factors(num):
     facts = []
-    for x in xrange(2, int(num**.5)+1):
+    for x in range(2, int(num**.5)+1):
         if not num % x:
             facts.append(x)
     last = num / facts[-1]
@@ -229,8 +229,8 @@ def factors(num):
     return facts
 
 def filledQueue(length=0, modFill=0):
-    que = Queue.Queue(length)
-    for i in xrange(modFill, length + modFill):
+    que = queue.Queue(length)
+    for i in range(modFill, length + modFill):
         que.put(i)
     return que
 
@@ -292,9 +292,9 @@ def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
 
 def test_seconds_prnt(func, args=(), kwargs={}, ttr=None):
     a, b, c = test_seconds(func, args, kwargs, ttr)
-    print '(%s, %s, %s)'%(not isinstance(a, int) and round(a, 4) or a,
+    print('(%s, %s, %s)'%(not isinstance(a, int) and round(a, 4) or a,
                           not isinstance(b, int) and round(b, 4) or b,
-                          c)
+                          c))
 
 def dims_from_pixels(pixels, format):
     #format is 4/3., 16/9., etc, or None for...
@@ -330,7 +330,7 @@ def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
                 extras and ' %s '%extras or '',
                 ' "%s"'%file,
                 outputfile and ' > "%s"'%outputfile or '')
-    print command
+    print(command)
     returned = os.popen3(command)
 ##    return returned
 ##    return outputfile
@@ -360,7 +360,7 @@ def _tryremove(what, li):
         pass
 
 def default_of(ask, default, type):
-    d = raw_input(ask)
+    d = input(ask)
     if not d:
         return default
     else:
@@ -370,7 +370,7 @@ def runalittlebitfaster():
     #doesn't work, or does it?
     for i in dir(__builtins__):
         try:
-            exec 'global %s; %s = __builtins__.%s'%(i, i, i)
+            exec('global %s; %s = __builtins__.%s'%(i, i, i))
         except SyntaxError: #things you're not allowed to redefine
             pass
 
@@ -444,19 +444,19 @@ def unused_filename(ending='', donotuse=(), folder='.', maxlen=15, start=''):
 ##               ''.join([random.choice(allowedchars)
         name = (start +
                 ''.join([allowedchars[int(rand() * len(allowedchars))]
-                         for i in xrange(int(1 + rand() * numgenerate))]) +
+                         for i in range(int(1 + rand() * numgenerate))]) +
                 ending)
     return name
 
 def isprime(i):
-    for j in xrange(2, int(i**.5) + 1):
+    for j in range(2, int(i**.5) + 1):
         if not i % j:
             return False
     return True
 def isprime2(i):
     """returns False if it is a prime, otherwise the number it is divisible by
     """
-    for j in xrange(2, int(i**.5) + 1):
+    for j in range(2, int(i**.5) + 1):
         if not i % j:
             return j
     return False
@@ -488,13 +488,13 @@ def array(*dims):
 def _array(dims):
     if len(dims) == 1:
         return [0] * dims[-1]
-    return [_array(dims[:-1]) for i in xrange(dims[-1])]
+    return [_array(dims[:-1]) for i in range(dims[-1])]
 
 def changebase(number, base=10):
     """inverse operation of __builtins__.int()"""
     if number:# and (base != 10 and (base >= 2 and base <= 32)):
         string = ''
-        for i in xrange(int(math.log(number, base)), -1, -1):
+        for i in range(int(math.log(number, base)), -1, -1):
             string = __basestr[number%base] + string
             number /= base
         return string
@@ -524,27 +524,27 @@ def encode(what, by):
     by = [ord(char) for char in by]
     i = iter(by)
     what = list(what)
-    for char in xrange(len(what)):
+    for char in range(len(what)):
         try:
-            nextmod = i.next()
+            nextmod = next(i)
         except:
             i = iter(by)
-            nextmod = i.next()
+            nextmod = next(i)
         what[char] = chr(ord(what[char]) ^ nextmod)
     return ''.join(what)
 
 def insertevery(string, each=8, join=' '):
-    if not isinstance(string, basestring):
+    if not isinstance(string, str):
         string = str(string)
-    return join.join([string[i:i+each] for i in xrange(0, len(string), each)])
+    return join.join([string[i:i+each] for i in range(0, len(string), each)])
 def rinsertevery(string, each=8, join=' '):
-    if not isinstance(string, basestring):
+    if not isinstance(string, str):
         string = str(string)
     return insertevery(string[::-1], each, join)[::-1]
 
 def printf(toprint, extra='', split='\n'):
     if not toprint: return
-    print "%s\n%s"%(extra, split.join(map(str, toprint)))
+    print("%s\n%s"%(extra, split.join(map(str, toprint))))
 
 def strrange(start, stop=None, step=1, tolen=1):
     if stop is None:
@@ -558,7 +558,7 @@ def strrange(start, stop=None, step=1, tolen=1):
     else:
         toplen = startlen
     if toplen > tolen: tolen = toplen
-    return [i.zfill(tolen) for i in map(str, xrange(start, stop, step))]
+    return [i.zfill(tolen) for i in map(str, range(start, stop, step))]
 
 def remove_duplicates(it, todo=None):
     #takes in an iterable, and removes duplicate entries (makes it like a set)
@@ -588,7 +588,7 @@ def extras(it):
         else:
             extras.append(i)
     data2 = [None] * curind
-    for item, ind in data.iteritems():
+    for item, ind in data.items():
         data2[ind] = item
     if type(it) == str:
         data2 = ''.join(data2)
@@ -695,11 +695,11 @@ def pop_kwargs(kwargs_dict, *varnames, **kwargs):
         toreturn = kwargs_dict.pop(varnames[0], varnames[1])
     else:
         toreturn = []
-        for i in xrange(0, len(varnames), 2):
+        for i in range(0, len(varnames), 2):
             toreturn.append(kwargs_dict.pop(varnames[i], varnames[i+1]))
     if not allow_extra and kwargs_dict:
         raise TypeError("unexpected keyword argument '%s'"%
-                        kwargs_dict.iterkeys().next())
+                        next(iter(kwargs_dict.keys())))
     return toreturn
 
 def _dict_plus_oncollide(one, two, ind):
@@ -712,10 +712,10 @@ def dict_plus(*dicts, **kwargs):
     oncollide = pop_kwargs(kwargs, 'oncollide', _dict_plus_oncollide)
     if not isinstance(oncollide, types.FunctionType):
         raise TypeError("oncollide must be a function")
-    new = dict(dicts[-1].iteritems())
+    new = dict(iter(dicts[-1].items()))
     for d in dicts[:-1]:
         for i in d:
-            if new.has_key(i):
+            if i in new:
                 key, val = oncollide(d, new, i)
                 new[key] = val
             else:
@@ -723,7 +723,7 @@ def dict_plus(*dicts, **kwargs):
     return new
 
 def flip_dict(di):
-    return dict((j, i) for (i, j) in di.iteritems())
+    return dict((j, i) for (i, j) in di.items())
 
 def parse_dict(di, recurse=False, spaces=0, between='\n'):
     return between.join(['%s%s: %s'%(' '*spaces, repr(i),
@@ -731,7 +731,7 @@ def parse_dict(di, recurse=False, spaces=0, between='\n'):
                                          _return_print_dict(di[i],spaces+2) or
                                          repr(di[i])) for i in di])
 def print_dict(di, recurse=False, spaces=0, between='\n'):
-    print parse_dict(di, recurse, spaces, between)
+    print(parse_dict(di, recurse, spaces, between))
 def _return_print_dict(di, spaces=0, between='\n'):
     return ''.join(['%s%s%s: %s'%(between,
                                   ' '*spaces,
@@ -781,9 +781,9 @@ class timer:
             newline = self.newline
         toprint = self.printing % self.runtime
         if newline:
-            print toprint
+            print(toprint)
         else:
-            print toprint,
+            print(toprint, end=' ')
 
     def __repr__(self):
         return str(self.get_runtime())
@@ -799,7 +799,7 @@ class timer:
 def timeit():
     z = timeret()
     if z is not None:
-        print z
+        print(z)
 def timeret():
     global TIMEIT
     try:
@@ -815,7 +815,7 @@ def randomize_list(li):
     except TypeError:
         li = list(li)
     rand = random.random
-    for i in xrange(len(li)):
+    for i in range(len(li)):
         r = int(rand() * len(li))
         li[i], li[r] = li[r], li[i]
     return li
@@ -901,7 +901,7 @@ def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=N
         options = [i.strip() for i in options.split(',')]
         options.append('') #adds an extra option, if an odd number of args are sent (no comma after the last one)
         options = [[options[i], options[i+1].split('/')]
-                   for i in xrange(0, len(options)-1, 2)]
+                   for i in range(0, len(options)-1, 2)]
         curNum = 1
         test = ['']
         for i in options:
@@ -930,7 +930,7 @@ def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=N
     all_options_str = []
     all_options = []
 
-    for op in xrange(len(options)):
+    for op in range(len(options)):
         all_options.append(options[op][1])
         all_options_str.append(''.join(["'%s'/"%j for j in options[op][1]])[:-1])
         if format: #gets the max length of the options
@@ -938,17 +938,17 @@ def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=N
                 max_len = len(all_options_str[-1])
 
     toP=['%s%s - %s' %(all_options_str[i], ' '*(max_len - len(all_options_str[i])),
-                       options[i][0]) for i in xrange(len(options))]
+                       options[i][0]) for i in range(len(options))]
     if title is not None:
         toP.insert(0, title)
-    print '\n'.join(toP)
+    print('\n'.join(toP))
     while 1:
         if entry is not None:
             ask = entry
-            print '%s%s'%(question, ask)
+            print('%s%s'%(question, ask))
         else:
-            ask = raw_input(question)
-        for get_op in xrange(len(all_options)):
+            ask = input(question)
+        for get_op in range(len(all_options)):
             if ask in all_options[get_op]:
                 return get_op + mod
         if entry:
@@ -958,8 +958,8 @@ def formatli(li): #I made to print out a number triangle from a euler problem
     f=[' '.join(map(str, i)) for i in li]
     maxlen = max((len(i) for i in f))
     for i in f:
-        print ' '*((maxlen/2) - len(i)/2),
-        print i
+        print(' '*((maxlen/2) - len(i)/2), end=' ')
+        print(i)
 
 
 def ensure_every_function_works():
@@ -967,96 +967,96 @@ def ensure_every_function_works():
     tstdin()
     try:
         sys.stdin.write('1')
-        print '* default_of'
+        print('* default_of')
         assert default_of('give me a 1! ', float, int) == 1
         #runalittlebitfaster doesn't work, as I said.. a while ago
-        print '* count'
+        print('* count')
         assert count([1,4,2,3,3,1,2], 1) == 2
         assert count([1,23,4,1,2,3,4,1], 2) == 1
         assert count((1,4,2,3,3,1,2), 1) == 2
         assert count(set((1,23,4,1,2,3,4,1)), 23) == 1
         assert count({1: 2, 2: 1, 3: 4}, 1) == 1
         assert count({5: 2, 2: 1, 3: 4}, 1) == 0
-        print '* listof'
+        print('* listof')
         assert listof([1,2,3,4,4]) == [1,2,3,4,4]
         assert listof((1,2,3,4,4)) == (1,2,3,4,4)
         assert listof('aagsawerqwer') == ['aagsawerqwer']
         assert listof(9999999) == [9999999]
-        print '* prime range (additive seive)'
+        print('* prime range (additive seive)')
         assert primerange(100) == [False, False, True, True, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False]
         assert primerange(101) == [False, False, True, True, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False, False]
 ##        assert primerange(100) == primerange0(100)
 ##        assert primerange(101) == primerange0(101)
-        print '* filename_extension'
+        print('* filename_extension')
         assert filename_extension('hello.world', 'moto') == 'hello.moto'
         assert filename_extension('hello', 'world') == 'hello.world'
-        assert fibonacci(99) == 218922995834555169026L
-        assert _fibonacci_known[98] == 135301852344706746049L
-        print '* safeaverage'
+        assert fibonacci(99) == 218922995834555169026
+        assert _fibonacci_known[98] == 135301852344706746049
+        print('* safeaverage')
         assert safeaverage(1, 5) == 3
-        assert safeaverage(sys.maxint, 12) == 1073741829
-        assert type(safeaverage(sys.maxint, 12)) == int
-        print '* samesign'
+        assert safeaverage(sys.maxsize, 12) == 1073741829
+        assert type(safeaverage(sys.maxsize, 12)) == int
+        print('* samesign')
         assert samesign(1,2) == True
         assert samesign(-1,-2) == True
         assert samesign(-1,2) == False
         assert samesign(1,-2) == False
         assert samesign(0,-2) == False
-        print '* binary_search_insert'
-        baseli = range(10)
+        print('* binary_search_insert')
+        baseli = list(range(10))
         binary_search_insert(baseli, 55)
         assert (baseli == [0,1,2,3,4,5,6,7,8,9,55]), baseli
         binary_search_insert(baseli, 4.9)
         assert (baseli == [0,1,2,3,4,4.9,5,6,7,8,9,55]), baseli
         binary_search_insert(baseli, -2)
         assert (baseli == [-2,0,1,2,3,4,4.9,5,6,7,8,9,55]), baseli
-        print '* array' #i think I have array backwards right now
+        print('* array') #i think I have array backwards right now
         assert array(2,3) == [[0, 0], [0, 0], [0, 0]]
-        print '* changebase'
+        print('* changebase')
         assert changebase(255, 2) == '11111111'
         assert changebase(255, 16) == 'FF'
         assert changebase(65535, 4) == '33333333'
         assert changebase(65536, 4) == '100000000'
-        print '* binarybyte'
+        print('* binarybyte')
         assert binarybyte(255) == '11111111'
         assert binarybyte(254) == '11111110'
         assert binarybyte(25) == '00011001'
         assert binarybyte(-1) == '11111111'
-        print '* insertevery'
+        print('* insertevery')
         assert insertevery(changebase(int(2147483647*.8), 2),8) == '11001100 11001100 11001100 1100101'
-        print '* strrange'
+        print('* strrange')
         assert strrange(10) == ['0','1','2','3','4','5','6','7','8','9']
         assert strrange(9,11) == ['09','10']
         assert strrange(10,tolen=2) == ['00','01','02','03','04','05','06','07','08','09']
         assert strrange(0, 10, tolen=2) == strrange(10,tolen=2)
-        print '* remove_duplicates'
-        assert remove_duplicates(range(10)) == range(10)
+        print('* remove_duplicates')
+        assert remove_duplicates(list(range(10))) == list(range(10))
         assert remove_duplicates([1,1,1,1,1,1]) == [1]
         assert remove_duplicates((1,1,1,1,1,1)) == (1,)
         assert remove_duplicates([8,6,7,5,3,0,9,9,9,9,9,9,9]) == [8,6,7,5,3,0,9]
         assert remove_duplicates('hello world') == 'helo wrd'
-        print '* extras'
-        assert extras(range(10)) == (range(10),[])
+        print('* extras')
+        assert extras(list(range(10))) == (list(range(10)),[])
         assert extras([1,1,1,1,1,1]) == ([1], [1,1,1,1,1])
         assert extras((1,1,1,1,1,1)) == ((1,), [1,1,1,1,1])
         assert extras([8,6,7,5,3,0,9,9,9,9,9,9,9]) == ([8,6,7,5,3,0,9], [9,9,9,9,9,9])
         assert extras('hello world') == ('helo wrd', ['l','o','l'])
-        print '* list_same'
-        assert sorted(list_same(range(10), range(5,15))) == [5,6,7,8,9]
-        assert list_same(range(10), range(11,20)) == []
-        assert sorted(list_same(range(10), range(10))) == range(10)
+        print('* list_same')
+        assert sorted(list_same(list(range(10)), list(range(5,15)))) == [5,6,7,8,9]
+        assert list_same(list(range(10)), list(range(11,20))) == []
+        assert sorted(list_same(list(range(10)), list(range(10)))) == list(range(10))
         assert sorted(list_same('aerhaskeuf', 'fjasekluas')) == ['a', 'e', 'f', 'k', 's', 'u']
-        print '* list_diff'
-        assert sorted(list_diff(range(10), range(5,15))) == [0,1,2,3,4,10,11,12,13,14]
-        assert sorted(list_diff(range(10), range(11,20))) == [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19]
-        assert list_diff(range(10), range(10)) == []
+        print('* list_diff')
+        assert sorted(list_diff(list(range(10)), list(range(5,15)))) == [0,1,2,3,4,10,11,12,13,14]
+        assert sorted(list_diff(list(range(10)), list(range(11,20)))) == [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19]
+        assert list_diff(list(range(10)), list(range(10))) == []
         assert sorted(list_diff('aerhaskeuf', ['f','j','a','s','e','k','l','u','a','s'])) == ['h', 'j', 'l', 'r']
-        print '* remove_all_of'
-        assert remove_all_of(range(10), [11]) == range(10)
-        assert remove_all_of(range(10), [0]) == range(1,10)
+        print('* remove_all_of')
+        assert remove_all_of(list(range(10)), [11]) == list(range(10))
+        assert remove_all_of(list(range(10)), [0]) == list(range(1,10))
         assert remove_all_of([9,9,9,9,9,9,9], [9]) == []
         assert remove_all_of([9,9,9,'9',9,9,'9'], [9]) == ['9','9']
-        assert remove_all_of(range(10), range(3,6)) == [0,1,2,6,7,8,9]
+        assert remove_all_of(list(range(10)), list(range(3,6))) == [0,1,2,6,7,8,9]
         print('* randomize_list (1:10000**10000 of test failing when it works, runs 5 times)')
         assert randomize_list(list(range(10000))) != list(range(10000))
         assert randomize_list(list(range(10000))) != list(range(10000))
@@ -1070,12 +1070,12 @@ def ensure_every_function_works():
 ##
 
 def test_set_cmpr(ttr=1, firstset=True, secondset=False):
-    a = range(5)
-    b = range(15)
-    print test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2]
-    print test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2]
-    print test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2]
-    print test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2]
+    a = list(range(5))
+    b = list(range(15))
+    print(test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2])
+    print(test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2])
+    print(test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2])
+    print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2])
 
 
 ##def tt():

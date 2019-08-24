@@ -1,5 +1,5 @@
-import os, httplib, urllib, urllib2, cookielib, time
-from cStringIO import StringIO
+import os, http.client, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, http.cookiejar, time
+from io import StringIO
 
 __all__ = ['BROWSERHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', '_ungzip_site', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
 
@@ -10,8 +10,8 @@ except ImportError:
 else:
     HEADER_ENCODING = {'Accept-encoding': 'gzip'}
 
-_CookieJar = urllib2.build_opener(
-    urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+_CookieJar = urllib.request.build_opener(
+    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 def enable_cookies():
     global CookieJar
     CookieJar = _CookieJar
@@ -42,7 +42,7 @@ def disable_chrome_mode():
 
 
 def get_last_modified(response):
-    return (response.headers.has_key('last-modified') and
+    return ('last-modified' in response.headers and
             time.mktime(time.strptime(response.headers.get('last-modified'),
                                       "%a, %d %b %Y %H:%M:%S GMT")) or 0)
 
@@ -69,7 +69,7 @@ class _special_response(urllib.addinfourl):
                 except ValueError:
                     pass
                 else:
-                    self.data = unicode(self.data, encoding)
+                    self.data = str(self.data, encoding)
         self.after = len(self.data)+1
         self.index = 0
         self.read = self.read2
@@ -98,22 +98,22 @@ def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
     if lastmod:
         header['If-Unmodified-Since'] = time.ctime(lastmod)
     for i in HEADER_ENCODING:
-        if not header.has_key(i):
+        if i not in header:
             header[i] = HEADER_ENCODING[i]
     if firefox:
         for i in firefox:
-            if not header.has_key(i):
+            if i not in header:
                 header[i] = firefox[i]
     if unquote:
-        url = urllib.unquote(url)
+        url = urllib.parse.unquote(url)
     try:
         try:
-            response = (CookieJar and CookieJar.open or urllib2.urlopen)(
-                urllib2.Request(url, data, header))
+            response = (CookieJar and CookieJar.open or urllib.request.urlopen)(
+                urllib.request.Request(url, data, header))
         except ValueError:
-            response = (CookieJar and CookieJar.open or urllib2.urlopen)(
-                urllib2.Request('http://'+url, data, header))
-    except urllib2.HTTPError, e:
+            response = (CookieJar and CookieJar.open or urllib.request.urlopen)(
+                urllib.request.Request('http://'+url, data, header))
+    except urllib.error.HTTPError as e:
         if lastmod and e.code in (304, 412):
             #304 is unmodified-since
             #412 is *-condition-failed
@@ -147,7 +147,7 @@ SOMESORTOFEXCEPTIONTEXT = 'Error "%d" while getting url "http://%s"'
 def httpurlget(url, action="GET", server=None, onlyOn200=True):
     hostname, url = httpConstructHostnameUrl(url)
     if not server:
-        h = httplib.HTTPConnection(hostname)
+        h = http.client.HTTPConnection(hostname)
     else:
         h = server
     h.request("GET", url,
@@ -165,7 +165,7 @@ def httpurlget(url, action="GET", server=None, onlyOn200=True):
     else:
         global ERROR
         ERROR = r
-        ex = httplib.HTTPException(SOMESORTOFEXCEPTIONTEXT
+        ex = http.client.HTTPException(SOMESORTOFEXCEPTIONTEXT
                                    %(r.status, hostname + url))
         raise ex
     if not server:
@@ -191,7 +191,7 @@ always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                'abcdefghijklmnopqrstuvwxyz'
                '0123456789' '_.-')
 _safe_map = {}
-for i, c in zip(xrange(256), str(bytearray(xrange(256)))):
+for i, c in zip(range(256), str(bytearray(range(256)))):
     _safe_map[c] = c if (i < 128 and c in always_safe) else '%{0:02X}'.format(i)
 _safe_quoters = {}
 
@@ -227,13 +227,13 @@ def quote(s, safe='/', encoding=None, errors=None):
     if not s:
         return s
 
-    if encoding is not None or isinstance(s, unicode):
+    if encoding is not None or isinstance(s, str):
         if encoding is None:
             encoding = 'utf-8'
         if errors is None:
             errors = 'strict'
         s = s.encode(encoding, errors)
-    if isinstance(safe, unicode):
+    if isinstance(safe, str):
         # Normalize 'safe' by converting to str and removing non-ASCII chars
         safe = safe.encode('ascii', 'ignore')
 

@@ -1,5 +1,5 @@
 import os, shutil
-import Queue
+import queue
 import random
 #defaultdict in these things below doesn't speed up any
 from itertools import chain
@@ -46,7 +46,7 @@ def _read2():#fileo, num, type='b'): #'b' for bits, 'B' for Bytes
     data = ''
     while 1:
         self, num, type = yield data
-        print self, num, type
+        print(self, num, type)
 _read2 = _read2().send
 _read2(None)
 ##def read2(fileo, num, type='b'):
@@ -60,7 +60,7 @@ class open2(file):
 
 def rewrite_file(filename):
     """for the love of god, don't use this on any important files"""
-    print "for the love of god, don't use this on any important files"
+    print("for the love of god, don't use this on any important files")
     global rewrite_file
     rewrite_file = _rewrite_file
     _rewrite_file(filename)
@@ -85,7 +85,7 @@ def assert_file_trees(one, two, justcomparefiles=0):
 
     t = _walk(two)
     for i in _walk(one):
-        j = t.next()
+        j = next(t)
         if not justcomparefiles:
             if j[1] != i[1]:
                 raise Exception("Folder lists don't match.", i[0], j[0])
@@ -120,7 +120,7 @@ def assert_files(file1, file2, f1size=None, f2size=None, start=0):
     if start:
         f1.seek(start)
         f2.seek(start)
-    for cycles in xrange(1, (f1size / _CHUNKSIZE) + 2):
+    for cycles in range(1, (f1size / _CHUNKSIZE) + 2):
 ##        print float(cycles) / (f1size / _CHUNKSIZE)
         if f1.read(_CHUNKSIZE) != f2.read(_CHUNKSIZE):
             return False, (_CHUNKSIZE/cycles)-_CHUNKSIZE
@@ -162,7 +162,7 @@ def iter_file(file, chunksize=16384, filelen=None):
     elif filelen is None:
         raise ValueError("File size must be given for file-like object.")
 
-    for cycles in xrange(1, int(filelen / chunksize) + 2):
+    for cycles in range(1, int(filelen / chunksize) + 2):
         yield file.read(chunksize)
 
 def _get_duplicate_filesS(li, minsize=1):
@@ -176,7 +176,7 @@ def _get_duplicate_filesS(li, minsize=1):
     return datasizes
 
 def coerce_dir(thing):
-    if isinstance(thing, basestring):
+    if isinstance(thing, str):
         return ifiles_in(thing)
     return thing
 
@@ -197,27 +197,27 @@ def get_duplicate_files(li, minsize=1, BLOCKSIZE=2**14, firstblocksize=32):
     #Reads BLOCKSIZE bytes from each file at a time and compares those
     #relatively small strings rather than several whole files.
     #All but needed for comparing large files.
-    for size, files in datasizes.iteritems():
+    for size, files in datasizes.items():
         if len(files) == 1:
             continue
         #reads a small amount first, as most files will be different so read
         #a little amount for a first check..
         data = dict_of_data(files, firstblocksize, True)
         o_files = set()
-        for i in data.itervalues():
+        for i in data.values():
             if len(i) > 1: #if the block is not unique in this set of files
                 o_files.update(i)
         #..and then check large blocks at a time
-        for i in xrange(1 + (size - firstblocksize) / BLOCKSIZE):
+        for i in range(1 + (size - firstblocksize) / BLOCKSIZE):
             #data[string] -> [filename1, filename2, etc]
             data = dict_of_data(o_files, BLOCKSIZE)
-            for i in data.itervalues():
+            for i in data.values():
                 if len(i) == 1: #if the block is unique in this set of files
                     o_files.remove(i[0])
             if not o_files:
                 break
         else:
-            for i in data.itervalues():
+            for i in data.values():
                 if len(i) > 1:
                     positives.append([q.name for q in i])
     return positives
@@ -263,19 +263,19 @@ def get_same_as_many_files(files, li, minsize=1): #def get_same_as_many_files2(f
             targetlist.append(i)
     del filesset, files, li #all files are correctly in both dicts, so bye bye!
 
-    for j,i in samesizes.items():
+    for j,i in list(samesizes.items()):
         if not i:
             del filessizes[j]
             del samesizes[j]
     if not samesizes: #no files in 'li' are the same size as any in 'files'
         return []
     positives = []
-    for targetsize, filenames in filessizes.items():
+    for targetsize, filenames in list(filessizes.items()):
         for data in filenames: #do reading of files of size 'targetsize' here
             data[0] = open(data[1],'rb').read()
         for targetfilename in samesizes[targetsize]:
             targetdata = open(targetfilename,'rb').read()
-            for filess in filessizes.itervalues():
+            for filess in filessizes.values():
                 for filesdata, filesname in filess: #filess... comeon..
                     if targetdata == filesdata:
                         positives.append((filesname, targetfilename))
@@ -312,12 +312,12 @@ def get_same_as_many_files2(files, li, minsize=1):
             targetlist[1].append(i)
     del filesset, files, li #all files are correctly in both dicts, so bye bye!
 
-    for j, i in filessizes.items():
+    for j, i in list(filessizes.items()):
         if not i[1]: #if no arg2 files are of the same size as arg1 files,
             del filessizes[j] #remove it as an option for iteration
 
     positives = []
-    for targetsize, filesofsize in filessizes.iteritems():
+    for targetsize, filesofsize in filessizes.items():
         fileinfo, filesize = filesofsize
 
         for data in fileinfo: #do reading of files of size 'targetsize' here
@@ -340,7 +340,7 @@ def makedirs(*dirs):
 
 def ifiles_in(directory='.', include='', includeend='', exclude=[]): #generator for files_in
     if type(exclude) != set:
-        exclude = set(isinstance(exclude, basestring) and [exclude] or exclude)
+        exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     pathsep = os.path.sep
     walker = _walk(directory)
     includeend = includeend.lower()
@@ -380,7 +380,7 @@ def ifiles_in_scandir(directory='.', exclude=[]): #generator for files_in_scandi
     if not scandir:
         raise ImportError('files_in_scandir requires scandir package')
     if type(exclude) != set:
-        exclude = set(isinstance(exclude, basestring) and [exclude] or exclude)
+        exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
     for i in _ifiles_in_scandir(directory, exclude):
@@ -455,7 +455,7 @@ def isint(what):
         return False
     return True
 def renumber_files(files):
-    if isinstance(files, basestring):
+    if isinstance(files, str):
         files = [os.path.join(files, i) for i in os.listdir(files)]
     files = _renumber_files_sort(files)
     mod2 = []
@@ -482,7 +482,7 @@ def unused_filename(ending='', donotuse=(), folder='', maxlen=15, start=''):
 ##               ''.join([random.choice(allowedchars)
         name = (start +
                 ''.join([allowedchars[int(rand() * len(allowedchars))]
-                         for i in xrange(int(1 + rand() * numgenerate))]) +
+                         for i in range(int(1 + rand() * numgenerate))]) +
                 ending)
     if folder and folder != '.':
         name = os.path.join(folder, name)
@@ -493,13 +493,13 @@ def split_file(what, many):
     a = open(what, 'rb')
     try:
         size = int(os.stat(what)[6])
-        splitpoints = [i * (size / many) for i in xrange(many)] + [size]
+        splitpoints = [i * (size / many) for i in range(many)] + [size]
         folder = '.'.join(what.split('.')[:-1])
         if not os.path.exists(folder):
             os.mkdir(folder)
         if os.path.isfile(folder):
             raise ValueError('folder to be created already exists as a file',folder)
-        for i in xrange(many):
+        for i in range(many):
             with open(os.path.join(folder, '%s.%s'%(what, str(i))), 'wb') as write:
                 write.write(a.read(splitpoints[i+1] - splitpoints[i]))
     finally:

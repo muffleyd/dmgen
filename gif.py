@@ -26,7 +26,7 @@ class Gif(object):
     """class to alter gif frame timing"""
     def __init__(self, filename):
         if VERBOSE:
-            print 'loading', os.path.relpath(filename)
+            print('loading', os.path.relpath(filename))
         self.filename = filename
         self.data = data = open(filename, 'rb').read()
 ##        assert self.data[:6] == 'GIF89a'
@@ -36,12 +36,12 @@ class Gif(object):
         return '<Gif: "%s" %s>'%(self.filename, self.dims)
     def get_delays(self):
         for i in self.frames:
-            print ord16(self.data[i:i+2]),
+            print(ord16(self.data[i:i+2]), end=' ')
     def frame_delays(self):
         data = self.data
         self.frames = []
         self.framevals = []
-        for i in xrange(len(data)):
+        for i in range(len(data)):
             #0, \x00: end previous block
             #1-3, \x21\xf9\x04: Graphic Control Extension
             #4, next is transparency data
@@ -57,11 +57,11 @@ class Gif(object):
 ##                assert data[i+9] == '\x2c' #new image block after descriptor!
                 self.frames.append(i+5)
                 self.framevals.append(ord16(data[i+5:i+7]))
-        print
+        print()
 
     def set_fps(self, value):
         if VERBOSE:
-            print 'setting FPS to', value
+            print('setting FPS to', value)
         value = check_fpsval(value)
         values = dict()
         value = float(value)
@@ -73,24 +73,24 @@ class Gif(object):
             values[frame].append(i)
         for i in values:
             self.set_delays(i, values[i], False)
-        print 'fps set to %d'%value
+        print('fps set to %d'%value)
         self.save()
 
     def set_delays(self, value, indexs=None, save=True):
         if VERBOSE:
-            print 'setting delay to', value
+            print('setting delay to', value)
         value = check_delayval(value)
         if indexs is None:
             if VERBOSE:
-                print 'for all indexs'
+                print('for all indexs')
             indexs = self.frames
         elif not hasattr(indexs, '__iter__'):
             if VERBOSE:
-                print 'for index(s)', indexs
+                print('for index(s)', indexs)
             indexs = [indexs]
         else:
             if VERBOSE:
-                print 'for indexs', indexs
+                print('for indexs', indexs)
         for i in indexs:
             self.data = stritem_replace(self.data, i, chr16(value), 2)
         if save:
@@ -98,7 +98,7 @@ class Gif(object):
 
     def save(self):
         if VERBOSE:
-            print 'saving', self
+            print('saving', self)
         open(self.filename, 'wb').write(self.data)
 
 def main():
@@ -113,7 +113,7 @@ def main():
             pass
         else:
             if sys.argv[ind+1] == '?':
-                delay = raw_input('delay (3): ') or 3
+                delay = input('delay (3): ') or 3
                 delay = int(delay)
             else:
                 delay = int(sys.argv[ind+1])
@@ -121,8 +121,8 @@ def main():
     else:
         doFPS = True
         if sys.argv[ind+1] == '?':
-            print 'current fps: ', (100.* len(g.framevals) / sum(g.framevals))
-            fps = float(raw_input('fps (30): ') or 30)
+            print('current fps: ', (100.* len(g.framevals) / sum(g.framevals)))
+            fps = float(input('fps (30): ') or 30)
             if fps < 0:
                 doFPS = False
                 fps = -fps 
@@ -136,7 +136,7 @@ def main():
         if '-O=' in i: #force best, it's 2:25am fu
             import opt_gif
             if VERBOSE:
-                print 'optimizing . . .'
+                print('optimizing . . .')
             opt_gif.main(sys.argv[1])
             break
 

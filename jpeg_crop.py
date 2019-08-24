@@ -159,7 +159,7 @@ class jpeg(object):
                     if press[0] in (pygame.KEYDOWN, pygame.KEYUP):
                         key = press[1]
                         if key == pygame.K_RETURN:
-                            print 'saving to', self.targetname or self.filename
+                            print('saving to', self.targetname or self.filename)
                             jpegtran.do2(self.filename, self.targetname, crop_option(unmod_rect(self.rect, self.mod)))
                             r = unmod_rect(self.rect, self.mod)
                             return (r.x, r.y, r.right - self.image.get_width(), r.bottom - self.image.get_height())
@@ -193,8 +193,8 @@ class jpeg(object):
         self.modrect = unmod_rect(self.rect, self.mod)
         tempfilename = filegen.unused_filename(os.path.split(self.filename)[1],
                                                folder=filegen.TEMPfolder)
-        print tempfilename,
-        print jpegtran.jpeg(self.filename, tempfilename, crop_option(self.modrect), False)[1]
+        print(tempfilename, end=' ')
+        print(jpegtran.jpeg(self.filename, tempfilename, crop_option(self.modrect), False)[1])
         try:
             tempjpeg = pg.load_image(tempfilename)
         finally:
@@ -239,7 +239,7 @@ def crop_option(rect):
 def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
     if not hasattr(targets, '__iter__'):
         targets = [targets]
-    print targets
+    print(targets)
     more = []
     import time
     st = None
@@ -287,7 +287,7 @@ def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
                     break
 ##            print 'out'
             for filename, i in ran:
-                print filename
+                print(filename)
                 _ = tw.get(i) #confirm no errors
 if __name__ == '__main__':
     wait = True
@@ -310,5 +310,5 @@ if __name__ == '__main__':
         if wait:
             import traceback
             traceback.print_exc()
-            raw_input('error')
+            input('error')
         raise
