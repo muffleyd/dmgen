@@ -5,13 +5,6 @@ import getpass, itertools, math, random, threading, queue
 import types
 from collections import deque
 ##from filegen import *
-xmap = itertools.imap
-try:
-    import psyco
-except ImportError:
-    psyco = None
-##else:
-##    psyco.full()
 
 hdrive_lock = threading.Lock()
 
@@ -191,12 +184,11 @@ else:
         raise NotImplementedError('requires ffmpeg in expected location on windows')
 
 def divisors(number):
-    fnumber = float(number)
-    return [i for i in range(2, number) if number / i == fnumber / i]
+    return [i for i in range(2, 1 + number//2) if number // i == number / i]
 
 def primerange(limit, primes=None):
     if not primes:
-        primes = [False, True] * (limit/2)
+        primes = [False, True] * (limit//2)
         if limit % 2:
             primes.append(False)
         primes[1] = False
@@ -221,11 +213,11 @@ def factors(num):
     for x in range(2, int(num**.5)+1):
         if not num % x:
             facts.append(x)
-    last = num / facts[-1]
+    last = num // facts[-1]
     if last != facts[-1]:
         facts.append(last)
     for x in facts[:-1:-1]:
-        facts.append(num / x)
+        facts.append(num // x)
     return facts
 
 def filledQueue(length=0, modFill=0):
@@ -263,19 +255,16 @@ def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
     ran = 0
     endtime = 0
     starttime = curtime()
-    if loops:
-        while starttime+ttr > endtime:
-            #run the function loops times if it's a slower function so less of
-            #the runtime is spent getting the current time and adding 1 to ran
-            #test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions
-            for _ in xrange(loops):
-                answer = func(*args, **kwargs)
-            ran += loops
-            endtime = curtime()
-    else:
+    if not loops:
         while starttime+ttr > endtime:
             answer = func(*args, **kwargs)
             ran += 1
+            endtime = curtime()
+    else:
+        while starttime+ttr > endtime:
+            for _ in range(loops):
+                answer = func(*args, **kwargs)
+            ran += loops
             endtime = curtime()
 
     runtime = endtime - starttime
@@ -299,7 +288,7 @@ def test_seconds_prnt(func, args=(), kwargs={}, ttr=None):
 def dims_from_pixels(pixels, format):
     #format is 4/3., 16/9., etc, or None for...
     if format is None: #guessing
-        for form in (4/3., 5/4., 16/9., 16/10., 19/12.):
+        for form in (4/3, 5/4, 16/9, 16/10, 19/12):
             try:
                 return dims_from_pixels(pixels, form)
             except AssertionError:
@@ -429,9 +418,6 @@ def _fibonacci(k):
     _fibonacci_known.append(z)
     return z
 
-def safeaverage(a, b): #(int, int)
-    return (a^b) >= 0 and a + (b-a)/2 or (a+b)/2
-
 def samesign(a, b): #(int, int)
     return a^b >= 0
 
@@ -468,7 +454,7 @@ def binary_search_insert(list, item):
     low = 0
     high = len(list) - 1
     while 1:
-        middle = low + ((high - low) / 2)
+        middle = low + ((high - low) // 2)
         if list[middle] < item:
             low = middle+1
         else:
@@ -496,20 +482,16 @@ def changebase(number, base=10):
         string = ''
         for i in range(int(math.log(number, base)), -1, -1):
             string = __basestr[number%base] + string
-            number /= base
+            number //= base
         return string
     return str(number)
 __basestr = list('0123456789ABCDEFGHIJKLMNOPQRSTUV')
-if psyco:
-    psyco.bind(changebase)
 
 def binarybyte(number): #direct method is fastest :]
-    return ((number/128)&1 and '1' or '0') + ((number/64)&1 and '1' or '0') +\
-           ((number/32)&1 and '1' or '0') + ((number/16)&1 and '1' or '0') +\
-           ((number/8)&1 and '1' or '0') + ((number/4)&1 and '1' or '0') +\
-           ((number/2)&1 and '1' or '0') + (number&1 and '1' or '0')
-if psyco:
-    psyco.bind(binarybyte)
+    return ((number//128)&1 and '1' or '0') + ((number//64)&1 and '1' or '0') +\
+           ((number//32)&1 and '1' or '0') + ((number//16)&1 and '1' or '0') +\
+           ((number//8)&1 and '1' or '0') + ((number//4)&1 and '1' or '0') +\
+           ((number//2)&1 and '1' or '0') + (number&1 and '1' or '0')
 
 def passwordprompt():
     return getpass.getpass()
@@ -980,7 +962,6 @@ def ensure_every_function_works():
         print('* listof')
         assert listof([1,2,3,4,4]) == [1,2,3,4,4]
         assert listof((1,2,3,4,4)) == (1,2,3,4,4)
-        assert listof('aagsawerqwer') == ['aagsawerqwer']
         assert listof(9999999) == [9999999]
         print('* prime range (additive seive)')
         assert primerange(100) == [False, False, True, True, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, True, False, False, False, False, False, True, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False]
@@ -992,10 +973,6 @@ def ensure_every_function_works():
         assert filename_extension('hello', 'world') == 'hello.world'
         assert fibonacci(99) == 218922995834555169026
         assert _fibonacci_known[98] == 135301852344706746049
-        print('* safeaverage')
-        assert safeaverage(1, 5) == 3
-        assert safeaverage(sys.maxsize, 12) == 1073741829
-        assert type(safeaverage(sys.maxsize, 12)) == int
         print('* samesign')
         assert samesign(1,2) == True
         assert samesign(-1,-2) == True
@@ -1056,6 +1033,7 @@ def ensure_every_function_works():
         assert remove_all_of(list(range(10)), [0]) == list(range(1,10))
         assert remove_all_of([9,9,9,9,9,9,9], [9]) == []
         assert remove_all_of([9,9,9,'9',9,9,'9'], [9]) == ['9','9']
+        assert remove_all_of([9,9,9,'9',9,9,'9'], ['9']) == [9,9,9,9,9]
         assert remove_all_of(list(range(10)), list(range(3,6))) == [0,1,2,6,7,8,9]
         print('* randomize_list (1:10000**10000 of test failing when it works, runs 5 times)')
         assert randomize_list(list(range(10000))) != list(range(10000))
@@ -1069,13 +1047,13 @@ def ensure_every_function_works():
 ##    ensure_every_function_works()
 ##
 
-def test_set_cmpr(ttr=1, firstset=True, secondset=False):
+def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
     a = list(range(5))
     b = list(range(15))
-    print(test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2])
-    print(test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2])
-    print(test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr)[:2])
-    print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr)[:2])
+    print(test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr=ttr, loops=10000)[:2])
+    print(test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr=ttr, loops=10000)[:2])
+    print(test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference], ttr=ttr, loops=10000)[:2])
+    print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference], ttr=ttr, loops=10000)[:2])
 
 
 ##def tt():
