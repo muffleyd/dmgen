@@ -15,7 +15,8 @@ except ImportError:
 
 hdrive_lock = threading.Lock()
 
-os.desktop = os.path.join(os.environ.get('HOME'), 'Desktop')
+os.myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
+os.desktop = os.path.join(os.myhome, 'Desktop')
 
 class nested_context:
     def __init__(self, *c):
