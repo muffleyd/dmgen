@@ -252,7 +252,7 @@ def convert_sr_str(s):
     return '\n'.join(finalout[:-1])
 
 TEST_SECONDS_TTR = 0.5
-def test_seconds(func, args=(), kwargs={}, ttr=None):
+def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
     if isinstance(args, dict) and kwargs == {}:
         args, kwargs = (), args
     elif not hasattr(args, '__iter__'):
@@ -262,10 +262,20 @@ def test_seconds(func, args=(), kwargs={}, ttr=None):
     ran = 0
     endtime = 0
     starttime = curtime()
-    while starttime+ttr > endtime:
-        answer = func(*args, **kwargs)
-        ran += 1
-        endtime = curtime()
+    if loops:
+        while starttime+ttr > endtime:
+            #run the function loops times if it's a slower function so less of
+            #the runtime is spent getting the current time and adding 1 to ran
+            #test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions
+            for _ in xrange(loops):
+                answer = func(*args, **kwargs)
+            ran += loops
+            endtime = curtime()
+    else:
+        while starttime+ttr > endtime:
+            answer = func(*args, **kwargs)
+            ran += 1
+            endtime = curtime()
 
     runtime = endtime - starttime
     if runtime:
@@ -557,6 +567,7 @@ def remove_duplicates(it, todo=None):
     data2 = []
     for i in it:
         if i not in done:
+            done.add(i)
             data2.append(i)
     typeit = todo and todo or type(it)
     if typeit == str:
@@ -1010,11 +1021,6 @@ def ensure_every_function_works():
         assert binarybyte(254) == '11111110'
         assert binarybyte(25) == '00011001'
         assert binarybyte(-1) == '11111111'
-        print '* binarybyte2'
-        assert binarybyte2(255) == '11111111'
-        assert binarybyte2(254) == '11111110'
-        assert binarybyte2(25) == '00011001'
-        assert binarybyte2(-1) == '11111111'
         print '* insertevery'
         assert insertevery(changebase(int(2147483647*.8), 2),8) == '11001100 11001100 11001100 1100101'
         print '* strrange'
@@ -1050,8 +1056,12 @@ def ensure_every_function_works():
         assert remove_all_of([9,9,9,9,9,9,9], [9]) == []
         assert remove_all_of([9,9,9,'9',9,9,'9'], [9]) == ['9','9']
         assert remove_all_of(range(10), range(3,6)) == [0,1,2,6,7,8,9]
-        print '* randomize_list (1:1000**1000 of test failing when it works)'
-        assert randomize_list(range(1000)) != range(1000)
+        print('* randomize_list (1:10000**10000 of test failing when it works, runs 5 times)')
+        assert randomize_list(list(range(10000))) != list(range(10000))
+        assert randomize_list(list(range(10000))) != list(range(10000))
+        assert randomize_list(list(range(10000))) != list(range(10000))
+        assert randomize_list(list(range(10000))) != list(range(10000))
+        assert randomize_list(list(range(10000))) != list(range(10000))
     finally:
         tstdin()
 ##if __name__ == '__main__':
