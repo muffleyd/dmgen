@@ -1,7 +1,7 @@
 import os, http.client, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, http.cookiejar, time
 from io import StringIO
 
-__all__ = ['BROWSERHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', '_ungzip_site', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
+__all__ = ['BROWSERHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
 
 try:
     import gzip
@@ -46,17 +46,17 @@ def get_last_modified(response):
             time.mktime(time.strptime(response.headers.get('last-modified'),
                                       "%a, %d %b %Y %H:%M:%S GMT")) or 0)
 
-class _special_response(urllib.addinfourl):
+class _special_response(urllib.response.addinfourl):
     astringio = StringIO() #???
     def __init__(self, obj, gzip=True, data=None, conv_unicode=True):
         if isinstance(obj, (list, tuple)):
-            urllib.addinfourl.__init__(self, self.astringio, {}, obj[0], obj[1])
+            urllib.response.addinfourl.__init__(self, self.astringio, {}, obj[0], obj[1])
         else:
-            urllib.addinfourl.__init__(self, obj.fp, obj.headers, obj.url, obj.code)
+            urllib.response.addinfourl.__init__(self, obj.fp, obj.headers, obj.url, obj.code)
 
         if data is None:
             if gzip:
-                self.data = _ungzip_site(obj)
+                self.data = gzip.decompress(obj.read())
             else:
                 self.data = obj.read()
         else:
@@ -89,8 +89,7 @@ class _special_response(urllib.addinfourl):
             self.index = 0
         else:
             self.index = min(self.after, where)
-def _ungzip_site(obj):
-    return gzip.GzipFile(fileobj=StringIO(obj.read())).read()
+
 
 def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
             dounicode=True, unquote=True, lastmod=0):
