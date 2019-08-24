@@ -199,7 +199,8 @@ def resize_image(filename):
         made_window = False
         if not pygame.display.get_init():
             pygame.init()
-        pic = pygame.image.load(filename).convert(32)
+        pygame.display.set_mode((1,1))
+        pic = pygame.image.load(filename).convert_alpha()
         curdims = list(pic.get_size())
         while 1:
             newdims = curdims[:]
