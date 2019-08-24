@@ -520,14 +520,17 @@ def thread_map2(data, func, threads=1, toput=None,
     index = 1
     done = False
     with threaded_worker(_thread_map2_put, 1, max_pending, max_done_stored) as putter:
-        with threaded_worker(func, threads) as tw:
+        with threaded_worker(func, threads, max_pending, max_done_stored) as tw:
             mainput = putter.put(tw, data, toput, *args, **kwargs)
             while tw.check(index) is None:
                 pass #loops until the first item is started
             while 1:
+                #if not done and putter not found to be done
                 if not done and putter.check(mainput):
+                    #set todo with the number of items put into tw
                     todo += putter.get(mainput)
                     done = True
+                #if putter is done and todo is back to 0, end it
                 if done and not todo:
                     break
                 if order:

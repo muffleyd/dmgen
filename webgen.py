@@ -27,7 +27,7 @@ CHARSET = {}#'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
 BROWSERHEADER = {}
 def enable_firefox_mode():
     global BROWSERHEADER
-    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.17) Gecko/2009122116 Firefox/3.0.17 (.NET CLR 3.5.30729)'
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0'
 def disable_firefox_mode():
     global BROWSERHEADER
     del BROWSERHEADER['User-Agent']
@@ -35,7 +35,7 @@ enable_firefox_mode()
 
 def enable_chrome_mode():
     global BROWSERHEADER
-    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'
 def disable_chrome_mode():
     global BROWSERHEADER
     del BROWSERHEADER['User-Agent']

@@ -346,6 +346,7 @@ def do_many(files, depth=5, threads=CORES):
                 worker.put(filename, inworker, depth, alsoreturn=index)
             for x in xrange(len(files)):
                 try:
+                    front = filename = ''
                     options, alsoreturn = worker.get()
                     
                     index = alsoreturn[0]
@@ -387,7 +388,7 @@ def main(filename, threads=0, depth=5):
             if filename[-4:].lower() != '.png':
                 os.remove(filename)
         else:
-            do_many([i for i in filegen.ifiles_in(filename) if is_png(i)], threads, int(depth))
+            do_many([i for i in filegen.ifiles_in(filename) if is_png(i)], int(depth), threads)
     else:
         raise ValueError('File not found %s'%filename)
 
