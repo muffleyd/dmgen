@@ -402,7 +402,7 @@ def _ifiles_in_scandir(directory, exclude):
             continue
         yield onefile
     for dir in folders:
-        for i in _ifiles_in_scandir(directory + dir, exclude):
+        for i in _ifiles_in_scandir(dir, exclude):
             yield i
 
 def files_in_scandir(directory='', exclude=[]):
