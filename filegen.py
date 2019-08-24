@@ -375,6 +375,40 @@ def files_in(directory='', exclude=[]):
     #returns a list of every file in directory and it's subdirectories
     return list(ifiles_in(directory, '','', exclude))
 
+#yields scandir objects for each file in a directory and its children
+def ifiles_in_scandir(directory='.', exclude=[]): #generator for files_in_scandir
+    if not scandir:
+        raise ImportError('files_in_scandir requires scandir package')
+    if type(exclude) != set:
+        exclude = set(isinstance(exclude, basestring) and [exclude] or exclude)
+    if not directory:
+        directory = '.'
+    for i in _ifiles_in_scandir(directory, exclude):
+        yield i
+
+def _ifiles_in_scandir(directory, exclude):
+    walker = scandir.scandir(directory)
+    if directory == '.' or not directory:
+        directory = ''
+    else:
+        directory += os.path.sep
+    folders = []
+    for onefile in walker:
+        for e in exclude:
+            if e in onefile.name:
+                continue
+        if onefile.is_dir():
+            folders.append(onefile.path)
+            continue
+        yield onefile
+    for dir in folders:
+        for i in _ifiles_in_scandir(directory + dir, exclude):
+            yield i
+
+def files_in_scandir(directory='', exclude=[]):
+    #returns a list of every item yielded from ifiles_in_scandir()
+    return list(ifiles_in_scandir(directory, exclude))
+
 def listfolders(directory='.'):
     path = os.path
     return [i for i in os.listdir(directory) if not path.isfile(path.join(directory, i))]
