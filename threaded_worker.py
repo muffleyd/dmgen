@@ -29,27 +29,23 @@ except ImportError:
             return z
 
         def remove(self, item):
-            self.not_empty.acquire()
-            try:
+            with self.not_empty:
                 self.queue.remove(item)
                 self.not_full.notify()
-            finally:
-                self.not_empty.release()
             self.task_done()
 
         def put(self, item, block=True, timeout=None, head=False):
-            """Put an item into the queue.
+            '''Put an item into the queue.
 
             If optional args 'block' is true and 'timeout' is None (the default),
             block if necessary until a free slot is available. If 'timeout' is
-            a positive number, it blocks at most 'timeout' seconds and raises
+            a non-negative number, it blocks at most 'timeout' seconds and raises
             the Full exception if no free slot was available within that time.
             Otherwise ('block' is false), put an item on the queue if a free slot
             is immediately available, else raise the Full exception ('timeout'
             is ignored in that case).
-            """
-            self.not_full.acquire()
-            try:
+            '''
+            with self.not_full:
                 if self.maxsize > 0:
                     if not block:
                         if self._qsize() == self.maxsize:
@@ -72,12 +68,7 @@ except ImportError:
                     self._put(item)
                 self.unfinished_tasks += 1
                 self.not_empty.notify()
-            finally:
-                self.not_full.release()
 
-        # Put a new item in the queue
-        def _put(self, item):
-            self.queue.append(item)
         # Put a new item at the head of the queue
         def _puthead(self, item):
             self.queue.appendleft(item)
@@ -561,9 +552,9 @@ def test(fname='readme.txt'):
         _ = w.get(r)
         try:
             _ = w.get(r2)
-        except IOError as a:
-            if a.args != (2, 'No such file or directory'):
-                raise
+        except FileNotFoundError as a:
+            # File expected to be not found!
+            pass
         print('success!')
 ##        print w.get(r)
 ##        del _
