@@ -57,10 +57,10 @@ def main(file, colormod=.5):
         shutil.copy(file, z)
         z = os.path.abspath(z)
         os.chdir(z)
-        print 'exploding'
+        print('exploding')
         os.system(GIFOUT_EXE_PATH + ' -e ' + tar)
         os.remove(tar)
-        print 'recoloring'
+        print('recoloring')
         for ind, i in enumerate(os.listdir('.')):
             out = 'm_' + i
             if not ind:
@@ -71,7 +71,7 @@ def main(file, colormod=.5):
             else:
                 colors = colormod
             os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s'%(colors, i, out))
-        print 'imploding'
+        print('imploding')
         os.system(GIFOUT_EXE_PATH + ' -m m_* > a.gif')
         tar_base = os.path.splitext(tar)[0]
         new = os.path.join(initfolder, tar_base + '_r.gif')
@@ -86,8 +86,8 @@ def main(file, colormod=.5):
 
 if __name__ == '__main__':
     try:
-        main(sys.argv[1], float(raw_input('colormod (0.5): ') or .5))
+        main(sys.argv[1], float(input('colormod (0.5): ') or .5))
     except:
         import traceback
         traceback.print_exc()
-        raw_input('done')
+        input('done')

@@ -56,14 +56,14 @@ def main():
                 l.append(tw.put(i, os.path.join(tarfolder, gen.unused_filename(folder=tarfolder)),
                                 os.path.join(tarfolder, gen.unused_filename(folder=tarfolder, ending='.zip'))))
         with gen.timer():
-            for i in xrange(len(l)):
+            for i in range(len(l)):
                 try:
                     name, out, err = tw.get()
                 except:
                     continue
-                print name
+                print(name)
                 if err:
-                    print >>sys.stderr, err
+                    print(err, file=sys.stderr)
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1][-4:].lower() == '.zip':

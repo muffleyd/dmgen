@@ -65,8 +65,8 @@ def re7zip(zipfile, processing=None):
                 os.rename(tempzipfile, zipfile)
             else:
                 os.remove(tempzipfile)
-    except Exception,e:
-        print e
+    except Exception as e:
+        print(e)
         raise
     finally:
         if os.path.exists(tempfolder):

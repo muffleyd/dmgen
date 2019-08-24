@@ -21,14 +21,14 @@ def do_many(files, *options):
         for i in files:
             num += 1
             tw.put(i, *options, alsoreturn=i)
-        for i in xrange(num):
+        for i in range(num):
             diff, filename = tw.get()
             filename = filename[0]
             if diff == 0:
                 diff = 'smaller'
             else:
                 diff = 'not smaller'
-            print '%d/%d %s: %s'%(i+1, len(files), diff, filename)
+            print('%d/%d %s: %s'%(i+1, len(files), diff, filename))
 
 def main(filename, *options):
 ##    print filename, options
@@ -43,7 +43,7 @@ def main(filename, *options):
 ##            print '%s %s'%(filename, tempcopy_filename)
             os.rename(filename, tempcopy_filename)
             try:
-                for i in xrange(10):
+                for i in range(10):
                     try:
                         os.rename(tofilename, filename)
                         break

@@ -34,7 +34,7 @@ def zipinsert(filename, zipfilename=None, removeArchivedFile=False,
         if os.path.isfile(filename):
             temp = os.path.split(filename)
             if dryrun:
-                print temp,
+                print(temp, end=' ')
             BASE, filename = os.path.split(temp[0])
             filename = os.path.join(filename, temp[1])
         else:
@@ -46,7 +46,7 @@ def zipinsert(filename, zipfilename=None, removeArchivedFile=False,
             BASE, filename = filename, ''
 
     if dryrun:
-        print BASE, filename, '-->', zipfilename
+        print(BASE, filename, '-->', zipfilename)
         _zipinsert(BASE, filename, zipfilename, compress, dryrun)
 
     else:
@@ -81,7 +81,7 @@ def _zipinsert(BASE, filename, zip, compress, dryrun=False):
         totalname = totalname[:-1]
 ##    print totalname
     if dryrun:
-        print totalname, filename#, not compress and os.path.splitext(filename)[1] in COMPRESSTYPES or False
+        print(totalname, filename)#, not compress and os.path.splitext(filename)[1] in COMPRESSTYPES or False
     isthiszip = os.path.abspath(totalname)
     thiszip = os.path.abspath(dryrun and zip or zip.filename)
     if thiszip == isthiszip:
