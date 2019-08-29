@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import threaded_worker
 import filegen
@@ -73,7 +74,7 @@ def do2(filename, target=None, options='', tw=None):
                 out += '\nError: ' + err
         if newfile:
             os.remove(filename)
-            os.rename(newfile, target)
+            shutil.move(newfile, target)
     finally:
         if tw is None:
             _tw.close(wait=1)
