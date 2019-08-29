@@ -21,7 +21,7 @@ elif os.name == 'posix':
 else:
     PREFIX = ''
 
-myhome = os.environ.get('HOME')
+myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
 PNGOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'pngout.exe')
 
 def pngout(filename, destfilename=None, options=''):

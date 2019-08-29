@@ -6,8 +6,8 @@ from cores import CORES
 import traceback
 
 JPEGTRAN_EXE_PATH = ''
-myhome = os.environ.get('HOME')
 if os.name == 'nt':
+    myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
     JPEGTRAN_EXE_PATH = os.path.join(myhome, 'Desktop', 'jpegtran.exe')
 if not os.path.exists(JPEGTRAN_EXE_PATH):
     JPEGTRAN_EXE_PATH = 'jpegtran'

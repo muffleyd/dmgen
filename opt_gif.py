@@ -4,7 +4,7 @@ import filegen
 import cores
 import threaded_worker
 
-myhome = os.environ.get('HOME')
+myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
 GIFOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'gifsicle.exe')
 def gif(filename, destfilename, options=None):
 ##    print 'start %s'%filename

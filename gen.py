@@ -8,7 +8,8 @@ from collections import deque
 
 hdrive_lock = threading.Lock()
 
-os.desktop = os.path.join(os.environ.get('HOME'), 'Desktop')
+os.myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
+os.desktop = os.path.join(os.myhome, 'Desktop')
 
 class nested_context:
     def __init__(self, *c):
@@ -254,16 +255,19 @@ def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
     ran = 0
     endtime = 0
     starttime = curtime()
-    if not loops:
+    if loops:
         while starttime+ttr > endtime:
-            answer = func(*args, **kwargs)
-            ran += 1
+            #run the function loops times if it's a slower function so less of
+            #the runtime is spent getting the current time and adding 1 to ran
+            #test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions
+            for _ in xrange(loops):
+                answer = func(*args, **kwargs)
+            ran += loops
             endtime = curtime()
     else:
         while starttime+ttr > endtime:
-            for _ in range(loops):
-                answer = func(*args, **kwargs)
-            ran += loops
+            answer = func(*args, **kwargs)
+            ran += 1
             endtime = curtime()
 
     runtime = endtime - starttime
