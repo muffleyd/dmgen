@@ -5,9 +5,9 @@ VERBOSE = True
 
 #between 0 and 65535
 def chr16(num):
-    return chr(num%256) + chr(num/256)
+    return bytes((num % 256, num // 256))
 def ord16(letters):
-    return ord(letters[0]) + ord(letters[1])*256
+    return letters[0] + (letters[1] * 256)
 
 def check_fpsval(value):
     return value
@@ -51,23 +51,21 @@ class Gif(object):
             #9, start of next block
     #now once every 2**47 bits this will be a false positive.
     #what to do about it
-            if (data[i:i+4] == '\x00\x21\xf9\x04' and data[i+8] == '\x00'
-                and data[i+9] in ('\x21', '\x2c')):
-##                print i+5,
+            if (data[i:i+4] == b'\x00\x21\xf9\x04' and data[i+8] == 0
+                and data[i+9] in (33, 44)):
+##                print(data[i+9], end=' ')
 ##                assert data[i+9] == '\x2c' #new image block after descriptor!
                 self.frames.append(i+5)
                 self.framevals.append(ord16(data[i+5:i+7]))
-        print()
 
     def set_fps(self, value):
         if VERBOSE:
             print('setting FPS to', value)
         value = check_fpsval(value)
-        values = dict()
-        value = float(value)
+        values = {}
         last = 0
-        for ind,i in enumerate(self.frames):
-            frame = int(round((ind+1) / value * 100)) - last
+        for ind, i in enumerate(self.frames):            
+            frame = round((ind+1) / value * 100) - last
             last += frame
             values.setdefault(frame, [])
             values[frame].append(i)
@@ -121,7 +119,7 @@ def main():
     else:
         doFPS = True
         if sys.argv[ind+1] == '?':
-            print('current fps: ', (100.* len(g.framevals) / sum(g.framevals)))
+            print('current fps: ', (100 * len(g.framevals) / sum(g.framevals)))
             fps = float(input('fps (30): ') or 30)
             if fps < 0:
                 doFPS = False
