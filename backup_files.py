@@ -137,7 +137,7 @@ def print_(worker, info):
     def newfile(e):
         originalsize = os.stat(e.file)[6]
         destsize = os.path.exists(e.dest) and os.stat(e.dest)[6] or 0
-        perc = not originalsize and 100 or 100 * destsize / float(originalsize)
+        perc = not originalsize and 100 or (100 * destsize / originalsize)
         return '%s: %s/%s (%.2f%%)'%(e.file, destsize, originalsize, perc)
     def skipfile(e):
         return 'file: %s (SKIPPING)'%e.file
@@ -160,7 +160,7 @@ def print_(worker, info):
     if info:
         import filegen
         def mk_num(val, by=1024):
-            val /= by
+            val //= by
             return '%s%s'%(val < 0 and '-' or '', gen.rinsertevery(abs(val), 3, ','))
         def info_dir(where):
             size = 0
