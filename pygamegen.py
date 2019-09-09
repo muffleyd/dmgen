@@ -61,7 +61,7 @@ def _levels_sqrt(rgba, pwr=.5):
             a)
 def _levels_prep(rgba):
     r, g, b, a = rgba
-    return max(r, g, b), (r+g+b) / 3
+    return max(r, g, b), (r+g+b) // 3
 #alter image by some function (see _levels_*() above)
 def levels(image, level, *args, **kwargs):
     if isinstance(image, str):
@@ -91,20 +91,18 @@ def replace_color(image, color1, color2, empty=False):
 def mk_bw(pic):
     if isinstance(pic, str):
         pic = pygame.image.load(pic)
-    newl = []
+    newl = bytearray()
     iterpic = iter(pygame.image.tostring(pic, 'RGB'))
 ##    alpha = pic.get_alpha() is not None
     itern = iterpic.__next__
     for p in iterpic:
-        rgb = ord(p)
-        rgb += ord(itern())
-        rgb += ord(itern())
+        rgb = p + itern() + itern()
 ##        if alpha:
 ##        itern() #alpha, ignore
         if rgb%3 == 2:
             rgb += 1
-        newl.append(chr(rgb / 3))
-    new = pygame.image.frombuffer(''.join(newl), pic.get_size(), 'P')
+        newl.append(rgb // 3)
+    new = pygame.image.frombuffer(newl, pic.get_size(), 'P')
     try:
         new.set_palette([(i, i, i) for i in range(256)])
     except:
@@ -117,8 +115,8 @@ def mk_bw(pic):
 
 def fit_to(image, dims=(1920, 1080)):
     width, height = image.get_size()
-    w = float(dims[0]) / width
-    h = float(dims[1]) / height
+    w = dims[0] / width
+    h = dims[1] / height
     if w < h:
         if w > 1:
             return image
@@ -164,8 +162,8 @@ def avg_surf(s):
         for i in z[color::3]:
             c += ord(i)
         rgb[color] = c
-    size = len(z) / 3
-    return tuple(i / size for i in rgb)
+    size = len(z) // 3
+    return tuple(i // size for i in rgb)
 
 def avg_surf_less_mem(s):
     rgb = [0,0,0]
@@ -175,8 +173,8 @@ def avg_surf_less_mem(s):
         for i in range(color, len(z), 3):
             c += ord(z[i])
         rgb[color] = c
-    size = len(z) / 3
-    return tuple(i / size for i in rgb)
+    size = len(z) // 3
+    return tuple(i // size for i in rgb)
 
 def iter_surf(surface):
     for x in range(surface.get_width()):
@@ -185,12 +183,12 @@ def iter_surf(surface):
 
 def iter_surf_pieces(surface, pieces=1):
     for i in range(pieces):
-        for x in range(surface.get_width()/pieces*i,
-                        surface.get_width()/pieces*(i+1)):
+        for x in range(surface.get_width() // pieces * i,
+                        surface.get_width() // pieces * (i + 1)):
             for j in range(pieces):
-                for y in range(surface.get_height()/pieces*j,
-                                surface.get_height()/pieces*(j+1)):
-                    yield x, y, i+j
+                for y in range(surface.get_height() // pieces * j,
+                                surface.get_height() // pieces * (j + 1)):
+                    yield x, y, i + j
 
 
 def resize_image(filename):
@@ -206,17 +204,19 @@ def resize_image(filename):
             view_pic(pic)
             choice = gen.menu('cur dims: %s'%str(curdims),
                               'width,, height,, percent', numbers=1)
-            val = input('number: ')
+            val = ''
+            while not val:
+                val = input('number: ')
+            val = float(val)
             if choice in (1,2):
-                val = int(round(float(val)))
+                val = int(round(val))
                 if choice == 1:
                     newdims[0] = val
-                    newdims[1] = int(curdims[1] * (float(val) / float(curdims[0])))
+                    newdims[1] = int(curdims[1] * (val / curdims[0]))
                 else:
                     newdims[1] = val
-                    newdims[0] = int(curdims[0] * (float(val) / float(curdims[1])))
+                    newdims[0] = int(curdims[0] * (val / curdims[1]))
             else: #percent
-                val = float(val)
                 newdims[0] = int(newdims[0] * val)
                 newdims[1] = int(newdims[1] * val)
             view_pic(pygame.transform.smoothscale(pic, newdims))
@@ -261,12 +261,12 @@ def aacircle(surface, color, pos, radius, width=0, mod=4):
         _surface = pygame.Surface((radius*2, radius*2))
     else:
         _surface = surface
-    surf = pygame.Surface((_surface.get_width()*mod, _surface.get_height()*mod))
-    pygame.draw.circle(surf, color, (surf.get_width()/2, surf.get_height()/2),
+    surf = pygame.Surface((_surface.get_width() * mod, _surface.get_height() * mod))
+    pygame.draw.circle(surf, color, (surf.get_width() // 2, surf.get_height() // 2),
                        radius * mod, width * mod)
     surf = pygame.transform.smoothscale(surf, _surface.get_size())
 ##    surf = pygame.transform.rotozoom(surf, 0, 1./mod)
-    _surface.blit(surf, (pos[0]-radius, pos[1]-radius, radius*2, radius*2))
+    _surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
     if surface is None:
         return _surface
 def str_getat(string, dims):pass
@@ -279,9 +279,9 @@ def img_diff(one, two, empty=(0, 130, 0)):
     size = one.get_size()
     assert size == two.get_size()
     if len(empty) == 3:
-        empty = ''.join((chr(empty[0]), chr(empty[1]), chr(empty[2]), chr(255)))
+        empty = (empty[0], empty[1], empty[2], 255)
     pixels = size[0] * size[1]
-    newone = list(empty * pixels)
+    newone = bytearray(empty * pixels)
     newtwo = newone[:]
 ##    print len(n), len(n[0]), len(n[0][0]), size
     onen = iter(pygame.image.tostring(one, 'RGBA')).__next__
@@ -290,11 +290,11 @@ def img_diff(one, two, empty=(0, 130, 0)):
         first_rgba = onen(), onen(), onen(), onen()
         second_rgba = twon(), twon(), twon(), twon()
         if first_rgba != second_rgba:
-##            print first_rgba, second_rgba, len(newone) / size[0], len(newone) % size[1]
+##            print(first_rgba, second_rgba, len(newone) // size[0], len(newone) % size[1])
             newone[xy:xy+4] = first_rgba
             newtwo[xy:xy+4] = second_rgba
-    return (pygame.image.frombuffer(''.join(newone), size, 'RGBA'),
-            pygame.image.frombuffer(''.join(newtwo), size, 'RGBA'))
+    return (pygame.image.frombuffer(newone, size, 'RGBA'),
+            pygame.image.frombuffer(newtwo, size, 'RGBA'))
 
 def _colors_in(pic, includealpha=False):
     if isinstance(pic, str):
@@ -311,8 +311,7 @@ def num_colors_in(pic, includealpha=False):
     return len(_colors_in(pic, includealpha))
 
 def colors_in(pic, includealpha=False):
-    return [tuple(ord(i) for i in indivs) for indivs in
-            _colors_in(pic, includealpha)]
+    return [tuple(indivs) for indivs in _colors_in(pic, includealpha)]
 
 def colors_info(pic, includealpha=False):
     if isinstance(pic, str):
@@ -329,7 +328,7 @@ def colors_info(pic, includealpha=False):
         color = data[i:i+mod]
         mapped = color_lookup.get(color)
         if not mapped:
-            mapped = tuple(ord(i) for i in color)
+            mapped = tuple(color)
             color_lookup[color] = mapped
 ##        print color, mapped
         if mapped not in ret:
@@ -435,7 +434,7 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     size = [0, 0]
     if not isinstance(title, bool):
         TITLE = title
-    if (not isinstance(pic, types.InstanceType) and
+    if (type(pic) != str and
         hasattr(type(pic), '__iter__')):
         if isinstance(title, str):
             TITLE = title
@@ -809,8 +808,8 @@ def draw_to(image, dest, x=None, y=None):
 
 def impose_pic(base, ontop): #optimize this, pygame.display.update(dirty_rects)
         #meh, who cares
-    if pygame.display.get_init() and pygame.display.get_surface() and\
-       pygame.display.get_surface().get_size() == base.get_size():
+    if (pygame.display.get_init() and pygame.display.get_surface() and
+        pygame.display.get_surface().get_size() == base.get_size()):
         s = pygame.display.get_surface()
     else:
         s = pygame.display.set_mode((base.get_width(), base.get_height()))
@@ -892,9 +891,9 @@ def compare_surfs(one, two):
             #last piece seems to be wrong at (200, 200).. sometimes
             if one.get_size() == (100, 100): #strange error
                 return compare_surfs_fallback(one, two)
-            midx = one.get_width() / 2
+            midx = one.get_width() // 2
             xodd = one.get_width() % 2
-            midy = one.get_height() / 2
+            midy = one.get_height() // 2
             yodd = one.get_height() % 2
 ##            print midx, midy
             return (compare_surfs(one.subsurface((0, 0, midx, midy)),
@@ -927,21 +926,17 @@ def tostring(surf, format=None, flipped=False, justdata=False):
     strformat = formatmapping[format]
     data = pygame.image.tostring(surf, format, flipped)
     if format == 'P':
-        top = '\x00'
-        for p in data:
-            if p > top:
-                top = p
-        top = ord(top)
+        top = max(data)
         arraypal = array.array('B', (top,)) #code should = 'c'?
         palettedata = surf.get_palette()
         for p in range(top + 1):
             arraypal.extend(palettedata[p])
-        palette = arraypal.tostring()
+        palette = arraypal
     else:
-        palette = ''
+        palette = b''
     if justdata:
         return data
-    return width + height + strformat + palette + data
+    return width + height + bytes(strformat, 'ascii') + palette + data
 
 def loadfromstring(f):
     if isinstance(f, str):
@@ -955,14 +950,14 @@ def fromstringF(f):
         print(f.name)
         raise
     height = struct.unpack('h', fread(2))[0]
-    format = formatunmapping[fread(1)]
+    format = formatunmapping[chr(fread(1))]
     if format == 'P':
-        pallen = ord(fread(1)) + 1
+        pallen = fread(1) + 1
         palette = [None] * pallen
         palarray = iter(array.array('B', fread(pallen * 3))).__next__
         for p in range(pallen):
             palette[p] = (palarray(), palarray(), palarray())
-    surf = pygame.image.frombuffer(buffer(fread()), (width, height), format)
+    surf = pygame.image.frombuffer(memoryview(fread()), (width, height), format)
     if format == 'P':
         surf.set_palette(palette)
     return surf
@@ -970,9 +965,9 @@ def fromstringF(f):
 def fromstring(f):
     width = struct.unpack('h', f[:2])[0]
     height = struct.unpack('h', f[2:4])[0]
-    format = formatunmapping[f[4]]
+    format = formatunmapping[chr(f[4])]
     if format == 'P':
-        pallen = ord(f[5]) + 1
+        pallen = f[5] + 1
         palette = [None] * pallen
         paletteend = 6 + (pallen*3)
         palarray = iter(array.array('B', f[6:paletteend])).__next__
@@ -980,7 +975,7 @@ def fromstring(f):
             palette[p] = (palarray(), palarray(), palarray())
     else:
         paletteend = 5
-    surf = pygame.image.frombuffer(buffer(f, paletteend), (width, height),
+    surf = pygame.image.frombuffer(memoryview(f[paletteend:]), (width, height),
                                    format)
     if format == 'P':
         surf.set_palette(palette)
