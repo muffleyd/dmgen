@@ -1,4 +1,5 @@
 import os, zipfile, shutil
+from filegen import unused_filename
 
 def zipstr(string, zipfilename, inarchivename=None):
     """string can be a string or a file-like object"""
@@ -6,11 +7,10 @@ def zipstr(string, zipfilename, inarchivename=None):
         string = string.read()
     if not inarchivename:
         inarchivename = zipfilename[:-4] #assuming it's blah.zip
-    zip = zipfile.ZipFile(zipfilename,
-             os.path.exists(zipfilename) and 'a' or 'w',
-             zipfile.ZIP_DEFLATED)
-    zip.writestr(inarchivename, string)
-    zip.close()
+    with zipfile.ZipFile(zipfilename,
+                         os.path.exists(zipfilename) and 'a' or 'w',
+                         zipfile.ZIP_DEFLATED) as zip:
+        zip.writestr(inarchivename, string)
 
 NOCOMPRESSTYPES = '.gz', '.bz2', '.zip', '.rar', '.png', '.mp3', '.ogg', '.tar'
 def zipinsert(filename, zipfilename=None, removeArchivedFile=False,
@@ -109,27 +109,22 @@ def zipremove(zipfilename, *stufftoremove):
 #if the end result is no files in zipfile, remove the zipfile
 #this rewrites the whole .zip file, can't just remove pieces /sigh
     """Removes files from a zip file."""
-    zip = zipfile.ZipFile(zipfilename)
-    comp = zipcompressionof(zip)
-    stufftokeep = zip.namelist()
-    if len(stufftoremove) == 1 and hasattr(stufftoremove[0], '__iter__'):
-        stufftoremove = stufftoremove[0]
-    for i in stufftoremove:
-        try:
-            stufftokeep.remove(i)
-        except ValueError:
-            pass
-    if stufftokeep == zip.namelist(): #what is to be removed isn't in here
-        return
-    zip2 = zipfile.ZipFile(unused_filename('.zip'), 'w', comp, zip._allowZip64)
-    for i in stufftokeep:
-        if i[-1] == '/': #it's a folder!
-            continue
-        zip2.writestr(i, zip.read(i))
-    zip.close()
-    zip2.close()
-    os.remove(zipfilename)
-    os.rename(zip2.filename, zipfilename)
+    with zipfile.ZipFile(zipfilename) as zip:
+        comp = zipcompressionof(zip)
+        stufftokeep = zip.namelist()
+        for i in stufftoremove:
+            try:
+                stufftokeep.remove(i)
+            except ValueError:
+                pass
+        if stufftokeep == zip.namelist(): #what is to be removed isn't in here
+            return
+        with zipfile.ZipFile(unused_filename('.zip'), 'w', comp, zip._allowZip64) as zip2:
+            for i in stufftokeep:
+                if i[-1] == '/': #it's a folder!
+                    continue
+                zip2.writestr(i, zip.read(i))
+    shutil.move(zip2.filename, zipfilename)
 
 def zipunzip(zipfilename, files=None, destfolder='.'):
     """zipunzip(zipfilename[, files=everything])
@@ -138,15 +133,12 @@ def zipunzip(zipfilename, files=None, destfolder='.'):
 
     base_path, filename = os.path.split(zipfilename)
     base_path = os.path.join(base_path, destfolder)
-    zip = zipfile.ZipFile(zipfilename)
-    if files is None:
-        files = zip.namelist()
+    with zipfile.ZipFile(zipfilename) as zip:
+        if files is None:
+            files = zip.namelist()
 
-    if not os.path.exists(base_path):
-        os.makedirs(base_path)
-    try:
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
         for i in files:
             if i.split('/')[-1]:
                 zip.extract(i, base_path)
-    finally:
-        zip.close()
