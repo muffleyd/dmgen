@@ -75,7 +75,6 @@ def levels(image, level, *args, **kwargs):
         image.set_at(i, newrgba)
 ##        if image.get_at(i) != rgba:
 ##            print i, rgba, image.get_at(i)
-    print z
     return image
 
 def replace_color(image, color1, color2, empty=False):
