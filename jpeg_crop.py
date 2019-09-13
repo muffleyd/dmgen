@@ -22,15 +22,15 @@ def mod_image(image, rect, mod):
         rect = mod_rect(rect, mod)
     return image, rect
 def mod_rect(rect, mod):
-    return pygame.Rect(int(round(rect.x * mod)),
-                       int(round(rect.y * mod)),
-                       int(round(rect.width * mod)),
-                       int(round(rect.height * mod)))
+    return pygame.Rect(round(rect.x * mod),
+                       round(rect.y * mod),
+                       round(rect.width * mod),
+                       round(rect.height * mod))
 def unmod_rect(rect, mod):
-    return pygame.Rect(int(round(rect.x / mod)),
-                       int(round(rect.y / mod)),
-                       int(round(rect.width / mod)),
-                       int(round(rect.height / mod)))
+    return pygame.Rect(round(rect.x / mod),
+                       round(rect.y / mod),
+                       round(rect.width / mod),
+                       round(rect.height / mod))
 
 class jpeg(object):
     def __init__(self, filename, action=None, targetname=None, *attrs):
