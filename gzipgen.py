@@ -1,7 +1,7 @@
 import os, gzip
 try:
     import tarfile
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
     tarfile = None
 FILE_APPENDAGE = '.gz'
@@ -20,7 +20,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
               compress_by=9):
     """Compresses 1 file (filename) into a GZIP file.
     """
-    if isinstance(filename, basestring):
+    if isinstance(filename, str):
         if not os.path.isfile(filename):
             raise IOError('File not found %s.'%filename)
         filename = os.path.abspath(filename)
@@ -42,7 +42,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
 
     if isinstance(gzfilename, gzip.GzipFile):
         zip = gzfilename
-    elif isinstance(gzfilename, basestring):
+    elif isinstance(gzfilename, str):
         zip = gzip.GzipFile(gzfilename, 'w', compress_by)
     else: #a file-like object
         zip = gzip.GzipFile(None, 'w', compress_by, gzfilename)
@@ -65,7 +65,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
         if filename is not str:
             file.close()
 
-    if removeArchivedFile and isinstance(filename, basestring):
+    if removeArchivedFile and isinstance(filename, str):
         os.remove(filename)
 def gzuncompress(gzfile, outputfile=None):
     """gzuncompress(gzfilename[, outputfile=gzfilename[:-3]])
@@ -80,14 +80,14 @@ def gzuncompress(gzfile, outputfile=None):
         zip = gzfile
         if outputfile is None:
             outputfile = zip.filename[:-len(FILE_APPENDAGE)]
-    elif isinstance(gzfile, basestring):
+    elif isinstance(gzfile, str):
         zip = gzip.GzipFile(gzfile, 'r')
         if outputfile is None:
             outputfile = gzfile[:-len(FILE_APPENDAGE)]
     else: #a file-type object or bust
         zip = gzip.GzipFile(fileobj=gzfile)
 
-    if isinstance(outputfile, basestring):
+    if isinstance(outputfile, str):
         out = open(outputfile, 'wb')
         base_path = os.path.split(outputfile)[0]
         if base_path and not os.path.exists(base_path):
@@ -102,11 +102,11 @@ def gzuncompress(gzfile, outputfile=None):
     try:
         out.write(zip.read())
     except:
-        if isinstance(outputfile, basestring):
+        if isinstance(outputfile, str):
             out.close()
             os.remove(outputfile)
     else:
-        if isinstance(outputfile, basestring):
+        if isinstance(outputfile, str):
             out.close()
     finally:
         zip.close()

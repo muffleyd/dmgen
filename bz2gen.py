@@ -2,7 +2,7 @@ import os, bz2
 FILE_APPENDAGE = '.bz2'
 
 def bz2compress(filename, bz2filename=None, removeArchivedFile=False,
-              buffering=0, compress_by=9):
+              buffering=None, compress_by=9):
     """Compresses 1 file (filename) into a BZ2 file.
     """
     if not os.path.isfile(filename):
@@ -30,7 +30,7 @@ def bz2compress(filename, bz2filename=None, removeArchivedFile=False,
     if removeArchivedFile:
         os.remove(filename)
 
-def bz2uncompress(bz2filename, outputfile=None, buffering=0):
+def bz2uncompress(bz2filename, outputfile=None, buffering=None):
     """bz2uncompress(bz2filename[, outputfile=bz2filename[:-4]])
 
     Extracts file from bz2filename."""

@@ -5,7 +5,7 @@ import time
 import types
 import struct
 import array
-from cStringIO import StringIO
+from io import StringIO
 
 import pygame
 
@@ -61,10 +61,10 @@ def _levels_sqrt(rgba, pwr=.5):
             a)
 def _levels_prep(rgba):
     r, g, b, a = rgba
-    return max(r, g, b), (r+g+b) / 3
+    return max(r, g, b), (r+g+b) // 3
 #alter image by some function (see _levels_*() above)
 def levels(image, level, *args, **kwargs):
-    if isinstance(image, basestring):
+    if isinstance(image, str):
         image = pygame.image.load(image)
     else:
         image = image.copy()
@@ -89,36 +89,34 @@ def replace_color(image, color1, color2, empty=False):
     return image2
 
 def mk_bw(pic):
-    if isinstance(pic, basestring):
+    if isinstance(pic, str):
         pic = pygame.image.load(pic)
-    newl = []
+    newl = bytearray()
     iterpic = iter(pygame.image.tostring(pic, 'RGB'))
 ##    alpha = pic.get_alpha() is not None
-    itern = iterpic.next
+    itern = iterpic.__next__
     for p in iterpic:
-        rgb = ord(p)
-        rgb += ord(itern())
-        rgb += ord(itern())
+        rgb = p + itern() + itern()
 ##        if alpha:
 ##        itern() #alpha, ignore
         if rgb%3 == 2:
             rgb += 1
-        newl.append(chr(rgb / 3))
-    new = pygame.image.frombuffer(''.join(newl), pic.get_size(), 'P')
+        newl.append(rgb // 3)
+    new = pygame.image.frombuffer(newl, pic.get_size(), 'P')
     try:
-        new.set_palette([(i, i, i) for i in xrange(256)])
+        new.set_palette([(i, i, i) for i in range(256)])
     except:
         pygame.display.set_mode((1, 1))
         try:
-            new.set_palette([(i, i, i) for i in xrange(256)])
+            new.set_palette([(i, i, i) for i in range(256)])
         finally:
             pygame.display.quit()
     return new
 
 def fit_to(image, dims=(1920, 1080)):
     width, height = image.get_size()
-    w = float(dims[0]) / width
-    h = float(dims[1]) / height
+    w = dims[0] / width
+    h = dims[1] / height
     if w < h:
         if w > 1:
             return image
@@ -146,12 +144,12 @@ def get_at_mouse_until_click():
 
 
 def invert(surf):
-    if isinstance(surf, basestring):
+    if isinstance(surf, str):
         surf = pygame.image.load(surf)
     string = pygame.image.tostring(surf, "RGBA")
     newstring = []
-    for ind in xrange(0, len(string), 4):
-        for i in xrange(3):
+    for ind in range(0, len(string), 4):
+        for i in range(3):
             newstring.append(chr(255 - ord(string[ind+i])))
         newstring.append(string[ind+3])
     return pygame.image.fromstring(''.join(newstring), surf.get_size(), 'RGBA')
@@ -159,38 +157,38 @@ def invert(surf):
 def avg_surf(s):
     rgb = [0,0,0]
     z = pygame.image.tostring(s, 'RGB')
-    for color in xrange(3):
+    for color in range(3):
         c = 0
         for i in z[color::3]:
             c += ord(i)
         rgb[color] = c
-    size = len(z) / 3
-    return tuple(i / size for i in rgb)
+    size = len(z) // 3
+    return tuple(i // size for i in rgb)
 
 def avg_surf_less_mem(s):
     rgb = [0,0,0]
     z = pygame.image.tostring(s, 'RGB')
-    for color in xrange(3):
+    for color in range(3):
         c = 0
-        for i in xrange(color, len(z), 3):
+        for i in range(color, len(z), 3):
             c += ord(z[i])
         rgb[color] = c
-    size = len(z) / 3
-    return tuple(i / size for i in rgb)
+    size = len(z) // 3
+    return tuple(i // size for i in rgb)
 
 def iter_surf(surface):
-    for x in xrange(surface.get_width()):
-        for y in xrange(surface.get_height()):
+    for x in range(surface.get_width()):
+        for y in range(surface.get_height()):
             yield x, y
 
 def iter_surf_pieces(surface, pieces=1):
-    for i in xrange(pieces):
-        for x in xrange(surface.get_width()/pieces*i,
-                        surface.get_width()/pieces*(i+1)):
-            for j in xrange(pieces):
-                for y in xrange(surface.get_height()/pieces*j,
-                                surface.get_height()/pieces*(j+1)):
-                    yield x, y, i+j
+    for i in range(pieces):
+        for x in range(surface.get_width() // pieces * i,
+                        surface.get_width() // pieces * (i + 1)):
+            for j in range(pieces):
+                for y in range(surface.get_height() // pieces * j,
+                                surface.get_height() // pieces * (j + 1)):
+                    yield x, y, i + j
 
 
 def resize_image(filename):
@@ -206,27 +204,29 @@ def resize_image(filename):
             view_pic(pic)
             choice = gen.menu('cur dims: %s'%str(curdims),
                               'width,, height,, percent', numbers=1)
-            val = raw_input('number: ')
+            val = ''
+            while not val:
+                val = input('number: ')
+            val = float(val)
             if choice in (1,2):
-                val = int(round(float(val)))
+                val = int(round(val))
                 if choice == 1:
                     newdims[0] = val
-                    newdims[1] = int(curdims[1] * (float(val) / float(curdims[0])))
+                    newdims[1] = int(curdims[1] * (val / curdims[0]))
                 else:
                     newdims[1] = val
-                    newdims[0] = int(curdims[0] * (float(val) / float(curdims[1])))
+                    newdims[0] = int(curdims[0] * (val / curdims[1]))
             else: #percent
-                val = float(val)
                 newdims[0] = int(newdims[0] * val)
                 newdims[1] = int(newdims[1] * val)
             view_pic(pygame.transform.smoothscale(pic, newdims))
             made_window = True
-            print newdims
+            print(newdims)
             while 1:
-                if raw_input('accept? ').lower() in ('y','yes'):
-                    nfilename = raw_input('filename: ')
+                if input('accept? ').lower() in ('y','yes'):
+                    nfilename = input('filename: ')
                     if nfilename == '': #overwrite
-                        if (raw_input('are you sure you want to overwrite? ').
+                        if (input('are you sure you want to overwrite? ').
                             lower() not in ('y','yes')):
                             continue
                     elif nfilename == '*': #generate name
@@ -250,8 +250,8 @@ def resize_image(filename):
                 
 def set_alpha(image, *colors):
     colors = set(i[:3] for i in colors)
-    for i in xrange(image.get_width()):
-        for j in xrange(image.get_height()):
+    for i in range(image.get_width()):
+        for j in range(image.get_height()):
             c0, c1, c2 = image.get_at((i, j))[:3]
             if (c0, c1, c2) in colors:
                 image.set_at((i, j), (c0, c1, c2, 0))
@@ -261,40 +261,40 @@ def aacircle(surface, color, pos, radius, width=0, mod=4):
         _surface = pygame.Surface((radius*2, radius*2))
     else:
         _surface = surface
-    surf = pygame.Surface((_surface.get_width()*mod, _surface.get_height()*mod))
-    pygame.draw.circle(surf, color, (surf.get_width()/2, surf.get_height()/2),
+    surf = pygame.Surface((_surface.get_width() * mod, _surface.get_height() * mod))
+    pygame.draw.circle(surf, color, (surf.get_width() // 2, surf.get_height() // 2),
                        radius * mod, width * mod)
     surf = pygame.transform.smoothscale(surf, _surface.get_size())
 ##    surf = pygame.transform.rotozoom(surf, 0, 1./mod)
-    _surface.blit(surf, (pos[0]-radius, pos[1]-radius, radius*2, radius*2))
+    _surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
     if surface is None:
         return _surface
 def str_getat(string, dims):pass
 
 def img_diff(one, two, empty=(0, 130, 0)):
-    if isinstance(one, basestring):
+    if isinstance(one, str):
         one = pygame.image.load(one)
-    if isinstance(two, basestring):
+    if isinstance(two, str):
         two = pygame.image.load(two)
     size = one.get_size()
     assert size == two.get_size()
     if len(empty) == 3:
-        empty = ''.join((chr(empty[0]), chr(empty[1]), chr(empty[2]), chr(255)))
+        empty = (empty[0], empty[1], empty[2], 255)
     pixels = size[0] * size[1]
-    newone = list(empty * pixels)
+    newone = bytearray(empty * pixels)
     newtwo = newone[:]
 ##    print len(n), len(n[0]), len(n[0][0]), size
-    onen = iter(pygame.image.tostring(one, 'RGBA')).next
-    twon = iter(pygame.image.tostring(two, 'RGBA')).next
-    for xy in xrange(0, pixels * 4, 4):
+    onen = iter(pygame.image.tostring(one, 'RGBA')).__next__
+    twon = iter(pygame.image.tostring(two, 'RGBA')).__next__
+    for xy in range(0, pixels * 4, 4):
         first_rgba = onen(), onen(), onen(), onen()
         second_rgba = twon(), twon(), twon(), twon()
         if first_rgba != second_rgba:
-##            print first_rgba, second_rgba, len(newone) / size[0], len(newone) % size[1]
+##            print(first_rgba, second_rgba, len(newone) // size[0], len(newone) % size[1])
             newone[xy:xy+4] = first_rgba
             newtwo[xy:xy+4] = second_rgba
-    return (pygame.image.frombuffer(''.join(newone), size, 'RGBA'),
-            pygame.image.frombuffer(''.join(newtwo), size, 'RGBA'))
+    return (pygame.image.frombuffer(newone, size, 'RGBA'),
+            pygame.image.frombuffer(newtwo, size, 'RGBA'))
 
 def _colors_in(pic, includealpha=False):
     if isinstance(pic, str):
@@ -305,14 +305,13 @@ def _colors_in(pic, includealpha=False):
         format = 'RGB'
     mod = len(format)
     data = pygame.image.tostring(pic, format)
-    return set(data[i:i+mod] for i in xrange(0, len(data), mod))
+    return set(data[i:i+mod] for i in range(0, len(data), mod))
 
 def num_colors_in(pic, includealpha=False):
     return len(_colors_in(pic, includealpha))
 
 def colors_in(pic, includealpha=False):
-    return [tuple(ord(i) for i in indivs) for indivs in
-            _colors_in(pic, includealpha)]
+    return [tuple(indivs) for indivs in _colors_in(pic, includealpha)]
 
 def colors_info(pic, includealpha=False):
     if isinstance(pic, str):
@@ -325,11 +324,11 @@ def colors_info(pic, includealpha=False):
     data = pygame.image.tostring(pic, format)
     color_lookup = {}
     ret = {}
-    for i in xrange(0, len(data), mod):
+    for i in range(0, len(data), mod):
         color = data[i:i+mod]
         mapped = color_lookup.get(color)
         if not mapped:
-            mapped = tuple(ord(i) for i in color)
+            mapped = tuple(color)
             color_lookup[color] = mapped
 ##        print color, mapped
         if mapped not in ret:
@@ -365,31 +364,31 @@ def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
                 g - gr <= green <= g + gr and
                 b - br <= blue <= b + br)
         
-    for x in xrange(pic.get_width()):
-        for y in xrange(pic.get_height()):
+    for x in range(pic.get_width()):
+        for y in range(pic.get_height()):
             if not check(*pic.get_at((x, y))):
                 break
         else:
             continue
         left = x - 1
         break
-    for x in xrange(pic.get_width()-1, -1, -1):
-        for y in xrange(pic.get_height()):
+    for x in range(pic.get_width()-1, -1, -1):
+        for y in range(pic.get_height()):
             if not check(*pic.get_at((x, y))):
                 break
         else:
             continue
         right = x + 1
         break
-    for y in xrange(pic.get_height()):
-        for x in xrange(pic.get_width()):
+    for y in range(pic.get_height()):
+        for x in range(pic.get_width()):
             if not check(*pic.get_at((x, y))):
                 break
         else:
             continue
         bottom = y - 1
-    for y in xrange(pic.get_height()-1, -1, -1):
-        for x in xrange(pic.get_width()):
+    for y in range(pic.get_height()-1, -1, -1):
+        for x in range(pic.get_width()):
             if not check(*pic.get_at((x, y))):
                 break
         else:
@@ -435,14 +434,14 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     size = [0, 0]
     if not isinstance(title, bool):
         TITLE = title
-    if (not isinstance(pic, types.InstanceType) and
+    if (type(pic) != str and
         hasattr(type(pic), '__iter__')):
-        if isinstance(title, basestring):
+        if isinstance(title, str):
             TITLE = title
         else:
-            if not isinstance(title, basestring) and title:
+            if not isinstance(title, str) and title:
                 for i in pic:
-                    if not isinstance(i, basestring):
+                    if not isinstance(i, str):
                         title = False
             if title:
                 TITLE = '"%s"'% '", "'.join(pic)
@@ -581,10 +580,10 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                         zmod += 1
                 if zmod:
                     if zmod < 0:
-                        for i in xrange(-zmod):
+                        for i in range(-zmod):
                             zoom *= .9
                     else:
-                        for i in xrange(zmod):
+                        for i in range(zmod):
                             zoom *= 1.11111111
                     pygame.display.set_caption(str(zoom) + ' ' + str(color))
                     s.fill((0,0,0), rect)
@@ -639,8 +638,8 @@ def fill_rand(s, pos, red=(220, 225), green=(None, None), blue=(None, None),
         green[1] = red[1]
     if blue[1] is None:
         blue[1] = green[1]
-    for i in xrange(x-(hori-2), x+(hori-1)):
-        for j in xrange(y-(vert-2), y+(hori-1)):
+    for i in range(x-(hori-2), x+(hori-1)):
+        for j in range(y-(vert-2), y+(hori-1)):
             s.fill((randint(red[0], red[1]),
                     randint(green[0], green[1]),
                     randint(blue[0], blue[1])),
@@ -809,8 +808,8 @@ def draw_to(image, dest, x=None, y=None):
 
 def impose_pic(base, ontop): #optimize this, pygame.display.update(dirty_rects)
         #meh, who cares
-    if pygame.display.get_init() and pygame.display.get_surface() and\
-       pygame.display.get_surface().get_size() == base.get_size():
+    if (pygame.display.get_init() and pygame.display.get_surface() and
+        pygame.display.get_surface().get_size() == base.get_size()):
         s = pygame.display.get_surface()
     else:
         s = pygame.display.set_mode((base.get_width(), base.get_height()))
@@ -856,10 +855,10 @@ def compare_surfs_fallback(one, two):
     one.lock()
     two.lock()
     try:
-        for x in xrange(one.get_width()):
-            for y in xrange(one.get_height()):
+        for x in range(one.get_width()):
+            for y in range(one.get_height()):
                 if one.get_at((x, y)) != two.get_at((x, y)):
-                    print x, y
+                    print(x, y)
                     return False
     finally:
         one.unlock()
@@ -887,14 +886,14 @@ def compare_surfs(one, two):
         del first, second
         return r
 #TODO use buffers of subsurfaces of pieces of the surface to compare in pieces
-    except Exception, a:
+    except Exception as a:
         if isinstance(a, MemoryError) or a.message == 'Out of memory':
             #last piece seems to be wrong at (200, 200).. sometimes
             if one.get_size() == (100, 100): #strange error
                 return compare_surfs_fallback(one, two)
-            midx = one.get_width() / 2
+            midx = one.get_width() // 2
             xodd = one.get_width() % 2
-            midy = one.get_height() / 2
+            midy = one.get_height() // 2
             yodd = one.get_height() % 2
 ##            print midx, midy
             return (compare_surfs(one.subsurface((0, 0, midx, midy)),
@@ -909,7 +908,7 @@ def compare_surfs(one, two):
 
 formatmapping = {'P':chr(1), 'RGB':chr(2), 'RGBA':chr(3), 'ARGB':chr(4),
                  'RGBX':chr(5), 'RGBA_PREMULT':chr(6), 'ARGB_PREMULT':chr(7)}
-formatunmapping = dict((item, key) for (key,item) in formatmapping.iteritems())
+formatunmapping = dict((item, key) for (key,item) in formatmapping.items())
 def tostring(surf, format=None, flipped=False, justdata=False):
     if isinstance(surf, str) or hasattr(surf, 'read'):
         surf = pygame.image.load(surf)
@@ -927,21 +926,17 @@ def tostring(surf, format=None, flipped=False, justdata=False):
     strformat = formatmapping[format]
     data = pygame.image.tostring(surf, format, flipped)
     if format == 'P':
-        top = '\x00'
-        for p in data:
-            if p > top:
-                top = p
-        top = ord(top)
+        top = max(data)
         arraypal = array.array('B', (top,)) #code should = 'c'?
         palettedata = surf.get_palette()
-        for p in xrange(top + 1):
+        for p in range(top + 1):
             arraypal.extend(palettedata[p])
-        palette = arraypal.tostring()
+        palette = arraypal
     else:
-        palette = ''
+        palette = b''
     if justdata:
         return data
-    return width + height + strformat + palette + data
+    return width + height + bytes(strformat, 'ascii') + palette + data
 
 def loadfromstring(f):
     if isinstance(f, str):
@@ -952,17 +947,17 @@ def fromstringF(f):
     try:
         width = struct.unpack('h', fread(2))[0]
     except:
-        print f.name
+        print(f.name)
         raise
     height = struct.unpack('h', fread(2))[0]
-    format = formatunmapping[fread(1)]
+    format = formatunmapping[chr(fread(1))]
     if format == 'P':
-        pallen = ord(fread(1)) + 1
+        pallen = fread(1) + 1
         palette = [None] * pallen
-        palarray = iter(array.array('B', fread(pallen * 3))).next
-        for p in xrange(pallen):
+        palarray = iter(array.array('B', fread(pallen * 3))).__next__
+        for p in range(pallen):
             palette[p] = (palarray(), palarray(), palarray())
-    surf = pygame.image.frombuffer(buffer(fread()), (width, height), format)
+    surf = pygame.image.frombuffer(memoryview(fread()), (width, height), format)
     if format == 'P':
         surf.set_palette(palette)
     return surf
@@ -970,24 +965,24 @@ def fromstringF(f):
 def fromstring(f):
     width = struct.unpack('h', f[:2])[0]
     height = struct.unpack('h', f[2:4])[0]
-    format = formatunmapping[f[4]]
+    format = formatunmapping[chr(f[4])]
     if format == 'P':
-        pallen = ord(f[5]) + 1
+        pallen = f[5] + 1
         palette = [None] * pallen
         paletteend = 6 + (pallen*3)
-        palarray = iter(array.array('B', f[6:paletteend])).next
-        for p in xrange(pallen):
+        palarray = iter(array.array('B', f[6:paletteend])).__next__
+        for p in range(pallen):
             palette[p] = (palarray(), palarray(), palarray())
     else:
         paletteend = 5
-    surf = pygame.image.frombuffer(buffer(f, paletteend), (width, height),
+    surf = pygame.image.frombuffer(memoryview(f[paletteend:]), (width, height),
                                    format)
     if format == 'P':
         surf.set_palette(palette)
     return surf
 
 def png_transparency(image, data=(0,0)):
-    if isinstance(image, basestring):
+    if isinstance(image, str):
         filename = image
         image = load_image(image).convert_alpha()
     else:

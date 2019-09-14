@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import threaded_worker
 import filegen
@@ -73,7 +74,7 @@ def do2(filename, target=None, options='', tw=None):
                 out += '\nError: ' + err
         if newfile:
             os.remove(filename)
-            os.rename(newfile, target)
+            shutil.move(newfile, target)
     finally:
         if tw is None:
             _tw.close(wait=1)
@@ -83,7 +84,7 @@ def do2(filename, target=None, options='', tw=None):
             if os.path.exists(temp2):
                 os.remove(temp2)
         except:
-            print '%s %s %s'%(filename, temp1, temp2)
+            print('%s %s %s'%(filename, temp1, temp2))
             raise
     return filename, out, initsize, newsize
 
@@ -92,7 +93,7 @@ def do(filename, options='', tw=None):
 
 def do_many(files, options='', threads=None, verbose=True):
 ##    global worker #global for debugging purposes
-    if isinstance(files, basestring):
+    if isinstance(files, str):
         files = filegen.ifiles_in(files)
     if not threads:
         threads = CORES
@@ -103,12 +104,12 @@ def do_many(files, options='', threads=None, verbose=True):
         with threaded_worker.threaded_worker(jpeg, threads, wait_at_end=True) as internal_worker:
             for filename in files:
                 todo.append(worker.put(filename, options, internal_worker))
-            for ind in xrange(1, len(todo)+1):
+            for ind in range(1, len(todo)+1):
                 try:
                     filename, out, size, newsize = worker.get(ind)
                 except KeyboardInterrupt:
                     raise
-                except Exception, e:
+                except Exception as e:
                     failed.append((ind, e, traceback.format_exc()))
                     continue
                 front = '%d/%d %s:'%(ind, len(todo), filename)
@@ -117,16 +118,16 @@ def do_many(files, options='', threads=None, verbose=True):
                     startsize += size
                 if verbose:
                     if newsize < size:
-                        print '%s %d %.1f%%'%(front, newsize - size,
-                                              100*float(newsize)/size)
+                        print('%s %d %.1f%%'%(front, newsize - size,
+                                              100*float(newsize)/size))
                     elif newsize == size:
-                        print '%s no diff'%front
+                        print('%s no diff'%front)
                     else:
-                        print '%s worse'%front
+                        print('%s worse'%front)
                     if out:
-                        print 'output:',out
+                        print('output:',out)
     if verbose and startsize:
-        print '%d -> %d (%.1f%%)'%(startsize, endsize, 100. * endsize / startsize)
+        print('%d -> %d (%.1f%%)'%(startsize, endsize, 100. * endsize / startsize))
     return failed
 if __name__ == '__main__' and 'idlelib' not in dir():
     import sys

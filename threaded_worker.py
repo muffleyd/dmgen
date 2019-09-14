@@ -12,7 +12,7 @@ from functools import partial as _partial
 def partial(target, *args, **keywords):
     f = _partial(target, *args, **keywords)
     try:
-        f.func_name = func.func_name
+        f.__name__ = func.__name__
     except:
         pass
     return f
@@ -21,7 +21,7 @@ partial.__doc__ = _partial.__doc__
 try:
     from Queue2 import Queue
 except ImportError:
-    import Queue as _Queue
+    import queue as _Queue
     class Queue(_Queue.Queue):
         def get(self, block=True, timeout=None):
             z = _Queue.Queue.get(self, block, timeout)
@@ -29,27 +29,23 @@ except ImportError:
             return z
 
         def remove(self, item):
-            self.not_empty.acquire()
-            try:
+            with self.not_empty:
                 self.queue.remove(item)
                 self.not_full.notify()
-            finally:
-                self.not_empty.release()
             self.task_done()
 
         def put(self, item, block=True, timeout=None, head=False):
-            """Put an item into the queue.
+            '''Put an item into the queue.
 
             If optional args 'block' is true and 'timeout' is None (the default),
             block if necessary until a free slot is available. If 'timeout' is
-            a positive number, it blocks at most 'timeout' seconds and raises
+            a non-negative number, it blocks at most 'timeout' seconds and raises
             the Full exception if no free slot was available within that time.
             Otherwise ('block' is false), put an item on the queue if a free slot
             is immediately available, else raise the Full exception ('timeout'
             is ignored in that case).
-            """
-            self.not_full.acquire()
-            try:
+            '''
+            with self.not_full:
                 if self.maxsize > 0:
                     if not block:
                         if self._qsize() == self.maxsize:
@@ -72,12 +68,7 @@ except ImportError:
                     self._put(item)
                 self.unfinished_tasks += 1
                 self.not_empty.notify()
-            finally:
-                self.not_full.release()
 
-        # Put a new item in the queue
-        def _put(self, item):
-            self.queue.append(item)
         # Put a new item at the head of the queue
         def _puthead(self, item):
             self.queue.appendleft(item)
@@ -277,7 +268,7 @@ class threaded_worker(object):
             num = self.numthreads
         elif num < 0:
             return
-        for t in xrange(num):
+        for t in range(num):
             self.pending.put(_ENDTHREAD, head=now)
         if wait and num >= self.numthreads:
             #cannot just .join the Queue because there may be other items
@@ -315,7 +306,7 @@ class threaded_worker(object):
         num = int(num)
         if num <= 0:
             return
-        for t in xrange(num):
+        for t in range(num):
             thread = threading.Thread(target=self._handle)
             thread.setDaemon(1)
             thread.start()
@@ -348,7 +339,7 @@ class threaded_worker(object):
             func = self.func
         f = partial(self.put, func=func, store=store)
         f.__doc__ = """put(*args, **kwargs) #func=%s, store=%s"""%(
-            hasattr(func, 'func_name') and func.func_name or func, store)
+            hasattr(func, 'func_name') and func.__name__ or func, store)
         return f
 
     def put(self, *data, **kwargs):
@@ -432,7 +423,7 @@ class threaded_worker(object):
         if things[2]:
             exc = things[1][0]
             exc[1].traceback = exc[2]
-            raise exc[0], exc[1], exc[2]
+            raise exc[0](exc[1]).with_traceback(exc[2])
         if things[1][1] is None:
             return things[1][0]
         return things[1]
@@ -491,7 +482,7 @@ def thread_map(data, func, toput=None, threads=1, *args, **kwargs):
                 data = d
             tw.put(data, alsoreturn=d, *args, **kwargs)
             todo += 1
-        for i in xrange(todo):
+        for i in range(todo):
             yield tw.get()
 def tmap(data, func, threads=1, toput=None, *args, **kwargs):
     return thread_map(data, func, toput, threads, *args, **kwargs)
@@ -546,25 +537,25 @@ def test(fname='readme.txt'):
     def f(filename, mode='r'):
         return open(filename, mode).read()
     def onexc(etype, value, tb):
-        print 'exception ------------------------------'
+        print('exception ------------------------------')
         traceback.print_exception(etype, value, tb)
-        print '----------------------------------------'
+        print('----------------------------------------')
 
     with threaded_worker(f, 1, track=1, onexc=onexc, raise_onexc=False) as w:
-        print _workers        
+        print(_workers)        
         r = w.put(fname)
         w.put(func=lambda :time.sleep(1), store=False)
-        print _workers
+        print(_workers)
         f = filegen.unused_filename()
         r2 = w.put(f)
-        print r,r2
+        print(r,r2)
         _ = w.get(r)
         try:
             _ = w.get(r2)
-        except IOError,a:
-            if a.args != (2, 'No such file or directory'):
-                raise
-        print 'success!'
+        except FileNotFoundError as a:
+            # File expected to be not found!
+            pass
+        print('success!')
 ##        print w.get(r)
 ##        del _
 ##        return w
