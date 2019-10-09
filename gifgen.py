@@ -1,7 +1,7 @@
 import os
 import shutil
 import sys
-import filegen
+from dmgen import filegen
 from dmgen import pygamegen as pg
 from dmgen.opt_gif import GIFOUT_EXE_PATH
 
