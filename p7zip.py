@@ -1,8 +1,7 @@
-
-import zipgen
-import shutil
 import os, sys
-import filegen
+import shutil
+from dmgen import zipgen
+from dmgen import filegen
 EXE_PATH = '7z'
 
 p7zip_add = 'a'
@@ -76,5 +75,6 @@ def re7zip(zipfile, processing=None):
 def main():
     if sys.argv[1][-4:].lower() == '.zip':
         re7zip(sys.argv[1])
+
 if __name__ == '__main__':
     main()

@@ -1,7 +1,11 @@
 import os, sys
 import shutil
-import threaded_worker, threading
-import gen, zipgen, filegen
+import threading
+from dmgen import threaded_worker
+from dmgen import gen
+from dmgen import zipgen
+from dmgen import filegen
+
 myhome = os.path.sep.join(os.environ['TMP'].split(os.path.sep)[:3])
 KZIP_EXE_PATH = os.path.join(myhome, 'Desktop', 'kzip.exe')
 
@@ -64,6 +68,7 @@ def main():
                 print(name)
                 if err:
                     print(err, file=sys.stderr)
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1][-4:].lower() == '.zip':

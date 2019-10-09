@@ -1,4 +1,5 @@
-import os, gzip
+import os
+import gzip
 try:
     import tarfile
     from io import StringIO
@@ -67,6 +68,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
 
     if removeArchivedFile and isinstance(filename, str):
         os.remove(filename)
+
 def gzuncompress(gzfile, outputfile=None):
     """gzuncompress(gzfilename[, outputfile=gzfilename[:-3]])
 

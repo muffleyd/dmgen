@@ -9,11 +9,12 @@ from io import StringIO
 
 import pygame
 
-import gen, filegen
-import webgen
+from dmgen import gen
+from dmgen import filegen
+from dmgen import webgen
 
 try:
-    import screen
+    from dmgen import screen
 except ImportError:
     screen = None
 

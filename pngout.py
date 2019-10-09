@@ -1,12 +1,14 @@
-import time
 import os, sys
-import shutil, math
+import time
+import shutil
+import math
 import operator
-from cores import CORES
-import filegen
-import gen, threaded_worker
+from dmgen.cores import CORES
+from dmgen import filegen
+from dmgen import gen
+from dmgen import threaded_worker
 try:
-    import pygamegen
+    from dmgen import pygamegen
 except ImportError as e:
     import warnings
     w = Warning('bitdepth finding may not be optimal: %s'%e)

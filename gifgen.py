@@ -1,7 +1,9 @@
-import os, shutil, sys
+import os
+import shutil
+import sys
 import filegen
-import pygamegen as pg
-from opt_gif import GIFOUT_EXE_PATH
+from dmgen import pygamegen as pg
+from dmgen.opt_gif import GIFOUT_EXE_PATH
 
 def explode(file, folder=None):
     if not folder:

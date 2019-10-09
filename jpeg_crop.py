@@ -1,9 +1,11 @@
-import pygame, pygamegen as pg
-import os, filegen
-import jpegtran
+import os
 import sys
-import threaded_worker
-from cores import CORES
+import pygame
+from dmgen import filegen
+from dmgen import jpegtran
+from dmgen import pygamegen as pg
+from dmgen import threaded_worker
+from dmgen.cores import CORES
 
 def relpath(filename):
     try:
@@ -289,6 +291,7 @@ def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
             for filename, i in ran:
                 print(filename)
                 _ = tw.get(i) #confirm no errors
+
 if __name__ == '__main__':
     wait = True
     try:

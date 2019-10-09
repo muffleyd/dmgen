@@ -1,7 +1,8 @@
-import os, http.client, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, http.cookiejar, time
+import os
+import http.client, http.cookiejar
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
+import time
 from io import StringIO
-
-__all__ = ['BROWSERHEADER', 'HEADER_ENCODING', 'SOMESORTOFEXCEPTIONTEXT', '_special_response', 'disable_cookies', 'disable_firefox_mode', 'enable_cookies', 'enable_firefox_mode', 'get_last_modified', 'httpConstructHostnameUrl', 'httpurlget', 'save_from_web', 'urlopen']
 
 try:
     import gzip
@@ -255,28 +256,3 @@ def quote_plus(s, safe='', encoding=None, errors=None):
         s = quote(s, safe + ' ', encoding, errors)
         return s.replace(' ', '+')
     return quote(s, safe, encoding, errors)
-
-
-def _tryremove(what, li):
-    try:
-        li.remove(what)
-    except ValueError:
-        pass
-def _mk__all__(a=dir()):
-    _tryremove('os', a)
-    _tryremove('urllib2', a)
-    _tryremove('urllib', a)
-    _tryremove('time', a)
-    _tryremove('CookieJar', a)
-    _tryremove('cookielib', a)
-    _tryremove('idlelib', a)
-    _tryremove('httplib', a)
-    _tryremove('StringIO', a)
-    _tryremove('gzipgen', a)
-    _tryremove('_mk__all__', a)
-    _tryremove('_tryremove', a)
-    _tryremove('_CookieJar', a)
-    for i in a[:]:
-        if i[:2] == '__' and i[-2:] == '__':
-            a.remove(i)
-    return a

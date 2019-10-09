@@ -1,7 +1,6 @@
-import os, sys, pygame
-##import gen is placed below, because importing gen takes a while and on .bmps
-##it isn't needed
-#except now it's filegen, is it so important?
+import os, sys
+import pygame
+from dmgen import filegen
 
 def main(filenames):
     exitcode = 0
@@ -11,7 +10,6 @@ def main(filenames):
         else:
             PNG = False
         if PNG:
-            import filegen
             tofilename = filegen.unused_filename('.png', folder=filegen.TEMPfolder)
         else:
             tofilename = os.path.splitext(filename)[0]+'.png'

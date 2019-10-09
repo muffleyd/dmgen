@@ -1,14 +1,14 @@
-import os, shutil
+import os
+import shutil
 import queue
 import random
-#defaultdict in these things below doesn't speed up any
 from itertools import chain
-import threaded_worker
 import hashlib
 try:
     import scandir
 except ImportError:
     scandir = False
+from dmgen import threaded_worker
 
 #scandir.walk is just better
 if scandir:

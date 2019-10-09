@@ -1,8 +1,8 @@
 import os, sys
 import time
-import filegen
-import cores
-import threaded_worker
+from dmgen import filegen
+from dmgen import cores
+from dmgen import threaded_worker
 
 myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
 GIFOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'gifsicle.exe')

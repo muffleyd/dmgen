@@ -1,8 +1,8 @@
 import os, sys, shutil, re, time
 import threading, traceback
-import threaded_worker
 from collections import deque
-import gen
+from dmgen import threaded_worker
+from dmgen import gen
 
 RETYPE = type(re.compile(''))
 class Event(object):
