@@ -533,7 +533,8 @@ def thread_map2(data, func, threads=1, toput=None,
 
 def test(fname='readme.txt'):
     global w
-    import filegen, time, traceback
+    import time, traceback
+    from dmgen import filegen
     def f(filename, mode='r'):
         return open(filename, mode).read()
     def onexc(etype, value, tb):

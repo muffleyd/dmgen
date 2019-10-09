@@ -1,5 +1,7 @@
-import os, zipfile, shutil
-from filegen import unused_filename
+import os
+import zipfile
+import shutil
+from dmgen.filegen import unused_filename
 
 def zipstr(string, zipfilename, inarchivename=None):
     """string can be a string or a file-like object"""

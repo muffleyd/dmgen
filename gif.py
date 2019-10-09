@@ -1,6 +1,6 @@
 import os
 import sys
-from gen import stritem_replace
+from dmgen.gen import stritem_replace
 VERBOSE = True
 
 #between 0 and 65535

@@ -1,10 +1,10 @@
 import os
 import shutil
 import subprocess
-import threaded_worker
-import filegen
-from cores import CORES
 import traceback
+from dmgen import threaded_worker
+from dmgen import filegen
+from dmgen.cores import CORES
 
 JPEGTRAN_EXE_PATH = ''
 if os.name == 'nt':
@@ -129,7 +129,8 @@ def do_many(files, options='', threads=None, verbose=True):
     if verbose and startsize:
         print('%d -> %d (%.1f%%)'%(startsize, endsize, 100. * endsize / startsize))
     return failed
-if __name__ == '__main__' and 'idlelib' not in dir():
+
+if __name__ == '__main__':
     import sys
     if len(sys.argv) > 1:
         if os.path.exists(sys.argv[1]) and not os.path.isfile(sys.argv[1]):
