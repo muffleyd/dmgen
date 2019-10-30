@@ -4,7 +4,8 @@ from collections import deque
 from dmgen import threaded_worker
 from dmgen import gen
 
-RETYPE = type(re.compile(''))
+sepjoin = os.sep.join
+
 class Event(object):
     def __init__(self, type, dict):
         self.type = type
@@ -32,49 +33,47 @@ EVENTQUEUE = deque()
 SECONDQUEUE = deque()
 
 def check_excludes(what, excludes):
-##    if 'intra' in what:
-##        print what, excludes
     for f in excludes:
-        if isinstance(f, RETYPE):
+        if isinstance(f, re.Pattern):
             if f.search(what):
                 return True
         elif f in os.path.split(what) or what[-len(f):] == f:
             return True
+    return False
 
-def copytree(base, what, dest, excludes, timetoreset, andcopy=True):
+def copytree(base, what, dest, excludes, andcopy=True):
     #if dest folder has not been modified since after source folder,
     #skip it and save sooooooooo much time
-    sepjoin = os.sep.join
     curdir_dest = sepjoin((dest, what))
-    if (os.path.exists(curdir_dest) and
-        os.stat(sepjoin((base, what))).st_atime <= os.stat(curdir_dest).st_atime):
+    curdir_dest_exists = os.path.exists(curdir_dest)
+    curdir = sepjoin((base, what))
+    if (curdir_dest_exists and
+        os.stat(curdir).st_atime <= os.stat(curdir_dest).st_atime):
         return
-    curdir, folders, files = next(os.walk(sepjoin((base, what))))
-##    if check_excludes(os.path.split(curdir)[1], excludes):
-    if check_excludes(sepjoin((base, what)), excludes):
-##        postit(Event(SKIPFILE, {'file': os.path.split(curdir)[1]}))
-        if os.path.exists(curdir_dest):
+    if check_excludes(curdir, excludes):
+        if curdir_dest_exists:
             postit(Event(REMOVEFILE, {'file': curdir_dest}))
         return
-##    print base, what
-##    print os.stat(sepjoin((base, what))).st_atime, os.stat(curdir_dest).st_atime
-    if os.path.exists(curdir_dest):
-        thisdir = set(folders).union(files)
-        for tarfolder in os.listdir(curdir_dest):
-            if tarfolder not in thisdir or check_excludes(tarfolder, excludes):
-                abspath = sepjoin((curdir_dest, tarfolder))
-                postit(Event(REMOVEFILE, {'file': abspath}))
+    
+    items = list(os.scandir(curdir))
+##    print(base, what)
+##    print(os.stat(sepjoin((base, what))).st_atime, os.stat(curdir_dest).st_atime)
+    if curdir_dest_exists:
+        thisdir = set(i.name for i in items)
+        # Remove items in destination that don't exist in source
+        for destination in os.scandir(curdir_dest):
+            if destination.name not in thisdir or check_excludes(destination.name, excludes):
+                postit(Event(REMOVEFILE, {'file': destination.path}))
     elif andcopy:
         os.mkdir(curdir_dest)
     if andcopy:
-        for file in files:
-            copy2(sepjoin((curdir, file)), sepjoin((curdir_dest, file)),
-                  excludes, timetoreset)
-        for folder in folders:
-            copytree(base, sepjoin((what, folder)), dest, excludes,
-                     timetoreset, andcopy)
+        for i in items:
+            if i.is_dir():
+                copytree(base, sepjoin((what, i.name)), dest, excludes, andcopy)
+            else:
+                copy2(sepjoin((curdir, i.name)), sepjoin((curdir_dest, i.name)), excludes)
 
-def copy2(what, where, excludes, timetoreset, overwrite=False):
+def copy2(what, where, excludes, overwrite=False):
     if check_excludes(where, excludes):
         if os.path.exists(where):
             postit(Event(REMOVEFILE, {'file': where}))
@@ -94,12 +93,11 @@ def copy2(what, where, excludes, timetoreset, overwrite=False):
 def postit(event):
     EVENTQUEUE.append(event)
 
-def docopy(includes, dest, excludes, cleanbasedir=False, timetoreset=0.0):
-    sepjoin = os.sep.join
+def docopy(includes, dest, excludes, cleanbasedir=False):
     try:
 ##    postit(6)
         if cleanbasedir:
-            copytree('.', '.', dest, excludes, timetoreset, andcopy=False)
+            copytree('.', '.', dest, excludes, andcopy=False)
         for i in includes:
             i = os.path.abspath(i)
             if not os.path.exists(i):
@@ -107,9 +105,9 @@ def docopy(includes, dest, excludes, cleanbasedir=False, timetoreset=0.0):
                 continue
             base, name = os.path.split(i)
             if os.path.isfile(i):
-                copy2(i, os.sep.join((dest, name)), excludes, timetoreset)
+                copy2(i, os.sep.join((dest, name)), excludes)
             else:
-                copytree(base, name, dest, excludes, timetoreset)
+                copytree(base, name, dest, excludes)
         postit(Event(QUIT, {'ex': None}))
     except Exception as a:
         postit(Event(QUIT, {'ex': sys.exc_info()}))
@@ -158,7 +156,7 @@ def print_(worker, info):
         return 'new'
 
     if info:
-        import filegen
+        from dmgen import filegen
         def mk_num(val, by=1024):
             val //= by
             return '%s%s'%(val < 0 and '-' or '', gen.rinsertevery(abs(val), 3, ','))
@@ -263,11 +261,11 @@ def main(copy, dest, excludes=[], cleanbasedir=False, timetoupdate=0.0, orders='
         copy = [os.path.join(copy[0], i) for i in os.listdir(copy[0])]
     if not os.path.exists(dest):
         os.makedirs(dest)
-##    print orders
+##    print(orders)
     if os.path.exists(orders):
         for i in open(orders).read().split('\n'):
             if i:
-##                print i
+##                print(i)
                 demand, file1, file2 = stripsplit(i)
                 if demand.lower() == 'rename':
                     os.rename(os.path.join(dest, file1), os.path.join(dest, file2))
@@ -277,7 +275,7 @@ def main(copy, dest, excludes=[], cleanbasedir=False, timetoupdate=0.0, orders='
     with gen.timer():
         with threaded_worker.threaded_worker(track=1) as worker:
 ##            docopy(copy, dest, excludes)
-            t = threading.Thread(target=docopy, args=(copy, dest, excludes, cleanbasedir, timetoupdate))
+            t = threading.Thread(target=docopy, args=(copy, dest, excludes, cleanbasedir))
             t.daemon = True
             t.start()
             exitcode = int(not not print_(worker, info)) #i just love doing not not and I don't know why
