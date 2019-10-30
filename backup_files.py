@@ -41,12 +41,11 @@ def check_excludes(what, excludes):
             return True
     return False
 
-def copytree(base, what, dest, excludes, andcopy=True):
-    #if dest folder has not been modified since after source folder,
-    #skip it and save sooooooooo much time
-    curdir_dest = sepjoin((dest, what))
+def copytree(base_dir, source, destination, excludes, andcopy=True):
+    # If destination directory has not been modified since after source directory, skip it and save so much time.
+    curdir_dest = sepjoin((destination, source))
     curdir_dest_exists = os.path.exists(curdir_dest)
-    curdir = sepjoin((base, what))
+    curdir = sepjoin((base_dir, source))
     if (curdir_dest_exists and
         os.stat(curdir).st_atime <= os.stat(curdir_dest).st_atime):
         return
@@ -56,58 +55,58 @@ def copytree(base, what, dest, excludes, andcopy=True):
         return
     
     items = list(os.scandir(curdir))
-##    print(base, what)
-##    print(os.stat(sepjoin((base, what))).st_atime, os.stat(curdir_dest).st_atime)
+##    print(base_dir, source)
+##    print(os.stat(curdir).st_atime, os.stat(destination).st_atime)
     if curdir_dest_exists:
-        thisdir = set(i.name for i in items)
+        this_dir = set(i.name for i in items)
         # Remove items in destination that don't exist in source
         for destination in os.scandir(curdir_dest):
-            if destination.name not in thisdir or check_excludes(destination.name, excludes):
+            if destination.name not in this_dir or check_excludes(destination.name, excludes):
                 postit(Event(REMOVEFILE, {'file': destination.path}))
     elif andcopy:
         os.mkdir(curdir_dest)
     if andcopy:
         for i in items:
             if i.is_dir():
-                copytree(base, sepjoin((what, i.name)), dest, excludes, andcopy)
+                copytree(base_dir, sepjoin((source, i.name)), destination, excludes, andcopy)
             else:
                 copy2(sepjoin((curdir, i.name)), sepjoin((curdir_dest, i.name)), excludes)
 
-def copy2(what, where, excludes, overwrite=False):
-    if check_excludes(where, excludes):
-        if os.path.exists(where):
-            postit(Event(REMOVEFILE, {'file': where}))
+def copy2(source, destination, excludes, overwrite=False):
+    if check_excludes(destination, excludes):
+        if os.path.exists(destination):
+            postit(Event(REMOVEFILE, {'file': destination}))
         return
-    if os.path.exists(where):
+    if os.path.exists(destination):
         if not overwrite:
-            o = os.stat(what)
-            t = os.stat(where)
+            o = os.stat(source)
+            t = os.stat(destination)
             if o[6] == t[6] and o[8] == t[8]: #size and edit_timestamp
-##                postit(Event(SKIPFILE, {'file':what}))
+##                postit(Event(SKIPFILE, {'file': source}))
                 return
-        #deletes the target file, so after everything has been run through,
-        #new slightly larger files will not all be fragmented (probably)
-        postit(Event(REMOVEFILEQUIET, {'file': where}))
-    postit(Event(NEWFILE, {'file':what, 'dest':where}))
+        # Deletes the target file, so after everything has been run through,
+        #  new slightly larger files will not all be fragmented (probably)
+        postit(Event(REMOVEFILEQUIET, {'file': destination}))
+    postit(Event(NEWFILE, {'file': source, 'dest': destination}))
 
 def postit(event):
     EVENTQUEUE.append(event)
 
-def docopy(includes, dest, excludes, cleanbasedir=False):
+def docopy(sources, destination, excludes, clean_base_directory=False):
     try:
 ##    postit(6)
-        if cleanbasedir:
-            copytree('.', '.', dest, excludes, andcopy=False)
-        for i in includes:
-            i = os.path.abspath(i)
-            if not os.path.exists(i):
-                postit(Event(NOEXIST, {'file':i}))
+        if clean_base_directory:
+            copytree('.', '.', destination, excludes, andcopy=False)
+        for entity in sources:
+            entity_abs = os.path.abspath(entity)
+            if not os.path.exists(entity_abs):
+                postit(Event(NOEXIST, {'file': entity_abs}))
                 continue
-            base, name = os.path.split(i)
-            if os.path.isfile(i):
-                copy2(i, os.sep.join((dest, name)), excludes)
+            base, name = os.path.split(entity_abs)
+            if os.path.isfile(entity_abs):
+                copy2(entity_abs, os.sep.join((destination, name)), excludes)
             else:
-                copytree(base, name, dest, excludes)
+                copytree(base, name, destination, excludes)
         postit(Event(QUIT, {'ex': None}))
     except Exception as a:
         postit(Event(QUIT, {'ex': sys.exc_info()}))
@@ -133,10 +132,10 @@ def print_(worker, info):
         return func
 
     def newfile(e):
-        originalsize = os.stat(e.file)[6]
-        destsize = os.path.exists(e.dest) and os.stat(e.dest)[6] or 0
-        perc = not originalsize and 100 or (100 * destsize / originalsize)
-        return '%s: %s/%s (%.2f%%)'%(e.file, destsize, originalsize, perc)
+        original_size = os.stat(e.file)[6]
+        dest_size = os.path.exists(e.dest) and os.stat(e.dest)[6] or 0
+        perc = not original_size and 100 or (100 * dest_size / original_size)
+        return '%s: %s/%s (%.2f%%)'%(e.file, dest_size, original_size, perc)
     def skipfile(e):
         return 'file: %s (SKIPPING)'%e.file
     def noexistfile(e):
@@ -173,18 +172,17 @@ def print_(worker, info):
         size_remove = 0
 
     xr1000 = range(500)
-    toreplace = os.sep + '.'
     curq = EVENTQUEUE
-    doneremove = False
+    done_removing = False
     while 1:
         for _ in xr1000:
             size = len(curq)
             if size and (worker.thisindex == 1 or worker.check(worker.thisindex-1)):
                 e = curq.popleft()
                 try:
-                    if not doneremove:
+                    if not done_removing:
                         if e.type == QUIT:
-                            doneremove = True
+                            done_removing = True
                             curq = SECONDQUEUE
                             curq.append(e)
                             if len(curq) > 1:
@@ -252,7 +250,7 @@ def print_(worker, info):
 def stripsplit(i, sep=','):
     return i.strip().split(sep)
 
-def main(copy, dest, excludes=[], cleanbasedir=False, timetoupdate=0.0, orders='orders.txt', niceend=True, info=True):
+def main(copy, dest, excludes=[], cleanbasedir=False, orders='orders.txt', niceend=True, info=True):
     assert isinstance(dest, str), TypeError('destination must be a string (got %s)'%type(dest))
     if isinstance(copy, str):
         copy = [copy]
