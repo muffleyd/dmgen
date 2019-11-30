@@ -60,9 +60,9 @@ def copytree(base_dir, source, destination, excludes, andcopy=True):
     if curdir_dest_exists:
         this_dir = set(i.name for i in items)
         # Remove items in destination that don't exist in source
-        for destination in os.scandir(curdir_dest):
-            if destination.name not in this_dir or check_excludes(destination.name, excludes):
-                postit(Event(REMOVEFILE, {'file': destination.path}))
+        for target in os.scandir(curdir_dest):
+            if target.name not in this_dir or check_excludes(target.name, excludes):
+                postit(Event(REMOVEFILE, {'file': target.path}))
     elif andcopy:
         os.mkdir(curdir_dest)
     if andcopy:
