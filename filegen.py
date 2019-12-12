@@ -4,17 +4,8 @@ import queue
 import random
 from itertools import chain
 import hashlib
-try:
-    import scandir
-except ImportError:
-    scandir = False
-from dmgen import threaded_worker
 
-#scandir.walk is just better
-if scandir:
-    _walk = scandir.walk
-else:
-    _walk = os.walk
+_walk = os.walk
 
 def extensionis(filename, ext):
     if ext[0] != '.':
@@ -356,8 +347,6 @@ def files_in(directory='', exclude=[]):
 
 #yields scandir objects for each file in a directory and its children
 def ifiles_in_scandir(directory='.', exclude=[]): #generator for files_in_scandir
-    if not scandir:
-        raise ImportError('files_in_scandir requires scandir package')
     if type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
@@ -366,7 +355,7 @@ def ifiles_in_scandir(directory='.', exclude=[]): #generator for files_in_scandi
         yield i
 
 def _ifiles_in_scandir(directory, exclude):
-    walker = scandir.scandir(directory)
+    walker = os.scandir(directory)
     if directory == '.' or not directory:
         directory = ''
     else:
