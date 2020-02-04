@@ -393,6 +393,14 @@ class threaded_worker(object):
             return None
         return not self.results[index][0].locked()
 
+    def wait_for_job(self, index):
+        """Waits until the job of ID index is done."""
+        if len(self.results) <= index:
+            return
+        self.results[index][0].acquire()
+        self.results[index][0].release()
+        return
+
     def get(self, index=None, wait=True):
         """if index evals to False, block until a job is finished and return it,
             will be some random one (use only if you don't care about order)
