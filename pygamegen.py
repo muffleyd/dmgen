@@ -272,7 +272,7 @@ def aacircle(surface, color, pos, radius, width=0, mod=4):
         return _surface
 def str_getat(string, dims):pass
 
-def img_diff(one, two, empty=(0, 130, 0)):
+def img_diff(one, two, empty=(0, 130, 0), alpha=False):
     """
     Returns the difference between two images of the same size by covering the parts
     of the images in the color `empty`.
@@ -285,25 +285,31 @@ def img_diff(one, two, empty=(0, 130, 0)):
     size = one.get_size()
     # Make sure they're the same size
     assert size == two.get_size()
+    if alpha:
+        image_format = 'RGBA'
+        bytes_per_pixel = 4
+    else:
+        image_format = 'RGB'
+        bytes_per_pixel = 3
     # Add the alpha color to empty if not provided
-    if len(empty) == 3:
+    if alpha and len(empty) == 3:
         empty = (empty[0], empty[1], empty[2], 255)
     pixels = size[0] * size[1]
     # Create an empty bytearray the size of the images
     new_one = bytearray(empty * pixels)
     new_two = new_one[:]
-    one_string = pygame.image.tostring(one, 'RGBA')
-    two_string = pygame.image.tostring(two, 'RGBA')
+    one_string = pygame.image.tostring(one, image_format)
+    two_string = pygame.image.tostring(two, image_format)
     # Check each pixel (RGBA = 4 bytes per pixel)
-    for xy in range(0, pixels * 4, 4):
-        first_rgba = one_string[xy:xy+4]
-        second_rgba = two_string[xy:xy+4]
+    for xy in range(0, pixels * bytes_per_pixel, bytes_per_pixel):
+        first_rgba = one_string[xy:xy + bytes_per_pixel]
+        second_rgba = two_string[xy:xy + bytes_per_pixel]
         # If they're not the same, put the pixel onto the final image
         if first_rgba != second_rgba:
-            new_one[xy:xy+4] = first_rgba
-            new_two[xy:xy+4] = second_rgba
-    return (pygame.image.frombuffer(new_one, size, 'RGBA'),
-            pygame.image.frombuffer(new_two, size, 'RGBA'))
+            new_one[xy:xy + bytes_per_pixel] = first_rgba
+            new_two[xy:xy + bytes_per_pixel] = second_rgba
+    return (pygame.image.frombuffer(new_one, size, image_format),
+            pygame.image.frombuffer(new_two, size, image_format))
 
 def _colors_in(pic, includealpha=False):
     if isinstance(pic, str):
