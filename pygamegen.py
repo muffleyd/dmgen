@@ -285,11 +285,11 @@ def img_diff(one, two, empty=(0, 130, 0)):
     newone = bytearray(empty * pixels)
     newtwo = newone[:]
 ##    print len(n), len(n[0]), len(n[0][0]), size
-    onen = iter(pygame.image.tostring(one, 'RGBA')).__next__
-    twon = iter(pygame.image.tostring(two, 'RGBA')).__next__
+    onen = pygame.image.tostring(one, 'RGBA')
+    twon = pygame.image.tostring(two, 'RGBA')
     for xy in range(0, pixels * 4, 4):
-        first_rgba = onen(), onen(), onen(), onen()
-        second_rgba = twon(), twon(), twon(), twon()
+        first_rgba = onen[xy:xy+4]
+        second_rgba = twon[xy:xy+4]
         if first_rgba != second_rgba:
 ##            print(first_rgba, second_rgba, len(newone) // size[0], len(newone) % size[1])
             newone[xy:xy+4] = first_rgba
