@@ -273,29 +273,37 @@ def aacircle(surface, color, pos, radius, width=0, mod=4):
 def str_getat(string, dims):pass
 
 def img_diff(one, two, empty=(0, 130, 0)):
+    """
+    Returns the difference between two images of the same size by covering the parts
+    of the images in the color `empty`.
+    """
+    # Allow strings, expect them to be files
     if isinstance(one, str):
         one = pygame.image.load(one)
     if isinstance(two, str):
         two = pygame.image.load(two)
     size = one.get_size()
+    # Make sure they're the same size
     assert size == two.get_size()
+    # Add the alpha color to empty if not provided
     if len(empty) == 3:
         empty = (empty[0], empty[1], empty[2], 255)
     pixels = size[0] * size[1]
-    newone = bytearray(empty * pixels)
-    newtwo = newone[:]
-##    print len(n), len(n[0]), len(n[0][0]), size
-    onen = pygame.image.tostring(one, 'RGBA')
-    twon = pygame.image.tostring(two, 'RGBA')
+    # Create an empty bytearray the size of the images
+    new_one = bytearray(empty * pixels)
+    new_two = new_one[:]
+    one_string = pygame.image.tostring(one, 'RGBA')
+    two_string = pygame.image.tostring(two, 'RGBA')
+    # Check each pixel (RGBA = 4 bytes per pixel)
     for xy in range(0, pixels * 4, 4):
-        first_rgba = onen[xy:xy+4]
-        second_rgba = twon[xy:xy+4]
+        first_rgba = one_string[xy:xy+4]
+        second_rgba = two_string[xy:xy+4]
+        # If they're not the same, put the pixel onto the final image
         if first_rgba != second_rgba:
-##            print(first_rgba, second_rgba, len(newone) // size[0], len(newone) % size[1])
-            newone[xy:xy+4] = first_rgba
-            newtwo[xy:xy+4] = second_rgba
-    return (pygame.image.frombuffer(newone, size, 'RGBA'),
-            pygame.image.frombuffer(newtwo, size, 'RGBA'))
+            new_one[xy:xy+4] = first_rgba
+            new_two[xy:xy+4] = second_rgba
+    return (pygame.image.frombuffer(new_one, size, 'RGBA'),
+            pygame.image.frombuffer(new_two, size, 'RGBA'))
 
 def _colors_in(pic, includealpha=False):
     if isinstance(pic, str):
