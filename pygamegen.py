@@ -293,7 +293,7 @@ def img_diff(one, two, empty=(0, 130, 0), alpha=False):
         bytes_per_pixel = 3
     # Add the alpha color to empty if not provided
     if alpha and len(empty) == 3:
-        empty = (empty[0], empty[1], empty[2], 255)
+        empty = (*empty, 255)
     pixels = size[0] * size[1]
     # Create an empty bytearray the size of the images
     new_one = bytearray(empty * pixels)
@@ -302,12 +302,14 @@ def img_diff(one, two, empty=(0, 130, 0), alpha=False):
     two_string = pygame.image.tostring(two, image_format)
     # Check each pixel (RGBA = 4 bytes per pixel)
     for xy in range(0, pixels * bytes_per_pixel, bytes_per_pixel):
-        first_rgba = one_string[xy:xy + bytes_per_pixel]
-        second_rgba = two_string[xy:xy + bytes_per_pixel]
+        # Get the endpoint of the array slice
+        xy_plus = xy + bytes_per_pixel
+        first_rgba = one_string[xy:xy_plus]
+        second_rgba = two_string[xy:xy_plus]
         # If they're not the same, put the pixel onto the final image
         if first_rgba != second_rgba:
-            new_one[xy:xy + bytes_per_pixel] = first_rgba
-            new_two[xy:xy + bytes_per_pixel] = second_rgba
+            new_one[xy:xy_plus] = first_rgba
+            new_two[xy:xy_plus] = second_rgba
     return (pygame.image.frombuffer(new_one, size, image_format),
             pygame.image.frombuffer(new_two, size, image_format))
 
