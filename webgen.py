@@ -5,7 +5,7 @@ import time
 from io import StringIO
 
 try:
-    import gzip
+    import gzip as _gzip
 except ImportError:
     HEADER_ENCODING = {}
 else:
@@ -57,7 +57,7 @@ class _special_response(urllib.response.addinfourl):
 
         if data is None:
             if gzip:
-                self.data = gzip.decompress(obj.read())
+                self.data = _gzip.decompress(obj.read())
             else:
                 self.data = obj.read()
         else:
