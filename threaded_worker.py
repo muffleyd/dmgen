@@ -1,14 +1,15 @@
-
 version = '0.9'
 
-#Queue2:
+# Queue2:
 # calls task_done() whenever something is removed,
 # allows items to be placed at the head of the Queue with
 #           q.put[_nowait](item, head=True)
-#I define these things below if Queue2 does not exist.
+# I define these things below if Queue2 does not exist.
 import sys
 import threading
 from functools import partial as _partial
+
+
 def partial(target, *args, **keywords):
     f = _partial(target, *args, **keywords)
     try:
@@ -17,11 +18,14 @@ def partial(target, *args, **keywords):
         pass
     return f
 
+
 partial.__doc__ = _partial.__doc__
 try:
     from Queue2 import Queue
 except ImportError:
     import queue as _Queue
+
+
     class Queue(_Queue.Queue):
         def get(self, block=True, timeout=None):
             z = _Queue.Queue.get(self, block, timeout)
@@ -74,25 +78,26 @@ except ImportError:
             self.queue.appendleft(item)
 
 ##TODO:
-#thread 1 puts data, so this handles it. meanwhile thread 2 puts data, then
-#thread 3 puts data.  thread 3 requests it's answer, then thread 1's data
-#finishes. currently thread 2's answer will be handled first,
-#>>>>>> instead thread 3 should be done now.
+# thread 1 puts data, so this handles it. meanwhile thread 2 puts data, then
+# thread 3 puts data.  thread 3 requests it's answer, then thread 1's data
+# finishes. currently thread 2's answer will be handled first,
+# >>>>>> instead thread 3 should be done now.
 
-#Exceptions on store=False?
+# Exceptions on store=False?
 
 ##</TODO>
 
-#active threaded_workers (if track is True and has active threads)
+# active threaded_workers (if track is True and has active threads)
 _workers = []
-#'end': sent to worker thread to end it (see self.close() and self._handle)
+# 'end': sent to worker thread to end it (see self.close() and self._handle)
 _ENDTHREAD = (0, 0, 0, 0, 0, 0)
-#active threads place self (the worker) in here
+# active threads place self (the worker) in here
 _THREADS = []
 _EMPTY_LIST = []
 
 THREADS_AS_NEEDED = -1
 UNLIMITED_PENDING = -1
+
 
 class threaded_worker(object):
     """A class which allows multiple threads to request some action,
@@ -121,15 +126,16 @@ class threaded_worker(object):
     once everything has been .put()'d.  Also they're subparly written at best.
     And their mothers were hampsters...
     """
-##    __slots__ = ('onexc', 'completed_inds', 'track', 'numthreads', 'active',
-##                 'allow_pending', 'wait_at_end', 'results', 'raise_onexc',
-##                 'putlock', 'active_threads', 'threads_as_needed', 'isdone',
-##                 'func', 'thisindex', 'pending', 'changethreads_lock')
+
+    # __slots__ = ('onexc', 'completed_inds', 'track', 'numthreads', 'active',
+    #              'allow_pending', 'wait_at_end', 'results', 'raise_onexc',
+    #              'putlock', 'active_threads', 'threads_as_needed', 'isdone',
+    #              'func', 'thisindex', 'pending', 'changethreads_lock')
     def __init__(self, func=None,
                  threads=THREADS_AS_NEEDED, max_pending=UNLIMITED_PENDING,
                  max_done_stored=UNLIMITED_PENDING,
                  onexc=lambda etype, value, tb: None,
-                   wait_at_end=False, raise_onexc=True,
+                 wait_at_end=False, raise_onexc=True,
                  track=False):
         """Starts the worker.  I am helpful and descriptive.
         func is the function that will be called by default in .put().
@@ -169,7 +175,7 @@ class threaded_worker(object):
 
         self.isdone = threading.Lock()
         self.putlock = threading.Lock()
-##        self.getlock = threading.Lock()
+        # self.getlock = threading.Lock()
 
         self.thisindex = 1
         self.active_threads = 0
@@ -189,12 +195,13 @@ class threaded_worker(object):
         self.onexc = onexc
         self.wait_at_end = wait_at_end
         self.raise_onexc = raise_onexc
-##    def __del__(self):
-##    #but there's references in the worker threads so this can't be collected
-##        self.close()
+
+       # def __del__(self):
+       # #but there's references in the worker threads so this can't be collected
+       #     self.close()
 
     def __repr__(self):
-        return '<t_worker(%d threads (%d active), %d pending)>'%\
+        return '<t_worker(%d threads (%d active), %d pending)>' % \
                (self.numthreads, self.active_threads, self.pending.qsize())
 
     def __iter__(self):
@@ -209,14 +216,15 @@ class threaded_worker(object):
 
     def __enter__(self):
         return self
+
     def __exit__(self, etype, value, tb):
-        if etype: #run onexception function
+        if etype:  # run onexception function
             self.onexc(etype, value, tb)
         if self.raise_onexc and etype:
-            #close everything now, then let it reraise
+            # close everything now, then let it reraise
             self.close_now()
             return False
-        else: #issue order to close and wait or don't
+        else:  # issue order to close and wait or don't
             if self.wait_at_end:
                 self.close(wait=1)
             else:
@@ -228,11 +236,12 @@ class threaded_worker(object):
             if not self.isdone:
                 break
             yield self.get()
+
     get_all = __iter__
 
     def num_done(self):
         """returns the number of completed items (not reliable)"""
-        return len(self.results)-1 - self.pending.qsize() - self.active_threads
+        return len(self.results) - 1 - self.pending.qsize() - self.active_threads
 
     def set_func(self, func):
         """changes the default function to call in each thread"""
@@ -271,29 +280,29 @@ class threaded_worker(object):
         for t in range(num):
             self.pending.put(_ENDTHREAD, head=now)
         if wait and num >= self.numthreads:
-            #cannot just .join the Queue because there may be other items
-            #after the .close()
+            # cannot just .join the Queue because there may be other items
+            # after the .close()
             self.wait()
 
     def _updatenumthreads(self, mod):
         """internal use only. use .start() or .close() instead.
         starts/ends threads."""
         self.changethreads_lock.acquire()
-        if not self.numthreads: #was no threads until now
+        if not self.numthreads:  # was no threads until now
             self.isdone.acquire()
             if self.track:
                 _workers.append(self)
         self.numthreads += mod
-        if not self.numthreads: #was threads, now they are done
+        if not self.numthreads:  # was threads, now they are done
             self.isdone.release()
-####            self.putlock.acquire()
-####            #releases all locks, marks all pending data as completed
-####            for i, j in self.results.items():
-####                if j[2] is not None:
-####                    continue
-####                j[2] = -1
-####                j[0].release()
-####            self.putlock.release()
+            # self.putlock.acquire()
+            # #releases all locks, marks all pending data as completed
+            # for i, j in self.results.items():
+            #    if j[2] is not None:
+            #        continue
+            #    j[2] = -1
+            #    j[0].release()
+            # self.putlock.release()
             if self.track:
                 try:
                     _workers.remove(self)
@@ -306,13 +315,13 @@ class threaded_worker(object):
         num = int(num)
         if num <= 0:
             return
+        # number of threads updated one by one in case thread creation fails
+        # (possibly due to OS complaint: too many threads)
         for t in range(num):
             thread = threading.Thread(target=self._handle)
             thread.setDaemon(1)
             thread.start()
             self._updatenumthreads(1)
-        #number of threads updated one by one in case thread creation fails
-        #(possibly due to OS complaint: too many threads)
 
     def __call__(self, *data, **kwargs):
         """shorthand for
@@ -338,7 +347,7 @@ class threaded_worker(object):
         if func is None:
             func = self.func
         f = partial(self.put, func=func, store=store)
-        f.__doc__ = """put(*args, **kwargs) #func=%s, store=%s"""%(
+        f.__doc__ = """put(*args, **kwargs) #func=%s, store=%s""" % (
             hasattr(func, 'func_name') and func.__name__ or func, store)
         return f
 
@@ -375,7 +384,7 @@ class threaded_worker(object):
                 this_lock.acquire()
                 self.results.append([this_lock, None, None])
             else:
-                thisindex = 1 #cannot eval to False, that ends the thread
+                thisindex = 1  # cannot eval to False, that ends the thread
             self.pending.put((func, data, kwargs, alsoreturn, store, thisindex))
         finally:
             self.putlock.release()
@@ -385,7 +394,7 @@ class threaded_worker(object):
         if not self.allow_pending:
             self.pending.join()
         if store:
-            return thisindex    
+            return thisindex
 
     def check(self, index):
         """Returns if the job of ID index is done, or None if not started."""
@@ -407,27 +416,27 @@ class threaded_worker(object):
            otherwise, blocks until the index value is finished, and returns
             that data.  If wait is False, raise Exception if thread is not
             complete."""
-##        self.getlock.acquire()
+        # self.getlock.acquire()
         if not wait and not index:
             raise ValueError('wait may only be false if index is an index')
         _index = index or self.completed_inds.get()
-        #things is = (lock, return_data, exception_flag)
-        #cannot do lock, rd, ef = results[_index] because the data and flag
-        #may not be finished when this is called (lock blocked!)
-        done = self.results[_index][0].acquire(wait)#not not self.numthreads)
+        # things is = (lock, return_data, exception_flag)
+        # cannot do lock, rd, ef = results[_index] because the data and flag
+        # may not be finished when this is called (lock blocked!)
+        done = self.results[_index][0].acquire(wait)  # not not self.numthreads)
         if wait and not done:
             raise ThreadNotComplete(index)
-        #lock, data, exception_flag = things
-        #data is the exception if exception_flag is True
-        #otherwise it's (result, to_also_return)
+        # lock, data, exception_flag = things
+        # data is the exception if exception_flag is True
+        # otherwise it's (result, to_also_return)
         things = self.results[_index][:]
-        #ensures the only copy is returned and can be gc'd
+        # ensures the only copy is returned and can be gc'd
         self.results[_index][:] = _EMPTY_LIST
-        if things[2] == -1: #worker closed
+        if things[2] == -1:  # worker closed
             things[2] = None
             return
         if index is not None:
-            self.completed_inds.remove(index) #not good, alter Queue.py for this
+            self.completed_inds.remove(index)  # not good, alter Queue.py for this
         if things[2]:
             exc = things[1][0]
             exc[1].traceback = exc[2]
@@ -442,7 +451,7 @@ class threaded_worker(object):
         _THREADS.append(self)
         while 1:
             func, data, kwargs, alsoreturn, store, index = self.pending.get()
-            if not index: #ends the thread
+            if not index:  # ends the thread
                 self._updatenumthreads(-1)
                 _THREADS.remove(self)
                 return
@@ -469,10 +478,12 @@ class threaded_worker(object):
             if self.threads_as_needed:
                 self.close(1)
 
+
 class ThreadNotComplete(Exception):
     def __init__(self, index):
         Exception.__init__(self)
         self.index = index
+
 
 def thread_map(data, func, toput=None, threads=1, *args, **kwargs):
     """thread_map
@@ -481,7 +492,7 @@ def thread_map(data, func, toput=None, threads=1, *args, **kwargs):
         `toput` is a function that takes an item from 'data',
                 and returns a piece of it to pass to the threaded_worker.
         `threads` is number of threads to run."""
-    todo = 0 #don't take len(data) because it could be a generator
+    todo = 0  # don't take len(data) because it could be a generator
     with threaded_worker(func, threads) as tw:
         for d in data:
             if toput:
@@ -492,8 +503,11 @@ def thread_map(data, func, toput=None, threads=1, *args, **kwargs):
             todo += 1
         for i in range(todo):
             yield tw.get()
+
+
 def tmap(data, func, threads=1, toput=None, *args, **kwargs):
     return thread_map(data, func, toput, threads, *args, **kwargs)
+
 
 def _thread_map2_put(tw, data, toput, *args, **kwargs):
     done = 0
@@ -505,6 +519,8 @@ def _thread_map2_put(tw, data, toput, *args, **kwargs):
         tw.put(data, alsoreturn=d, *args, **kwargs)
         done += 1
     return done
+
+
 def thread_map2(data, func, threads=1, toput=None,
                 max_pending=-1, max_done_stored=-1,
                 order=False,
@@ -515,21 +531,21 @@ def thread_map2(data, func, threads=1, toput=None,
         `toput` is a function that takes an item from 'data',
                 and returns a piece of it to pass to the threaded_worker.
         `threads` and 'max_pending` are sent to threaded_worker.__init__()."""
-    todo = 0 #don't take len(data) because it could be a generator
+    todo = 0  # don't take len(data) because it could be a generator
     index = 1
     done = False
     with threaded_worker(_thread_map2_put, 1, max_pending, max_done_stored) as putter:
         with threaded_worker(func, threads, max_pending, max_done_stored) as tw:
             mainput = putter.put(tw, data, toput, *args, **kwargs)
             while tw.check(index) is None:
-                pass #loops until the first item is started
+                pass  # loops until the first item is started
             while 1:
-                #if not done and putter not found to be done
+                # if not done and putter not found to be done
                 if not done and putter.check(mainput):
-                    #set todo with the number of items put into tw
+                    # set todo with the number of items put into tw
                     todo += putter.get(mainput)
                     done = True
-                #if putter is done and todo is back to 0, end it
+                # if putter is done and todo is back to 0, end it
                 if done and not todo:
                     break
                 if order:
@@ -539,25 +555,27 @@ def thread_map2(data, func, threads=1, toput=None,
                     yield tw.get()
                 todo -= 1
 
+
 def test(fname='readme.txt'):
     global w
     import time, traceback
     from dmgen import filegen
     def f(filename, mode='r'):
         return open(filename, mode).read()
+
     def onexc(etype, value, tb):
         print('exception ------------------------------')
         traceback.print_exception(etype, value, tb)
         print('----------------------------------------')
 
     with threaded_worker(f, 1, track=1, onexc=onexc, raise_onexc=False) as w:
-        print(_workers)        
+        print(_workers)
         r = w.put(fname)
-        w.put(func=lambda :time.sleep(1), store=False)
+        w.put(func=lambda: time.sleep(1), store=False)
         print(_workers)
         f = filegen.unused_filename()
         r2 = w.put(f)
-        print(r,r2)
+        print(r, r2)
         _ = w.get(r)
         try:
             _ = w.get(r2)
@@ -565,6 +583,6 @@ def test(fname='readme.txt'):
             # File expected to be not found!
             pass
         print('success!')
-##        print w.get(r)
-##        del _
-##        return w
+       # print w.get(r)
+       # del _
+       # return w
