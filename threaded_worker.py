@@ -23,12 +23,12 @@ partial.__doc__ = _partial.__doc__
 try:
     from Queue2 import Queue
 except ImportError:
-    import queue as _Queue
+    from queue import Queue as _Queue
+    from time import time as _time
 
-
-    class Queue(_Queue.Queue):
+    class Queue(_Queue):
         def get(self, block=True, timeout=None):
-            z = _Queue.Queue.get(self, block, timeout)
+            z = _Queue.get(self, block, timeout)
             self.task_done()
             return z
 
