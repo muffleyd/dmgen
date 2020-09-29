@@ -1,19 +1,19 @@
 import os
 import shutil
-import queue
 import random
-from itertools import chain
 import hashlib
 
 _walk = os.walk
+
 
 def extensionis(filename, ext):
     if ext[0] != '.':
         ext = '.' + ext
     return os.path.splitext(filename)[1].lower() == ext.lower()
 
+
 def search_files(folder, filename='', substr=None, ignorecase=True,
-                 maxsize=1073741824): #one gigabyte
+                 maxsize=1073741824):  # one gigabyte
     yes = []
     splitpath = os.path.split
     filename = filename.lower()
@@ -38,6 +38,8 @@ def rewrite_file(filename):
     global rewrite_file
     rewrite_file = _rewrite_file
     _rewrite_file(filename)
+
+
 def _rewrite_file(filename):
     z = open(filename, 'rb').read()
     temp = unused_filename()
@@ -47,20 +49,21 @@ def _rewrite_file(filename):
     os.remove(filename)
     os.rename(temp, filename)
 
-def assert_file_trees(one, two, justcomparefiles=0):
+
+def assert_file_trees(one, two, just_compare_files=0):
     _1 = os.path.exists(one)
     _2 = os.path.exists(two)
     if not _1 or not _2:
         if not _1 and not _2:
             raise Exception("Neither folder provided exists.")
         if not _1:
-            raise Exception("Folder '%s' does not exist."%one)
-        raise Exception("Folder '%s' does not exist."%two)
+            raise Exception("Folder '%s' does not exist." % one)
+        raise Exception("Folder '%s' does not exist." % two)
 
     t = _walk(two)
     for i in _walk(one):
         j = next(t)
-        if not justcomparefiles:
+        if not just_compare_files:
             if j[1] != i[1]:
                 raise Exception("Folder lists don't match.", i[0], j[0])
             if j[2] != i[2]:
@@ -75,14 +78,15 @@ def assert_file_trees(one, two, justcomparefiles=0):
                                 os.path.join(j[0], file))
     return True
 
-def assert_files(file1, file2, f1size=None, f2size=None, start=0):
-    if not f1size:
-        f1size = os.stat(file1)[6]
-    if not f2size:
-        f2size = os.stat(file2)[6]
-    if f1size != f2size: #compare file sizes
-        return False, 'size'#max((f1size, f2size))
-    _CHUNKSIZE = 163840 #2**14 and a 0
+
+def assert_files(file1, file2, file1_size=None, file2_size=None, start=0):
+    if not file1_size:
+        file1_size = os.stat(file1)[6]
+    if not file2_size:
+        file2_size = os.stat(file2)[6]
+    if file1_size != file2_size:  # compare file sizes
+        return False, 'size'  # max((f1size, f2size))
+    CHUNK_SIZE = 163840  # 2**14 and a 0
     if not hasattr(file1, 'read'):
         f1 = open(file1, 'rb')
     else:
@@ -94,11 +98,12 @@ def assert_files(file1, file2, f1size=None, f2size=None, start=0):
     if start:
         f1.seek(start)
         f2.seek(start)
-    for cycles in range(1, (f1size // _CHUNKSIZE) + 2):
-##        print float(cycles) / (f1size // _CHUNKSIZE)
-        if f1.read(_CHUNKSIZE) != f2.read(_CHUNKSIZE):
-            return False, (_CHUNKSIZE // cycles)-_CHUNKSIZE
+    for cycles in range(1, (file1_size // CHUNK_SIZE) + 2):
+        # print float(cycles) / (f1size // _CHUNKSIZE)
+        if f1.read(CHUNK_SIZE) != f2.read(CHUNK_SIZE):
+            return False, (CHUNK_SIZE // cycles) - CHUNK_SIZE
     return True, -1
+
 
 def copyfile(one, two, mode=None):
     if os.path.exists(one):
@@ -111,82 +116,80 @@ def copyfile(one, two, mode=None):
                 os.makedirs(os.path.dirname(two), mode)
             shutil.copy(one, two)
 
-def resetfile(file):
-    b = readfile(file,'b')
-    a = open(file, 'wb')
-    a.write(b)
-    a.close()
-def readfile(file, mode=''):
-    return open(file, 'r'+mode).read().replace('\r\n', '\n').replace('\r', '\n')
 
-def replaceinfile(filename, str1, strrep):
+def replaceinfile(filename, original, replace):
     a = open(filename)
-    b = a.read().replace(str1, strrep)
+    b = a.read().replace(original, replace)
     a.close()
     a = open(filename, 'w')
     a.write(b)
     a.close()
 
-def iter_file(file, chunksize=16384, filelen=None, mode='rb'):
-    if isinstance(file, str): #filename
-        if filelen is None:
-            filelen = int(os.stat(file)[6])
+
+def iter_file(file, chunk_size=16384, file_len=None, mode='rb'):
+    if isinstance(file, str):  # filename
+        if file_len is None:
+            file_len = int(os.stat(file)[6])
         file = open(file, mode)
-    #file must now be a file-like object
-    elif filelen is None:
+    # file must now be a file-like object
+    elif file_len is None:
         raise ValueError("File size must be given for file-like object.")
 
-    for cycles in range(1, (filelen // chunksize) + 2):
-        yield file.read(chunksize)
+    for cycles in range(1, (file_len // chunk_size) + 2):
+        yield file.read(chunk_size)
 
-def _get_duplicate_filesS(li, minsize=1):
-    datasizes = {} #datasizes[file_size] -> [filename1, filename2, etc]
-    for i in li:
+
+def files_by_size(files, min_size=1):
+    data_sizes = {}  # data_sizes[file_size] -> [filename1, filename2, etc]
+    for i in files:
         if not os.path.isfile(i):
             continue
-        thissize = os.stat(i)[6] #six is for size
-        if thissize >= minsize:
-            datasizes.setdefault(thissize, []).append(i)
-    return datasizes
+        this_size = os.stat(i)[6]  # six is for size
+        if this_size >= min_size:
+            data_sizes.setdefault(this_size, []).append(i)
+    return data_sizes
+
 
 def coerce_dir(thing):
     if isinstance(thing, str):
         return ifiles_in(thing)
     return thing
 
-def dict_of_data(files, blocksize, doopen=False):
-    if doopen:
-        files = [open(file, 'rb') for file in files]
+
+def dict_of_data(files, block_size, do_open=False):
     data = {}
     for file in files:
-        data.setdefault(file.read(blocksize), []).append(file)
+        if do_open:
+            file = open(file, 'rb')
+        data.setdefault(file.read(block_size), []).append(file)
     return data
 
-def get_duplicate_files(li, minsize=1, BLOCKSIZE=2**14, firstblocksize=32):
-    li = coerce_dir(li)
-    if not firstblocksize:
-        firstblocksize = BLOCKSIZE
-    datasizes = _get_duplicate_filesS(li, minsize)
+
+def get_duplicate_files(files, min_size=1, BLOCKSIZE=2 ** 14, first_block_size=32):
+    files = coerce_dir(files)
+    if not first_block_size:
+        first_block_size = BLOCKSIZE
+    data_sizes = files_by_size(files, min_size)
     positives = []
-    #Reads BLOCKSIZE bytes from each file at a time and compares those
-    #relatively small strings rather than several whole files.
-    #All but needed for comparing large files.
-    for size, files in datasizes.items():
+    # Reads BLOCKSIZE bytes from each file at a time and compares those
+    # relatively small strings rather than several whole files.
+    # All but needed for comparing large files.
+    for size, files in data_sizes.items():
         if len(files) == 1:
             continue
-        #reads a small amount first, as most files will be different so read
-        #a little amount for a first check..
-        data = dict_of_data(files, firstblocksize, True)
+        # reads a small amount first, as most files will be different so read
+        # a little amount for a first check..
+        data = dict_of_data(files, first_block_size, True)
         o_files = set()
         for i in data.values():
-            if len(i) > 1: #if the block is not unique in this set of files
+            if len(i) > 1:  # if the block is not unique in this set of files
                 o_files.update(i)
-        #..and then check large blocks at a time
-        for i in range(1 + (size - firstblocksize) // BLOCKSIZE):
-            #data[string] -> [filename1, filename2, etc]
+        # ..and then check large blocks at a time
+        for i in range(1 + (size - first_block_size) // BLOCKSIZE):
+            # data[string] -> [filename1, filename2, etc]
             data = dict_of_data(o_files, BLOCKSIZE)
             for i in data.values():
-                if len(i) == 1: #if the block is unique in this set of files
+                if len(i) == 1:  # if the block is unique in this set of files
                     o_files.remove(i[0])
             if not o_files:
                 break
@@ -195,164 +198,168 @@ def get_duplicate_files(li, minsize=1, BLOCKSIZE=2**14, firstblocksize=32):
                 if len(i) > 1:
                     positives.append([q.name for q in i])
     return positives
+
+
+# Experiments of different methods that still linger around my computers.
 get_duplicate_files3 = get_duplicate_files2 = get_duplicate_files
 
-def get_same_as_file(f1, li):
-    targetsize = os.stat(f1)[6]
-    #[6] is for size
-    samesizes = [file for file in li if targetsize == os.stat(file)[6]]
+
+def get_same_as_file(file, list):
+    targetsize = os.stat(file)[6]
+    # [6] is for size
+    samesizes = [file for file in list if targetsize == os.stat(file)[6]]
     if not samesizes:
-        return samesizes #[]
-    targetdata = open(f1, 'rb').read()
+        return samesizes  # []
+    targetdata = open(file, 'rb').read()
     return [file for file in samesizes if open(file, 'rb').read() == targetdata]
 
-def get_same_as_many_files(files, li, minsize=1): #def get_same_as_many_files2(files, li):
-    #there's probably some optimization in which list is smaller
-    if not files or not li:
+
+def get_same_as_many_files(files1, files2, minsize=1):  # def get_same_as_many_files2(files, li):
+    # there's probably some optimization in which list is smaller
+    if not files1 or not files2:
         return []
-    files = coerce_dir(files)
-    li = coerce_dir(li)
+    files1 = coerce_dir(files1)
+    files2 = coerce_dir(files2)
     abspath = os.path.abspath
-    samesizes = {}
-    filessizes = {}
-    filesset = set() #prevents comparing a file to itself (same size, afterall!)
+    same_sizes = {}
+    files_sizes = {}
+    files_set = set()  # prevents comparing a file to itself (same size, afterall!)
     isfile = os.path.isfile
-    for i in files:
+    for i in files1:
         if not isfile(i):
             continue
-        filesset.add(abspath(i)) #
+        files_set.add(abspath(i))  #
         isize = os.stat(i)[6]
         if isize < minsize:
             continue
-        samesizes[isize] = []
-        filessizes.setdefault(isize, []).append(['', i])#[file data, filename]
-    
-    for i in li:
-        if abspath(i) in filesset:
-            continue #don't compare a file to itself
-        targetlist = samesizes.get(os.stat(i)[6])
+        same_sizes[isize] = []
+        files_sizes.setdefault(isize, []).append(['', i])  # [file data, filename]
+
+    for i in files2:
+        if abspath(i) in files_set:
+            continue  # don't compare a file to itself
+        targetlist = same_sizes.get(os.stat(i)[6])
         if targetlist is not None:
             targetlist.append(i)
-    del filesset, files, li #all files are correctly in both dicts, so bye bye!
+    del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
-    for j,i in list(samesizes.items()):
+    for j, i in list(same_sizes.items()):
         if not i:
-            del filessizes[j]
-            del samesizes[j]
-    if not samesizes: #no files in 'li' are the same size as any in 'files'
+            del files_sizes[j]
+            del same_sizes[j]
+    if not same_sizes:  # no files in 'li' are the same size as any in 'files'
         return []
     positives = []
-    for targetsize, filenames in list(filessizes.items()):
-        for data in filenames: #do reading of files of size 'targetsize' here
-            data[0] = open(data[1],'rb').read()
-        for targetfilename in samesizes[targetsize]:
-            targetdata = open(targetfilename,'rb').read()
-            for filess in filessizes.values():
-                for filesdata, filesname in filess: #filess... comeon..
+    for targetsize, filenames in list(files_sizes.items()):
+        for data in filenames:  # do reading of files of size 'targetsize' here
+            data[0] = open(data[1], 'rb').read()
+        for targetfilename in same_sizes[targetsize]:
+            targetdata = open(targetfilename, 'rb').read()
+            for filess in files_sizes.values():
+                for filesdata, filesname in filess:  # filess... comeon..
                     if targetdata == filesdata:
                         positives.append((filesname, targetfilename))
-        for data in filenames: #release the memory for the read in files
+        for data in filenames:  # release the memory for the read in files
             data[0] = ''
     return positives
-def get_same_as_many_files2(files, li, minsize=1):
-    #there's probably some optimization in which list is smaller
-    if not files or not li:
+
+
+def get_same_as_many_files2(files1, files2, minsize=1):
+    # there's probably some optimization in which list is smaller
+    if not files1 or not files2:
         return []
-    files = coerce_dir(files)
-    li = coerce_dir(li)
+    files1 = coerce_dir(files1)
+    files2 = coerce_dir(files2)
     abspath = os.path.abspath
     isfile = os.path.isfile
-    filessizes = {}
-    filesset = {} #prevents comparing a file to itself (same size, afterall!)
-    for i in files:
+    files_sizes = {}
+    files_set = {}  # prevents comparing a file to itself (same size, afterall!)
+    for i in files1:
         if not isfile(i):
             continue
         isize = os.stat(i)[6]
         if isize < minsize:
             continue
-        filesset[abspath(i)] = 1 #see first line of next for loop (for i in li)
-        filessizes.setdefault(isize, ([], []))[0].append(['', i])
-        #([[filedata, filename], [fd2, fn2], [etc]], [same sized files in arg2])
-    
-    for i in li: #place the filenames
-        if not isfile(i) or filesset.get(abspath(i)):
-            continue #don't compare a file to itself
-        targetlist = filessizes.get(os.stat(i)[6])
+        files_set[abspath(i)] = 1  # see first line of next for loop (for i in li)
+        files_sizes.setdefault(isize, ([], []))[0].append(['', i])
+        # ([[filedata, filename], [fd2, fn2], [etc]], [same sized files in arg2])
+
+    for i in files2:  # place the filenames
+        if not isfile(i) or files_set.get(abspath(i)):
+            continue  # don't compare a file to itself
+        targetlist = files_sizes.get(os.stat(i)[6])
         if targetlist is not None:
             targetlist[1].append(i)
-    del filesset, files, li #all files are correctly in both dicts, so bye bye!
+    del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
-    for j, i in list(filessizes.items()):
-        if not i[1]: #if no arg2 files are of the same size as arg1 files,
-            del filessizes[j] #remove it as an option for iteration
+    for j, i in list(files_sizes.items()):
+        if not i[1]:  # if no arg2 files are of the same size as arg1 files,
+            del files_sizes[j]  # remove it as an option for iteration
 
     positives = []
-    for targetsize, filesofsize in filessizes.items():
-        fileinfo, filesize = filesofsize
+    for target_size, files_of_size in files_sizes.items():
+        file_info, file_size = files_of_size
 
-        for data in fileinfo: #do reading of files of size 'targetsize' here
-            data[0] = open(data[1],'rb').read()
-        for targetfilename in filesize:
-            targetdata = open(targetfilename,'rb').read()
-            for filedata, filename in fileinfo:
-                if targetdata == filedata:
-                    positives.append((filename, targetfilename))
-        for data in fileinfo: #release the memory for the read in files
+        for data in file_info:  # do reading of files of size 'targetsize' here
+            data[0] = open(data[1], 'rb').read()
+        for target_filename in file_size:
+            target_data = open(target_filename, 'rb').read()
+            for file_data, filename in file_info:
+                if target_data == file_data:
+                    positives.append((filename, target_filename))
+        for data in file_info:  # release the memory for the read in files
             data[0] = ''
     return positives
 
-def makedirs(*dirs):
-    for dir in dirs:
-        if hasattr(dir, '__iter__'):
-            dir = os.path.join(*dir)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
 
-def ifiles_in(directory='.', include='', includeend='', exclude=[]): #generator for files_in
+def ifiles_in(directory='.', include='', include_end='', exclude=[]):  # generator for files_in
     if type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     pathsep = os.path.sep
     walker = _walk(directory)
-    includeend = includeend.lower()
+    include_end = include_end.lower()
 
-    #to avoid returning "./filename"
+    # to avoid returning "./filename"
     if not directory or directory == '.':
         for onefile in next(walker)[2]:
             if onefile in exclude or include not in onefile:
                 continue
-            if includeend:
-                if onefile[-len(includeend):].lower() != includeend:
+            if include_end:
+                if onefile[-len(include_end):].lower() != include_end:
                     continue
             yield onefile
 
-    for curdir, folders, files in walker:
+    for current_directory, folders, files in walker:
         if exclude:
-            curdirs = curdir.split(os.path.sep)
+            current_directories = current_directory.split(os.path.sep)
         for i in exclude:
-            if i in curdirs:
+            if i in current_directories:
                 break
         else:
             for onefile in files:
                 if onefile in exclude:
                     continue
-                if includeend:
-                    if onefile[-len(includeend):].lower() != includeend:
+                if include_end:
+                    if onefile[-len(include_end):].lower() != include_end:
                         continue
-                if include in curdir or include in onefile:
-                    yield curdir + pathsep + onefile
+                if include in current_directory or include in onefile:
+                    yield current_directory + pathsep + onefile
+
 
 def files_in(directory='', exclude=[]):
-    #returns a list of every file in directory and it's subdirectories
-    return list(ifiles_in(directory, '','', exclude))
+    # returns a list of every file in directory and it's subdirectories
+    return list(ifiles_in(directory, '', '', exclude))
 
-#yields scandir objects for each file in a directory and its children
-def ifiles_in_scandir(directory='.', exclude=[]): #generator for files_in_scandir
+
+# yields scandir objects for each file in a directory and its children
+def ifiles_in_scandir(directory='.', exclude=[]):  # generator for files_in_scandir
     if type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
     for i in _ifiles_in_scandir(directory, exclude):
         yield i
+
 
 def _ifiles_in_scandir(directory, exclude):
     walker = os.scandir(directory)
@@ -373,22 +380,29 @@ def _ifiles_in_scandir(directory, exclude):
         for i in _ifiles_in_scandir(dir, exclude):
             yield i
 
+
 def files_in_scandir(directory='', exclude=[]):
-    #returns a list of every item yielded from ifiles_in_scandir()
+    # returns a list of every item yielded from ifiles_in_scandir()
     return list(ifiles_in_scandir(directory, exclude))
+
 
 def listfolders(directory='.'):
     path = os.path
     return [i for i in os.listdir(directory) if not path.isfile(path.join(directory, i))]
+
+
 def listfiles(directory='.'):
     return [i for i in os.listdir(directory) if os.path.isfile(os.path.join(directory, i))]
+
 
 def ifoldersfiles_in(directory, includes=[], exclude=[]):
     raise NotImplementedError()
     return []
 
+
 def foldersfiles_in(directory='', includes=[], exclude=[]):
     return list(ifoldersfiles_in(directory, includes, exclude))
+
 
 def folder_stats(directory):
     types = {}
@@ -401,27 +415,36 @@ def folder_stats(directory):
                 types[ext] += 1
             except:
                 types[ext] = 1
-    return types,folders
+    return types, folders
+
 
 class switch_dir:
-    def __init__(self, dirname):
-        self.dirname = dirname
-    def __enter__(self):
-        self.prevdir = os.path.abspath('.')
-        if self.dirname: #sometimes it's os.chdir('')
-            os.chdir(self.dirname)
-    def __exit__(self, etype, exc, tb):
-        os.chdir(self.prevdir)
+    def __init__(self, directory):
+        self.directory = directory
 
+    def __enter__(self):
+        self.previous_directory = os.path.abspath('.')
+        if self.directory:  # sometimes it's os.chdir('')
+            os.chdir(self.directory)
+
+    def __exit__(self, etype, exc, tb):
+        os.chdir(self.previous_directory)
+
+
+# Sort files by number where the file is like %s.%d.%s
 def _renumber_files_sort(files):
     return sorted([i for i in files if isint(os.path.splitext(os.path.split(i)[1])[0])],
-                  key=lambda i:int(os.path.splitext(os.path.split(i)[1])[0]))
+                  key=lambda i: int(os.path.splitext(os.path.split(i)[1])[0]))
+
+
 def isint(what):
     try:
-        _=int(what)
+        _ = int(what)
     except ValueError:
         return False
     return True
+
+
 def renumber_files(files):
     if isinstance(files, str):
         files = [os.path.join(files, i) for i in os.listdir(files)]
@@ -430,52 +453,55 @@ def renumber_files(files):
     for ind, i in enumerate(files):
         path, file = os.path.split(i)
         num, ext = os.path.splitext(file)
-        os.rename(i, os.path.join(path, str(ind+1)+ext))
+        os.rename(i, os.path.join(path, str(ind + 1) + ext))
     for i in mod2:
+        # ?
         pass
 
-#os.path.abspath('/tmp') because windows is allows /tmp
+
+# os.path.abspath('/tmp') because windows is allows /tmp
 TEMPfolder = os.path.exists('/tmp') and os.path.abspath('/tmp') or os.environ.get('tmp')
 allowedchars = 'abcdefghijklmnopqrstuvwxyz0123456789_'
+
+
 def unused_filename(ending='', donotuse=(), folder='', maxlen=15, start=''):
     if not folder:
         if TEMPfolder:
             folder = TEMPfolder
         else:
             folder = '.'
-    numgenerate = max(3, maxlen - len(start) - len(ending))
+    generate_characters = max(3, maxlen - len(start) - len(ending))
     rand = random.random
     name = None
-    while (not name or name in donotuse or name in (i.lower() for i in os.listdir(folder))):
-##               ''.join([random.choice(allowedchars)
+    while not name or name in donotuse or name in (i.lower() for i in os.listdir(folder)):
+               # ''.join([random.choice(allowedchars)
         name = (start +
                 ''.join([allowedchars[int(rand() * len(allowedchars))]
-                         for i in range(int(1 + rand() * numgenerate))]) +
+                         for i in range(int(1 + rand() * generate_characters))]) +
                 ending)
     if folder and folder != '.':
         name = os.path.join(folder, name)
     return name
 
-#####work on this thing
-def split_file(what, many): 
-    a = open(what, 'rb')
-    try:
-        size = int(os.stat(what)[6])
-        splitpoints = [i * (size // many) for i in range(many)] + [size]
-        folder = '.'.join(what.split('.')[:-1])
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        if os.path.isfile(folder):
-            raise ValueError('folder to be created already exists as a file',folder)
-        for i in range(many):
-            with open(os.path.join(folder, '%s.%s'%(what, str(i))), 'wb') as write:
-                write.write(a.read(splitpoints[i+1] - splitpoints[i]))
-    finally:
-        a.close()
 
-def merge_files(what, read=2**15):
-    with open('.'.join(what[0].split('.')[:-1]), 'wb') as f:
-        for i in what:
+##### Work on this thing.
+def split_file(file, blocks):
+    folder = '.'.join(file.split('.')[:-1])
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    if os.path.isfile(folder):
+        raise ValueError('folder to be created already exists as a file', folder)
+    with open(file, 'rb') as a:
+        size = int(os.stat(file)[6])
+        split_points = [i * (size // blocks) for i in range(blocks)] + [size]
+        for i in range(blocks):
+            with open(os.path.join(folder, '%s.%s' % (file, str(i))), 'wb') as write:
+                write.write(a.read(split_points[i + 1] - split_points[i]))
+
+
+def merge_files(files, read=2 ** 15):
+    with open('.'.join(files[0].split('.')[:-1]), 'wb') as f:
+        for i in files:
             r = open(i, 'rb')
             while 1:
                 d = r.read(read)
@@ -483,6 +509,7 @@ def merge_files(what, read=2**15):
                     r.close()
                     break
                 f.write(d)
+
 
 def md5file(filename):
     h = hashlib.md5()
