@@ -2,23 +2,21 @@ import os, sys
 import pygame
 from dmgen import filegen
 
+
 def main(filenames):
     exitcode = 0
     for filename in filenames:
-        if filename[-4:].lower() == '.png': #try recompress
-            PNG = True
-        else:
-            PNG = False
-        if PNG:
+        is_png = filename[-4:].lower() == '.png'  # try recompress
+        if is_png:
             tofilename = filegen.unused_filename('.png', folder=filegen.TEMPfolder)
         else:
-            tofilename = os.path.splitext(filename)[0]+'.png'
+            tofilename = os.path.splitext(filename)[0] + '.png'
         try:
-            l = pygame.image.load(filename)
+            image = pygame.image.load(filename)
         except pygame.error:
             return 2
-        pygame.image.save(l, tofilename)
-        if PNG:
+        pygame.image.save(image, tofilename)
+        if is_png:
             if os.stat(tofilename)[6] < os.stat(filename)[6]:
                 os.remove(filename)
                 os.rename(tofilename, filename)
@@ -28,6 +26,7 @@ def main(filenames):
         else:
             os.remove(filename)
     return exitcode
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:

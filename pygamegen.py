@@ -2,7 +2,6 @@ import random
 import os
 import threading
 import time
-import types
 import struct
 import array
 from io import StringIO
@@ -18,6 +17,7 @@ try:
 except ImportError:
     screen = None
 
+
 def mk_rect(point1, point2):
     rect = pygame.Rect(point1, (0, 0))
     if point1[0] < point2[0]:
@@ -32,15 +32,16 @@ def mk_rect(point1, point2):
         rect.height = point1[1] - point2[1]
     return rect
 
-##def scroll_img(img, maxsize):
-##    if not isinstance(img, pygame.SurfaceType):
-##        img = pygame.image.load(img)
-##    s = pygame.display.set_mode((min(img.get_width(), maxsize[0]),
-##                                 min(img.get_height(), maxsize[1])))
-##    s.blit(img,img.get_rect())
-##    while 1:
-##        for e in pygame.event.get():
-##            if 
+
+# def scroll_img(img, maxsize):
+#    if not isinstance(img, pygame.SurfaceType):
+#        img = pygame.image.load(img)
+#    s = pygame.display.set_mode((min(img.get_width(), maxsize[0]),
+#                                 min(img.get_height(), maxsize[1])))
+#    s.blit(img,img.get_rect())
+#    while 1:
+#        for e in pygame.event.get():
+#            if
 
 def _levels_perc(rgba, perc):
     r, g, b, a = rgba
@@ -49,21 +50,27 @@ def _levels_perc(rgba, perc):
             int(round(g * perc)),
             int(round(b * perc)),
             a)
+
+
 def _levels_sqrt(rgba, pwr=.5):
     r, g, b, a = rgba
-##    print rgba
+    # print rgba
     m, avg = _levels_prep(rgba)
     mod = ((avg ** pwr) / (avg or 1)) or 1
-##    if mod != 1:
-##        print rgba, mod
+    # if mod != 1:
+    #     print rgba, mod
     return (int(round(r * mod)),
             int(round(g * mod)),
             int(round(b * mod)),
             a)
+
+
 def _levels_prep(rgba):
     r, g, b, a = rgba
-    return max(r, g, b), (r+g+b) // 3
-#alter image by some function (see _levels_*() above)
+    return max(r, g, b), (r + g + b) // 3
+
+
+# Alter image by some function (see _levels_*() above).
 def levels(image, level, *args, **kwargs):
     if isinstance(image, str):
         image = pygame.image.load(image)
@@ -72,11 +79,12 @@ def levels(image, level, *args, **kwargs):
     for i in iter_surf(image):
         rgba = image.get_at(i)
         newrgba = level(rgba, *args, **kwargs)
-##        image.fill(newrgba, (i, (1,1)))
+        # image.fill(newrgba, (i, (1,1)))
         image.set_at(i, newrgba)
-##        if image.get_at(i) != rgba:
-##            print i, rgba, image.get_at(i)
+        # if image.get_at(i) != rgba:
+        #     print i, rgba, image.get_at(i)
     return image
+
 
 def replace_color(image, color1, color2, empty=False):
     color1 = tuple(color1)
@@ -89,18 +97,19 @@ def replace_color(image, color1, color2, empty=False):
             image2.fill(color2, (x, y, 1, 1))
     return image2
 
+
 def mk_bw(pic):
     if isinstance(pic, str):
         pic = pygame.image.load(pic)
     newl = bytearray()
     iterpic = iter(pygame.image.tostring(pic, 'RGB'))
-##    alpha = pic.get_alpha() is not None
+    # alpha = pic.get_alpha() is not None
     itern = iterpic.__next__
     for p in iterpic:
         rgb = p + itern() + itern()
-##        if alpha:
-##        itern() #alpha, ignore
-        if rgb%3 == 2:
+        # if alpha:
+        # itern() #alpha, ignore
+        if rgb % 3 == 2:
             rgb += 1
         newl.append(rgb // 3)
     new = pygame.image.frombuffer(newl, pic.get_size(), 'P')
@@ -113,6 +122,7 @@ def mk_bw(pic):
         finally:
             pygame.display.quit()
     return new
+
 
 def fit_to(image, dims=(1920, 1080)):
     width, height = image.get_size()
@@ -130,6 +140,7 @@ def fit_to(image, dims=(1920, 1080)):
         h2 = dims[1]
     return pygame.transform.smoothscale(image, (int(float(w2)), int(float(h2))))
 
+
 def get_at_mouse():
     pygame.event.pump()
     return pygame.display.get_surface().get_at(pygame.mouse.get_pos())
@@ -139,7 +150,7 @@ def get_at_mouse_until_click():
     while 1:
         time.sleep(.05)
         color = get_at_mouse()
-        pygame.display.set_caption('%s: %s'%(pygame.mouse.get_pos(), str(color)))
+        pygame.display.set_caption('%s: %s' % (pygame.mouse.get_pos(), str(color)))
         if pygame.mouse.get_pressed()[0]:
             break
 
@@ -151,12 +162,13 @@ def invert(surf):
     newstring = []
     for ind in range(0, len(string), 4):
         for i in range(3):
-            newstring.append(chr(255 - ord(string[ind+i])))
-        newstring.append(string[ind+3])
+            newstring.append(chr(255 - ord(string[ind + i])))
+        newstring.append(string[ind + 3])
     return pygame.image.fromstring(''.join(newstring), surf.get_size(), 'RGBA')
 
+
 def avg_surf(s):
-    rgb = [0,0,0]
+    rgb = [0, 0, 0]
     z = pygame.image.tostring(s, 'RGB')
     for color in range(3):
         c = 0
@@ -166,8 +178,9 @@ def avg_surf(s):
     size = len(z) // 3
     return tuple(i // size for i in rgb)
 
+
 def avg_surf_less_mem(s):
-    rgb = [0,0,0]
+    rgb = [0, 0, 0]
     z = pygame.image.tostring(s, 'RGB')
     for color in range(3):
         c = 0
@@ -177,39 +190,41 @@ def avg_surf_less_mem(s):
     size = len(z) // 3
     return tuple(i // size for i in rgb)
 
+
 def iter_surf(surface):
     for x in range(surface.get_width()):
         for y in range(surface.get_height()):
             yield x, y
 
+
 def iter_surf_pieces(surface, pieces=1):
     for i in range(pieces):
         for x in range(surface.get_width() // pieces * i,
-                        surface.get_width() // pieces * (i + 1)):
+                       surface.get_width() // pieces * (i + 1)):
             for j in range(pieces):
                 for y in range(surface.get_height() // pieces * j,
-                                surface.get_height() // pieces * (j + 1)):
+                               surface.get_height() // pieces * (j + 1)):
                     yield x, y, i + j
 
 
 def resize_image(filename):
+    made_window = False
     try:
-        made_window = False
         if not pygame.display.get_init():
             pygame.init()
-        pygame.display.set_mode((1,1))
+        pygame.display.set_mode((1, 1))
         pic = pygame.image.load(filename).convert_alpha()
         curdims = list(pic.get_size())
         while 1:
             newdims = curdims[:]
             view_pic(pic)
-            choice = gen.menu('cur dims: %s'%str(curdims),
+            choice = gen.menu('cur dims: %s' % str(curdims),
                               'width,, height,, percent', numbers=1)
             val = ''
             while not val:
                 val = input('number: ')
             val = float(val)
-            if choice in (1,2):
+            if choice in (1, 2):
                 val = int(round(val))
                 if choice == 1:
                     newdims[0] = val
@@ -217,20 +232,19 @@ def resize_image(filename):
                 else:
                     newdims[1] = val
                     newdims[0] = int(curdims[0] * (val / curdims[1]))
-            else: #percent
+            else:  # percent
                 newdims[0] = int(newdims[0] * val)
                 newdims[1] = int(newdims[1] * val)
             view_pic(pygame.transform.smoothscale(pic, newdims))
             made_window = True
             print(newdims)
             while 1:
-                if input('accept? ').lower() in ('y','yes'):
+                if input('accept? ').lower() in ('y', 'yes'):
                     nfilename = input('filename: ')
-                    if nfilename == '': #overwrite
-                        if (input('are you sure you want to overwrite? ').
-                            lower() not in ('y','yes')):
+                    if nfilename == '':  # overwrite
+                        if input('are you sure you want to overwrite? ').lower() not in ('y', 'yes'):
                             continue
-                    elif nfilename == '*': #generate name
+                    elif nfilename == '*':  # generate name
                         filename = os.path.splitext(filename)
                         i = 1
                         while 1:
@@ -248,7 +262,8 @@ def resize_image(filename):
     finally:
         if made_window:
             pygame.display.quit()
-                
+
+
 def set_alpha(image, *colors):
     colors = set(i[:3] for i in colors)
     for i in range(image.get_width()):
@@ -257,20 +272,24 @@ def set_alpha(image, *colors):
             if (c0, c1, c2) in colors:
                 image.set_at((i, j), (c0, c1, c2, 0))
 
+
 def aacircle(surface, color, pos, radius, width=0, mod=4):
     if surface is None:
-        _surface = pygame.Surface((radius*2, radius*2))
+        _surface = pygame.Surface((radius * 2, radius * 2))
     else:
         _surface = surface
     surf = pygame.Surface((_surface.get_width() * mod, _surface.get_height() * mod))
     pygame.draw.circle(surf, color, (surf.get_width() // 2, surf.get_height() // 2),
                        radius * mod, width * mod)
     surf = pygame.transform.smoothscale(surf, _surface.get_size())
-##    surf = pygame.transform.rotozoom(surf, 0, 1./mod)
+    ##    surf = pygame.transform.rotozoom(surf, 0, 1./mod)
     _surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
     if surface is None:
         return _surface
-def str_getat(string, dims):pass
+
+
+def str_getat(string, dims): pass
+
 
 def img_diff(one, two, empty=(0, 130, 0), alpha=False):
     """
@@ -313,6 +332,7 @@ def img_diff(one, two, empty=(0, 130, 0), alpha=False):
     return (pygame.image.frombuffer(new_one, size, image_format),
             pygame.image.frombuffer(new_two, size, image_format))
 
+
 def _colors_in(pic, includealpha=False):
     if isinstance(pic, str):
         pic = pygame.image.load(pic)
@@ -322,13 +342,16 @@ def _colors_in(pic, includealpha=False):
         format = 'RGB'
     mod = len(format)
     data = pygame.image.tostring(pic, format)
-    return set(data[i:i+mod] for i in range(0, len(data), mod))
+    return set(data[i:i + mod] for i in range(0, len(data), mod))
+
 
 def num_colors_in(pic, includealpha=False):
     return len(_colors_in(pic, includealpha))
 
+
 def colors_in(pic, includealpha=False):
     return [tuple(indivs) for indivs in _colors_in(pic, includealpha)]
+
 
 def colors_info(pic, includealpha=False):
     if isinstance(pic, str):
@@ -342,22 +365,23 @@ def colors_info(pic, includealpha=False):
     color_lookup = {}
     ret = {}
     for i in range(0, len(data), mod):
-        color = data[i:i+mod]
+        color = data[i:i + mod]
         mapped = color_lookup.get(color)
         if not mapped:
             mapped = tuple(color)
             color_lookup[color] = mapped
-##        print color, mapped
+        # print color, mapped
         if mapped not in ret:
             ret[mapped] = 1
         else:
             ret[mapped] += 1
-##    print color_lookup
+    # print color_lookup
     return ret
+
 
 def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
     RANGE = defrange
-    topleft = pic.get_at((0,0))
+    topleft = pic.get_at((0, 0))
     if not red:
         red = topleft[0]
     if not green:
@@ -376,11 +400,12 @@ def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
         blue, br = blue
     else:
         br = RANGE
+
     def check(r, g, b, a):
         return (r - rr <= red <= r + rr and
                 g - gr <= green <= g + gr and
                 b - br <= blue <= b + br)
-        
+
     for x in range(pic.get_width()):
         for y in range(pic.get_height()):
             if not check(*pic.get_at((x, y))):
@@ -389,7 +414,7 @@ def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
             continue
         left = x - 1
         break
-    for x in range(pic.get_width()-1, -1, -1):
+    for x in range(pic.get_width() - 1, -1, -1):
         for y in range(pic.get_height()):
             if not check(*pic.get_at((x, y))):
                 break
@@ -404,34 +429,39 @@ def remove_whitespace(pic, red=None, green=None, blue=None, defrange=10):
         else:
             continue
         bottom = y - 1
-    for y in range(pic.get_height()-1, -1, -1):
+    for y in range(pic.get_height() - 1, -1, -1):
         for x in range(pic.get_width()):
             if not check(*pic.get_at((x, y))):
                 break
         else:
             continue
         top = y + 1
-    
-    rect = left, top, right-left, bottom-top
+
+    rect = left, top, right - left, bottom - top
     new = pygame.Surface((rect[-2], rect[-1]))
     new.blit(pic, new.get_rect(), rect)
     return new
 
-def wait_for_mouse(buttons=[1,0,1]):
+
+def wait_for_mouse(buttons=[1, 0, 1]):
     return wait_for_input(buttons, [])[1]
+
 
 def wait_for_key(keys=[pygame.K_ESCAPE]):
     return wait_for_input([], keys)[1]
 
-def wait_for_input(buttons=[1,0,1], keys=[pygame.K_ESCAPE], quit=True):
+
+def wait_for_input(buttons=[1, 0, 1], keys=[pygame.K_ESCAPE], quit=True):
     return wait_for_input2(buttons, keys, False, quit)
-def wait_for_input2(buttons=[1,0,1], keys=[pygame.K_ESCAPE], move=False, quit=True):
+
+
+def wait_for_input2(buttons=[1, 0, 1], keys=[pygame.K_ESCAPE], move=False, quit=True):
     pygame.event.clear()
     maxbutton = len(buttons)
     if not hasattr(buttons, '__iter__'):
-        buttons = (buttons, )
+        buttons = (buttons,)
     if not hasattr(keys, '__iter__'):
-        keys = (keys, )
+        keys = (keys,)
     while 1:
         e = pygame.event.wait()
         if e.type == pygame.KEYUP:
@@ -445,14 +475,17 @@ def wait_for_input2(buttons=[1,0,1], keys=[pygame.K_ESCAPE], move=False, quit=Tr
         elif move and e.type == pygame.MOUSEMOTION:
             return e.type, e
 
+
 SCREEN = 'GET_SCREEN_DIMS'
+
+
 def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     TITLE = None
     size = [0, 0]
     if not isinstance(title, bool):
         TITLE = title
     if (type(pic) != str and
-        hasattr(type(pic), '__iter__')):
+            hasattr(type(pic), '__iter__')):
         if isinstance(title, str):
             TITLE = title
         else:
@@ -461,12 +494,12 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
                     if not isinstance(i, str):
                         title = False
             if title:
-                TITLE = '"%s"'% '", "'.join(pic)
+                TITLE = '"%s"' % '", "'.join(pic)
         pic = [not isinstance(name, pygame.surface.SurfaceType) and
                pygame.image.load(name) or name for name in pic]
-##        for i, name in enumerate(pic):
-##            if not isinstance(name, pygame.surface.SurfaceType):
-##                pic[i] = pygame.image.load(name)
+        # for i, name in enumerate(pic):
+        #     if not isinstance(name, pygame.surface.SurfaceType):
+        #         pic[i] = pygame.image.load(name)
         size[0] = sum(i.get_width() for i in pic) + len(pic) - 1
         size[1] = max(i.get_height() for i in pic)
         _surf = pygame.Surface(size)
@@ -477,14 +510,14 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
             width += i.get_width() + 1
         image = _surf
     elif type(pic) == pygame.surface.SurfaceType:
-        #pygame surface
+        # pygame surface
         image = pic
         size = image.get_size()
     elif hasattr(pic, 'image'):
-        #pygame sprite object
+        # pygame sprite object
         image = pic.image
         size = image.get_size()
-    else:#string or fileobj
+    else:  # string or fileobj
         if not TITLE and type(pic) == str:
             TITLE = pic
         try:
@@ -509,75 +542,88 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
             image = fit_to(image, fitto)
             size = image.get_size()
         elif scale != 1:
-            size = (int(round(size[0]*scale)), int(round(size[1]*scale)))
+            size = (int(round(size[0] * scale)), int(round(size[1] * scale)))
             image = pygame.transform.smoothscale(image, size)
-##    print pic,size, fitto
+    # print pic,size, fitto
     display = pygame.display.set_mode(size)
     pygame.display.update(display.blit(image, image.get_rect()))
-##    print title
+    # print title
     if TITLE:
         pygame.display.set_caption(str(TITLE))
     return display
-            
+
+
 def re_alpha_nemo(image):
     do_s = not pygame.display.get_surface()
     if do_s:
-        pygame.display.set_mode((1,1))
+        pygame.display.set_mode((1, 1))
     a = pygame.image.load(image).convert_alpha()
-    for x,y in iter_surf(a):
-        if a.get_at((x,y))[:3] == (0, 130, 0):
-            a.set_at((x,y), (0, 130, 0, 0))
+    for x, y in iter_surf(a):
+        if a.get_at((x, y))[:3] == (0, 130, 0):
+            a.set_at((x, y), (0, 130, 0, 0))
     pygame.image.save(a, image)
-    import pngoutgen
-    pngoutgen.find_best_compression(image)
+    from dmgen import pngout
+    pngout.find_best_compression(image)
 
 
 class SimplestSprite(pygame.sprite.Sprite):
     _image = pygame.Surface((1, 1))
+
     def __init__(self, center=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         self.image = self._image
         self.rect = pygame.Rect(center, (1, 1))
+
     def __repr__(self):
-        return '<SimplestSprite: %s>'%self.rect
+        return '<SimplestSprite: %s>' % self.rect
+
     def __call__(self, pos):
         self.rect.center = pos
         return self
 
+
 def rotate_right(image, times=1):
-    return pygame.transform.rotate(image, (-90*times))
+    return pygame.transform.rotate(image, (-90 * times))
+
 
 def rotate_left(image, times=1):
-    return pygame.transform.rotate(image, (90*times))
+    return pygame.transform.rotate(image, (90 * times))
+
 
 def flip_vert(image):
     return pygame.transform.flip(image, 0, 1)
+
+
 def flip_hori(image):
     return pygame.transform.flip(image, 1, 0)
 
+
 def zoomed_of(image, amount, rect=None):
     rect = rect or image.get_rect()
-    x, y = int(image.get_width()*amount), int(image.get_height()*amount)
+    x, y = int(image.get_width() * amount), int(image.get_height() * amount)
     return pygame.transform.smoothscale(image.subsurface(rect), (x, y))
 
+
 def _zoom_helper(surf, zoom, rect, zoom_method):
-    x, y = int(surf.get_width()*zoom), int(surf.get_height()*zoom)
+    x, y = int(surf.get_width() * zoom), int(surf.get_height() * zoom)
     s = zoom_method(surf, (x, y))
-##    s = pygame.transform.rotozoom(surf, 0, zoom)
+    # s = pygame.transform.rotozoom(surf, 0, zoom)
     newr = s.get_rect()
     newr.center = rect.center
     return s, newr
+
+
 def zoom_around(zoom=2, method=pygame.transform.smoothscale):
     s = pygame.display.get_surface()
     rect = s.get_rect()
     pygame.event.clear()
     base_s = s.copy()
-    s.fill((0,0,0))
+    s.fill((0, 0, 0))
     use_s, rect = _zoom_helper(base_s, zoom, rect, method)
     pygame.event.pump()
     rect.center = pygame.mouse.get_pos()
     color = ''
-##    print rect
+    # print rect
     s.blit(use_s, rect)
     pygame.display.flip()
     clock = pygame.time.Clock()
@@ -586,8 +632,8 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
             clock.tick(60)
             event = pygame.event.wait()
             f = pygame.event.get()
-            events = [event]+f
-            zooms = [e for e in events if (e.type == pygame.MOUSEBUTTONDOWN and e.button in (4,5))]
+            events = [event] + f
+            zooms = [e for e in events if (e.type == pygame.MOUSEBUTTONDOWN and e.button in (4, 5))]
             if zooms:
                 zmod = 0
                 for e in zooms:
@@ -603,16 +649,16 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                         for i in range(zmod):
                             zoom *= 1.11111111
                     pygame.display.set_caption(str(zoom) + ' ' + str(color))
-                    s.fill((0,0,0), rect)
+                    s.fill((0, 0, 0), rect)
                     del use_s
                     use_s, rect = _zoom_helper(base_s, zoom, rect, method)
                     pygame.event.post(pygame.event.Event(
                         pygame.MOUSEMOTION,
-                        {'buttons': [1,0,0],
+                        {'buttons': [1, 0, 0],
                          'pos': pygame.mouse.get_pos(), 'rel': (0, 0),
-                         'refill':False}
-                        )
-                                      )
+                         'refill': False}
+                    )
+                    )
 
             for e in events:
                 if e.type == pygame.MOUSEMOTION:
@@ -622,19 +668,19 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                             mod = 4
                         elif e.buttons[2]:
                             mod = 2
-##                        try:
-##                            e.refill
-##                        except:
-##                            if zoom < 2:
-##                                s.fill((0, 0, 0), rect)
+                        # try:
+                        #     e.refill
+                        # except:
+                        #     if zoom < 2:
+                        #         s.fill((0, 0, 0), rect)
                         s.fill((0, 0, 0), rect)
                         prev = pygame.Rect(rect)
-                        rect.x += (e.rel[0]*mod)
-                        rect.y += (e.rel[1]*mod)
+                        rect.x += (e.rel[0] * mod)
+                        rect.y += (e.rel[1] * mod)
                         s.blit(use_s, rect)
-                        pygame.display.update()#prev.union(rect))
+                        pygame.display.update()  # prev.union(rect))
                     else:
-                        color = use_s.get_at((e.pos[0]-rect.x, e.pos[1]-rect.y))
+                        color = use_s.get_at((e.pos[0] - rect.x, e.pos[1] - rect.y))
                         pygame.display.set_caption(str(zoom) + ' ' + str(color))
                 elif e.type == pygame.QUIT:
                     return
@@ -643,10 +689,12 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
     finally:
         s.blit(base_s, s.get_rect())
         pygame.display.flip()
+
+
 def fill_rand(s, pos, red=(220, 225), green=(None, None), blue=(None, None),
               hori=9, vert=9):
     randint = random.randint
-    x,y = pos
+    x, y = pos
     if green[0] is None:
         green[0] = red[0]
     if blue[0] is None:
@@ -655,31 +703,36 @@ def fill_rand(s, pos, red=(220, 225), green=(None, None), blue=(None, None),
         green[1] = red[1]
     if blue[1] is None:
         blue[1] = green[1]
-    for i in range(x-(hori-2), x+(hori-1)):
-        for j in range(y-(vert-2), y+(hori-1)):
+    for i in range(x - (hori - 2), x + (hori - 1)):
+        for j in range(y - (vert - 2), y + (hori - 1)):
             s.fill((randint(red[0], red[1]),
                     randint(green[0], green[1]),
                     randint(blue[0], blue[1])),
                    (i, j, 1, 1))
-    pygame.display.update(x-1, y-1, hori, vert)
+    pygame.display.update(x - 1, y - 1, hori, vert)
 
-def random_(s, r=(255,255), g=(0,0), b=(0,0)):
+
+def random_(s, r=(255, 255), g=(0, 0), b=(0, 0)):
     pygame.event.pump()
     while not pygame.mouse.get_pressed()[2]:
         if pygame.mouse.get_pressed()[0]:
             fill_rand(s, pygame.mouse.get_pos(), r, g, b)
         pygame.event.pump()
 
+
 update = pygame.display.update
 flip = pygame.display.flip
 
-def mkscreen(size=(640, 480), flags=0, depth=None, fill=(0,0,0),
-                 dobasichandler=False, waitbetween=0.5):
+
+def mkscreen(size=(640, 480), flags=0, depth=None, fill=(0, 0, 0),
+             dobasichandler=False, waitbetween=0.5):
     return __mkscreen(size, flags, depth, fill, dobasichandler, waitbetween).screen
+
+
 class __mkscreen:
     def __init__(self, size, flags, depth, fill, dobasichandler=False,
                  waitbetween=0.5):
-        try: #closes previous mkscreen calls, and windows
+        try:  # closes previous mkscreen calls, and windows
             pygame.quit()
         except:
             pass
@@ -724,7 +777,7 @@ class __mkscreen:
                 sleep(waitbetween)
                 if get(12):
                     return pygame.quitdefault()
-##                get()
+                # get()
                 if not get_surf():
                     return
                 flip()
@@ -741,6 +794,7 @@ class __mkscreen:
         self.lock.acquire()
         self.lock.release()
 
+
 def convert_bmp_to_png(filename, saveas=None):
     new = saveas and saveas or (os.path.splitext(filename)[0] + '.png')
     try:
@@ -748,47 +802,49 @@ def convert_bmp_to_png(filename, saveas=None):
     except:
         try:
             os.remove(new)
-        except: pass
+        except:
+            pass
         raise
     return new
 
 
 def convert_png_to_ico(filename):
-    new = '.'.join(filename.split('.')[:-1])+'.ico'
+    new = '.'.join(filename.split('.')[:-1]) + '.ico'
     ico_exe = os.path.join(os.desktop, 'stuff', 'png2ico.exe')
-    end = os.spawnv(os.P_WAIT, ico_exe, (ico_exe, '"%s"'%new, '"%s"'%filename))
-    if end == 0: #sucess!
+    end = os.spawnv(os.P_WAIT, ico_exe, (ico_exe, '"%s"' % new, '"%s"' % filename))
+    if end == 0:  # sucess!
         return new
     else:
-        raise Exception("Error on png --> ico conversion: %s"%end)
-    #os.popen('"%s" "%s" "%s"'%(os.path.join(os.desktop, 'png2ico.exe'), base+'.ico', filename)).read()
+        raise Exception("Error on png --> ico conversion: %s" % end)
+    # os.popen('"%s" "%s" "%s"'%(os.path.join(os.desktop, 'png2ico.exe'), base+'.ico', filename)).read()
+
 
 def make_ico(what, filename=None):
-    #things this doesn't do
-    #resize down to max 256 width/height if above 256.
-    #scale width to a power of 8
+    # Things this doesn't do
+    # Resize down to max 256 width/height if above 256.
+    # Scale width to a power of 8
     if not filename: filename = '.'.join(what.split('.')[:-1]) + '.ico'
     pngname = filegen.unused_filename('.png')
     init = pygame.image.load(what)
-##  #scaling
-##    width = init.get_width()
-##    height = init.get_width()
-##    scaleby = 0
-##    if width < height:
-##        if height > 256:
-##            _scaleby = 256./height
-##        else:
-##            _scaleby = 1.
-##        w_scaleby = int(round(width*_scaleby))
-##        if w_scaleby%8:
-##            if w_scaleby%8 > 4:
-##    else:
-####        if width > 256:
-##            scaleby = 256./width
-####        else:
-####            scaleby = float(width-(width%8))/width
-##    if not scaleby:
-##  #/scaling
+    # scaling
+    # width = init.get_width()
+    # height = init.get_width()
+    # scaleby = 0
+    # if width < height:
+    #     if height > 256:
+    #         _scaleby = 256./height
+    #     else:
+    #         _scaleby = 1.
+    #     w_scaleby = int(round(width*_scaleby))
+    #     if w_scaleby%8:
+    #         if w_scaleby%8 > 4:
+    # else:
+    #     if width > 256:
+    #        scaleby = 256./width
+    #     else:
+    #         scaleby = float(width-(width%8))/width
+    # if not scaleby:
+    # /scaling
 
     pygame.image.save(init, pngname)
     try:
@@ -798,19 +854,23 @@ def make_ico(what, filename=None):
     os.rename(newwhat, filename)
     return filename
 
+
 def save_image(surf, name):
     if surf == 'screen':
         surf = pygame.display.get_surface()
     if name.count('.') == 0:
-        name = '%s.png'%name
+        name = '%s.png' % name
     pygame.image.save(surf, name)
+
 
 def load_image(name, convert=False):
     a = pygame.image.load(name)
     return convert and a.convert() or a
 
+
 def load_image_fromweb(url, convert=False):
     return load_image(StringIO(webgen.urlopen(url)), convert)
+
 
 def draw_to(image, dest, x=None, y=None):
     rect = image.get_rect()
@@ -823,10 +883,11 @@ def draw_to(image, dest, x=None, y=None):
             x = 0
     return dest.blit(image, pygame.Rect(x, y, rect.width, rect.height))
 
-def impose_pic(base, ontop): #optimize this, pygame.display.update(dirty_rects)
-        #meh, who cares
+
+def impose_pic(base, ontop):  # optimize this, pygame.display.update(dirty_rects)
+    # meh, who cares
     if (pygame.display.get_init() and pygame.display.get_surface() and
-        pygame.display.get_surface().get_size() == base.get_size()):
+            pygame.display.get_surface().get_size() == base.get_size()):
         s = pygame.display.get_surface()
     else:
         s = pygame.display.set_mode((base.get_width(), base.get_height()))
@@ -839,28 +900,29 @@ def impose_pic(base, ontop): #optimize this, pygame.display.update(dirty_rects)
     pygame.event.pump()
     prevrect = pygame.Rect(r)
     prevrect.bottomright = (0, 0)
-##    st = time.time()
+    ##    st = time.time()
     while [i for i in pygame.mouse.get_pressed() if i]:
-        pygame.event.pump() #if something's already pressed, wait
+        pygame.event.pump()  # if something's already pressed, wait
     while (not [i for i in pygame.mouse.get_pressed() if i] and
            not pygame.key.get_pressed()[pygame.K_ESCAPE]):
-        #if not pygame.mouse.get_rel(), should just wait to not burn CPU
-##        ct = time.time()
-##        if ct - st > 1:
-##            pygame.display.set_caption(str(clock.get_fps()))
-##            st = time.time()
+        # if not pygame.mouse.get_rel(), should just wait to not burn CPU
+        ##        ct = time.time()
+        ##        if ct - st > 1:
+        ##            pygame.display.set_caption(str(clock.get_fps()))
+        ##            st = time.time()
         clock.tick(60)
         pygame.event.pump()
         r.center = pygame.mouse.get_pos()
         if r.center == prevrect.center:
             continue
-        s.blit(base, prevrect, prevrect) #TODO fix this, third argument
+        s.blit(base, prevrect, prevrect)  # TODO fix this, third argument
         s.blit(ontop, r)
         pygame.display.update([r, prevrect])
         prevrect.center = r.center
     if pygame.mouse.get_pressed()[0]:
         base.blit(ontop, r)
     return base
+
 
 def compare_surfs_fallback(one, two):
     if not isinstance(one, pygame.Surface):
@@ -882,8 +944,9 @@ def compare_surfs_fallback(one, two):
         two.unlock()
     return True
 
+
 def compare_surfs(one, two):
-    #TODO use buffers()
+    # TODO use buffers()
     if not isinstance(one, pygame.Surface):
         one = pygame.image.load(one)
     if not isinstance(two, pygame.Surface):
@@ -891,41 +954,44 @@ def compare_surfs(one, two):
     if one.get_size() != two.get_size():
         return False
     try:
-##        if one.get_size() == (200,200): #testing purposess
-##            raise MemoryError()
+        # if one.get_size() == (200,200): #testing purposess
+        #     raise MemoryError()
         first = one.get_buffer().raw
         try:
             second = two.get_buffer().raw
         except:
-            del one #save memory, maybe
+            del one  # save memory, maybe
             second = two.get_buffer().raw
         r = first == second
         del first, second
         return r
-#TODO use buffers of subsurfaces of pieces of the surface to compare in pieces
+    # TODO use buffers of subsurfaces of pieces of the surface to compare in pieces.
     except Exception as a:
         if isinstance(a, MemoryError) or a.message == 'Out of memory':
-            #last piece seems to be wrong at (200, 200).. sometimes
-            if one.get_size() == (100, 100): #strange error
+            # Last piece seems to be wrong at (200, 200).. sometimes.
+            if one.get_size() == (100, 100):  # Strange error.
                 return compare_surfs_fallback(one, two)
             midx = one.get_width() // 2
             xodd = one.get_width() % 2
             midy = one.get_height() // 2
             yodd = one.get_height() % 2
-##            print midx, midy
+            # print midx, midy
             return (compare_surfs(one.subsurface((0, 0, midx, midy)),
-                             two.subsurface((0, 0, midx, midy))) and
-               compare_surfs(one.subsurface((0, midy, midx, midy)),
-                             two.subsurface((0, midy, midx, midy))) and
-               compare_surfs(one.subsurface((midx, 0, midx+xodd, midy+yodd)),
-                             two.subsurface((midx, 0, midx+xodd, midy+yodd))) and
-               compare_surfs(one.subsurface((midx, midy, midx+xodd, midy+yodd)),
-                             two.subsurface((midx, midy, midx+xodd, midy+yodd))))
+                                  two.subsurface((0, 0, midx, midy))) and
+                    compare_surfs(one.subsurface((0, midy, midx, midy)),
+                                  two.subsurface((0, midy, midx, midy))) and
+                    compare_surfs(one.subsurface((midx, 0, midx + xodd, midy + yodd)),
+                                  two.subsurface((midx, 0, midx + xodd, midy + yodd))) and
+                    compare_surfs(one.subsurface((midx, midy, midx + xodd, midy + yodd)),
+                                  two.subsurface((midx, midy, midx + xodd, midy + yodd))))
         raise
 
-formatmapping = {'P':chr(1), 'RGB':chr(2), 'RGBA':chr(3), 'ARGB':chr(4),
-                 'RGBX':chr(5), 'RGBA_PREMULT':chr(6), 'ARGB_PREMULT':chr(7)}
-formatunmapping = dict((item, key) for (key,item) in formatmapping.items())
+
+formatmapping = {'P': chr(1), 'RGB': chr(2), 'RGBA': chr(3), 'ARGB': chr(4),
+                 'RGBX': chr(5), 'RGBA_PREMULT': chr(6), 'ARGB_PREMULT': chr(7)}
+formatunmapping = dict((item, key) for (key, item) in formatmapping.items())
+
+
 def tostring(surf, format=None, flipped=False, justdata=False):
     if isinstance(surf, str) or hasattr(surf, 'read'):
         surf = pygame.image.load(surf)
@@ -944,7 +1010,7 @@ def tostring(surf, format=None, flipped=False, justdata=False):
     data = pygame.image.tostring(surf, format, flipped)
     if format == 'P':
         top = max(data)
-        arraypal = array.array('B', (top,)) #code should = 'c'?
+        arraypal = array.array('B', (top,))  # code should = 'c'?
         palettedata = surf.get_palette()
         for p in range(top + 1):
             arraypal.extend(palettedata[p])
@@ -955,10 +1021,13 @@ def tostring(surf, format=None, flipped=False, justdata=False):
         return data
     return width + height + bytes(strformat, 'ascii') + palette + data
 
+
 def loadfromstring(f):
     if isinstance(f, str):
         f = open(f, 'rb')
     return fromstring(f.read())
+
+
 def fromstringF(f):
     fread = f.read
     try:
@@ -979,6 +1048,7 @@ def fromstringF(f):
         surf.set_palette(palette)
     return surf
 
+
 def fromstring(f):
     width = struct.unpack('h', f[:2])[0]
     height = struct.unpack('h', f[2:4])[0]
@@ -986,7 +1056,7 @@ def fromstring(f):
     if format == 'P':
         pallen = f[5] + 1
         palette = [None] * pallen
-        paletteend = 6 + (pallen*3)
+        paletteend = 6 + (pallen * 3)
         palarray = iter(array.array('B', f[6:paletteend])).__next__
         for p in range(pallen):
             palette[p] = (palarray(), palarray(), palarray())
@@ -998,7 +1068,8 @@ def fromstring(f):
         surf.set_palette(palette)
     return surf
 
-def png_transparency(image, data=(0,0)):
+
+def png_transparency(image, data=(0, 0)):
     if isinstance(image, str):
         filename = image
         image = load_image(image).convert_alpha()
