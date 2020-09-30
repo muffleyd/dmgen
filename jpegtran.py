@@ -16,7 +16,7 @@ if not os.path.exists(JPEGTRAN_EXE_PATH):
     EXE_MISSING = 'jpegtran executable not found, set variable `JPEGTRAN_EXE_PATH` as file location'
     raise Warning(EXE_MISSING)
 
-#process priority (windows and linux):
+# Process priority (windows and linux).
 if os.name == 'nt':
     PREFIX = 'start /LOW /B /WAIT '
 elif os.name == 'posix':
@@ -24,25 +24,27 @@ elif os.name == 'posix':
 else:
     PREFIX = ''
 
+
 def jpeg(filename, destfilename=None, options='', optimize=True):
-    #handle options spacing + slashes yourself please
-    """runs jpegtran on filename to destfilename (if given, else it's smart)
-    fill this out with the jpegtran.exe options and such"""
+    # handle options spacing + slashes yourself please
+    """Runs jpegtran on filename to destfilename (if given, else it's smart).
+    Fill this out with the jpegtran executable options."""
     if '-copy ' not in options:
         options = '-copy none ' + options
-    out = PREFIX + '%s %s%s-outfile "%s" "%s"'%(
+    out = PREFIX + '%s %s%s-outfile "%s" "%s"' % (
         JPEGTRAN_EXE_PATH,
         optimize and '-optimize ' or '',
-        options and '%s '%options or '',
+        options and '%s ' % options or '',
         destfilename or filename,
         filename)
-##    f = os.popen3(out)
     p = subprocess.Popen(out, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     f = (None, p.stdout, p.stderr)
     p.wait()
     return destfilename or filename, f[1].read(), f[2].read()
 
+
 TEMPprefix = 'jpeg_TEMP_'
+
 
 def do2(filename, target=None, options='', tw=None):
     if target is None:
@@ -51,8 +53,8 @@ def do2(filename, target=None, options='', tw=None):
     folder, tfile = os.path.split(filename)
     if filegen.TEMPfolder:
         folder = filegen.TEMPfolder
-    temp1 = filegen.unused_filename('_'+tfile, folder=folder)
-    temp2 = filegen.unused_filename('_prog_'+tfile, [temp1], folder=folder)
+    temp1 = filegen.unused_filename('_' + tfile, folder=folder)
+    temp2 = filegen.unused_filename('_prog_' + tfile, [temp1], folder=folder)
     if tw is None:
         _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES))
     else:
@@ -84,15 +86,17 @@ def do2(filename, target=None, options='', tw=None):
             if os.path.exists(temp2):
                 os.remove(temp2)
         except:
-            print('%s %s %s'%(filename, temp1, temp2))
+            print('%s %s %s' % (filename, temp1, temp2))
             raise
     return filename, out, initsize, newsize
+
 
 def do(filename, options='', tw=None):
     return do2(filename, None, options, tw)
 
+
 def do_many(files, options='', threads=None, verbose=True):
-##    global worker #global for debugging purposes
+    # global worker #global for debugging purposes
     if isinstance(files, str):
         files = filegen.ifiles_in(files)
     if not threads:
@@ -104,7 +108,7 @@ def do_many(files, options='', threads=None, verbose=True):
         with threaded_worker.threaded_worker(jpeg, threads, wait_at_end=True) as internal_worker:
             for filename in files:
                 todo.append(worker.put(filename, options, internal_worker))
-            for ind in range(1, len(todo)+1):
+            for ind in range(1, len(todo) + 1):
                 try:
                     filename, out, size, newsize = worker.get(ind)
                 except KeyboardInterrupt:
@@ -112,26 +116,28 @@ def do_many(files, options='', threads=None, verbose=True):
                 except Exception as e:
                     failed.append((ind, e, traceback.format_exc()))
                     continue
-                front = '%d/%d %s:'%(ind, len(todo), filename)
+                front = '%d/%d %s:' % (ind, len(todo), filename)
                 if newsize < size:
                     endsize += newsize
                     startsize += size
                 if verbose:
                     if newsize < size:
-                        print('%s %d %.1f%%'%(front, newsize - size,
-                                              100*float(newsize)/size))
+                        print('%s %d %.1f%%' % (front, newsize - size,
+                                                100 * float(newsize) / size))
                     elif newsize == size:
-                        print('%s no diff'%front)
+                        print('%s no diff' % front)
                     else:
-                        print('%s worse'%front)
+                        print('%s worse' % front)
                     if out:
-                        print('output:',out)
+                        print('output:', out)
     if verbose and startsize:
-        print('%d -> %d (%.1f%%)'%(startsize, endsize, 100. * endsize / startsize))
+        print('%d -> %d (%.1f%%)' % (startsize, endsize, 100. * endsize / startsize))
     return failed
+
 
 if __name__ == '__main__':
     import sys
+
     if len(sys.argv) > 1:
         if os.path.exists(sys.argv[1]) and not os.path.isfile(sys.argv[1]):
             do_many(sys.argv[1], ' '.join(sys.argv[2:]))

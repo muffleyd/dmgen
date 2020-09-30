@@ -5,6 +5,7 @@ from dmgen import filegen
 from dmgen import pygamegen as pg
 from dmgen.opt_gif import GIFOUT_EXE_PATH
 
+
 def explode(file, folder=None):
     if not folder:
         folder = filegen.unused_filename(folder='.')
@@ -17,25 +18,27 @@ def explode(file, folder=None):
         os.remove(tar)
         for i in os.listdir('.'):
             f = i.split('.')
-            #turns a.b.gif.001 into a.b.001.gif
-            os.rename(i, '.'.join(f[:-2])+'.'+f[-1]+'.'+f[-2])
+            # turns a.b.gif.001 into a.b.001.gif
+            os.rename(i, '.'.join(f[:-2]) + '.' + f[-1] + '.' + f[-2])
     return folder
+
 
 def implode(file, folder, prefix=''):
     with filegen.switch_dir(folder):
-        os.system(GIFOUT_EXE_PATH + ' -m %s*.gif > a.gif'%prefix)
+        os.system(GIFOUT_EXE_PATH + ' -m %s*.gif > a.gif' % prefix)
     tar_base = os.path.splitext(file)[0]
     new = tar_base + '_r.gif'
     i = 0
     while os.path.exists(new):
-        new = tar_base + '_r%d.gif'%i
+        new = tar_base + '_r%d.gif' % i
         i += 1
     os.rename(os.path.join(folder, 'a.gif'), new)
     return new
 
+
 def recolor(file, colormod=.5, prefix='m_'):
     if not os.path.isfile(file) and os.path.exists(file):
-        #folder
+        # folder
         for i in os.listdir(file):
             recolor(os.path.join(file, i), colormod, prefix)
         return
@@ -48,7 +51,8 @@ def recolor(file, colormod=.5, prefix='m_'):
     with filegen.switch_dir(folder):
         if colormod < 1:
             colormod = int(len(pg.colors_in(file)) * colormod)
-        os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s'%(colormod, file, out))
+        os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s' % (colormod, file, out))
+
 
 def main(file, colormod=.5):
     initfolder, tar = os.path.split(file)
@@ -72,24 +76,26 @@ def main(file, colormod=.5):
                 colors = int(len(pg.colors_in(i)) * colormod)
             else:
                 colors = colormod
-            os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s'%(colors, i, out))
+            os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s' % (colors, i, out))
         print('imploding')
         os.system(GIFOUT_EXE_PATH + ' -m m_* > a.gif')
         tar_base = os.path.splitext(tar)[0]
         new = os.path.join(initfolder, tar_base + '_r.gif')
         i = 0
         while os.path.exists(new):
-            new = os.path.join(initfolder, tar_base + '_r%d.gif'%i)
+            new = os.path.join(initfolder, tar_base + '_r%d.gif' % i)
             i += 1
         os.rename('a.gif', new)
     finally:
         os.chdir(initfolder)
         shutil.rmtree(z)
 
+
 if __name__ == '__main__':
     try:
         main(sys.argv[1], float(input('colormod (0.5): ') or .5))
     except:
         import traceback
+
         traceback.print_exc()
         input('done')

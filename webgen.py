@@ -13,30 +13,46 @@ else:
 
 _CookieJar = urllib.request.build_opener(
     urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+
 def enable_cookies():
     global CookieJar
     CookieJar = _CookieJar
+
+
 def disable_cookies():
     global CookieJar
     CookieJar = None
+
+
 enable_cookies()
 
-CHARSET = {}#'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
+CHARSET = {}  # 'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
 
-#fools webserver into thinking I'm firefox, if they don't look too closely
-#otherwise, sometimes it will not return nicely formated data
+# fools webserver into thinking I'm firefox, if they don't look too closely
+# otherwise, sometimes it will not return nicely formated data
 BROWSERHEADER = {}
+
+
 def enable_firefox_mode():
     global BROWSERHEADER
     BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0'
+
+
 def disable_firefox_mode():
     global BROWSERHEADER
     del BROWSERHEADER['User-Agent']
+
+
 enable_firefox_mode()
+
 
 def enable_chrome_mode():
     global BROWSERHEADER
-    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'
+    BROWSERHEADER[
+        'User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'
+
+
 def disable_chrome_mode():
     global BROWSERHEADER
     del BROWSERHEADER['User-Agent']
@@ -47,8 +63,10 @@ def get_last_modified(response):
             time.mktime(time.strptime(response.headers.get('last-modified'),
                                       "%a, %d %b %Y %H:%M:%S GMT")) or 0)
 
+
 class _special_response(urllib.response.addinfourl):
-    astringio = StringIO() #???
+    astringio = StringIO()  # ???
+
     def __init__(self, obj, gzip=True, data=None, conv_unicode=True):
         if isinstance(obj, (list, tuple)):
             urllib.response.addinfourl.__init__(self, self.astringio, {}, obj[0], obj[1])
@@ -66,12 +84,12 @@ class _special_response(urllib.response.addinfourl):
             contenttype = obj.headers.get('content-type')
             if contenttype and 'utf' in contenttype.lower():
                 try:
-                    encoding = contenttype[contenttype.index('=')+1:]
+                    encoding = contenttype[contenttype.index('=') + 1:]
                 except ValueError:
                     pass
                 else:
                     self.data = str(self.data, encoding)
-        self.after = len(self.data)+1
+        self.after = len(self.data) + 1
         self.index = 0
         self.read = self.read2
 
@@ -85,6 +103,7 @@ class _special_response(urllib.response.addinfourl):
             if self.index > self.after:
                 self.index = self.after
             return self.data[self.index - amount:self.index]
+
     def seek(self, where):
         if where < 0:
             self.index = 0
@@ -112,11 +131,11 @@ def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
                 urllib.request.Request(url, data, header))
         except ValueError:
             response = (CookieJar and CookieJar.open or urllib.request.urlopen)(
-                urllib.request.Request('http://'+url, data, header))
+                urllib.request.Request('http://' + url, data, header))
     except urllib.error.HTTPError as e:
         if lastmod and e.code in (304, 412):
-            #304 is unmodified-since
-            #412 is *-condition-failed
+            # 304 is unmodified-since
+            # 412 is *-condition-failed
             response = _special_response((url, 412), False, '')
         else:
             raise
@@ -129,9 +148,10 @@ def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
         return response.read()
     return response
 
-def httpConstructHostnameUrl(url): #internal use, mostly
+
+def httpConstructHostnameUrl(url):  # internal use, mostly
     url = url.strip()
-    if url.find('http://')==0:
+    if url.find('http://') == 0:
         url = url[7:]
     slash = url.find('/')
     if slash != -1:
@@ -143,34 +163,39 @@ def httpConstructHostnameUrl(url): #internal use, mostly
         server = url
         url = '/'
     return server, url
+
+
 SOMESORTOFEXCEPTIONTEXT = 'Error "%d" while getting url "http://%s"'
-def httpurlget(url, action="GET", server=None, onlyOn200=True):
+
+
+def httpurlget(url, action="GET", server=None, only_on_200=True):
     hostname, url = httpConstructHostnameUrl(url)
     if not server:
         h = http.client.HTTPConnection(hostname)
     else:
         h = server
     h.request("GET", url,
-              headers={#'Host': hostname,
-                       #'Accept-Encoding': 'gzip',
-                       'User-Agent': 'Firefox/2.0.0.20'
-                      })
-##    h.putheader('Host', hostname)
-##    h.putheader('User-Agent', 'Firefox/2.0.0.20')
-    #h.endheaders()
-    r = h.getresponse()
+              headers={  # 'Host': hostname,
+                  # 'Accept-Encoding': 'gzip',
+                  'User-Agent': 'Firefox/2.0.0.20'
+              })
+    # h.putheader('Host', hostname)
+    #     h.putheader('User-Agent', 'Firefox/2.0.0.20')
+    # h.endheaders()
+    response = h.getresponse()
 
-    if r.status == 200 or not onlyOn200:
-        data = r.read()
+    if response.status == 200 or not only_on_200:
+        data = response.read()
     else:
         global ERROR
-        ERROR = r
+        ERROR = response
         ex = http.client.HTTPException(SOMESORTOFEXCEPTIONTEXT
-                                   %(r.status, hostname + url))
+                                       % (response.status, hostname + url))
         raise ex
     if not server:
         h.close()
     return data
+
 
 def save_from_web(url, filename=None, overwrite=False):
     if not filename:
@@ -187,6 +212,7 @@ def save_from_web(url, filename=None, overwrite=False):
     finally:
         f.close()
 
+
 always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                'abcdefghijklmnopqrstuvwxyz'
                '0123456789' '_.-')
@@ -195,6 +221,8 @@ for i, c in zip(range(256), str(bytearray(range(256)))):
     _safe_map[c] = c if (i < 128 and c in always_safe) else '%{0:02X}'.format(i)
 _safe_quoters = {}
 
+
+# Taken from somewhere online years ago that I forgot to track, sorry!
 def quote(s, safe='/', encoding=None, errors=None):
     """quote('abc def') -> 'abc%20def'
 
@@ -249,6 +277,7 @@ def quote(s, safe='/', encoding=None, errors=None):
     if not s.rstrip(safe):
         return s
     return ''.join(map(quoter, s))
+
 
 def quote_plus(s, safe='', encoding=None, errors=None):
     """Quote the query fragment of a URL; replacing ' ' with '+'"""
