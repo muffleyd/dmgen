@@ -387,12 +387,11 @@ def files_in_scandir(directory='', exclude=[]):
 
 
 def listfolders(directory='.'):
-    path = os.path
-    return [i for i in os.listdir(directory) if not path.isfile(path.join(directory, i))]
+    return (i for i in os.scandir(directory) if i.is_dir())
 
 
 def listfiles(directory='.'):
-    return [i for i in os.listdir(directory) if os.path.isfile(os.path.join(directory, i))]
+    return (i for i in os.scandir(directory) if not i.is_dir())
 
 
 def ifoldersfiles_in(directory, includes=[], exclude=[]):
