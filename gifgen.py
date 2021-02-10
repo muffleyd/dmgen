@@ -24,16 +24,21 @@ def explode(file, folder=None):
 
 
 def implode(file, folder, prefix=''):
+    temp_filename = filegen.unused_filename('.gif')
+    # Implode the gifs inside the directory
     with filegen.switch_dir(folder):
-        os.system(GIFOUT_EXE_PATH + ' -m %s*.gif > a.gif' % prefix)
+        os.system(GIFOUT_EXE_PATH + ' -m %s*.gif > %s' % (prefix, temp_filename))
+    # Get the filename from `file` without the file extension.
     tar_base = os.path.splitext(file)[0]
-    new = tar_base + '_r.gif'
+    # Generate the actual output filename, not overwriting an existing file.
+    new_filename = tar_base + '_r.gif'
     i = 0
-    while os.path.exists(new):
-        new = tar_base + '_r%d.gif' % i
+    while os.path.exists(new_filename):
+        new_filename = tar_base + '_r%d.gif' % i
         i += 1
-    os.rename(os.path.join(folder, 'a.gif'), new)
-    return new
+    # Move the imploded file to the current directory.
+    shutil.move(temp_filename, new_filename)
+    return new_filename
 
 
 def recolor(file, colormod=.5, prefix='m_'):
