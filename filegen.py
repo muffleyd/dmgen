@@ -14,7 +14,7 @@ def extensionis(filename, ext):
 
 def search_files(folder, filename='', substr=None, ignorecase=True,
                  maxsize=1073741824):  # one gigabyte
-    yes = []
+    matches = []
     splitpath = os.path.split
     filename = filename.lower()
     if ignorecase and substr:
@@ -26,28 +26,10 @@ def search_files(folder, filename='', substr=None, ignorecase=True,
                 if ignorecase:
                     d = d.lower()
                 if substr in d:
-                    yes.append(i)
+                    matches.append(i)
             else:
-                yes.append(i)
-    return yes
-
-
-def rewrite_file(filename):
-    """for the love of god, don't use this on any important files"""
-    print("for the love of god, don't use this on any important files")
-    global rewrite_file
-    rewrite_file = _rewrite_file
-    _rewrite_file(filename)
-
-
-def _rewrite_file(filename):
-    z = open(filename, 'rb').read()
-    temp = unused_filename()
-    q = open(temp, 'wb')
-    q.write(z)
-    q.close()
-    os.remove(filename)
-    os.rename(temp, filename)
+                matches.append(i)
+    return matches
 
 
 def assert_file_trees(one, two, just_compare_files=0):
@@ -79,6 +61,22 @@ def assert_file_trees(one, two, just_compare_files=0):
     return True
 
 
+class FileOrOpen:
+    def __init__(self, file):
+        self.file = file
+        self.opened_file = False
+
+    def __enter__(self):
+        if not hasattr(self.file, 'read'):
+            self.opened_file = True
+            self.file = open(self.file, 'rb')
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.opened_file:
+            self.file.close()
+
+
 def assert_files(file1, file2, file1_size=None, file2_size=None, start=0):
     if not file1_size:
         file1_size = os.stat(file1)[6]
@@ -86,22 +84,16 @@ def assert_files(file1, file2, file1_size=None, file2_size=None, start=0):
         file2_size = os.stat(file2)[6]
     if file1_size != file2_size:  # compare file sizes
         return False, 'size'  # max((f1size, f2size))
-    CHUNK_SIZE = 163840  # 2**14 and a 0
-    if not hasattr(file1, 'read'):
-        f1 = open(file1, 'rb')
-    else:
-        f1 = file1
-    if not hasattr(file2, 'read'):
-        f2 = open(file2, 'rb')
-    else:
-        f2 = file2
-    if start:
-        f1.seek(start)
-        f2.seek(start)
-    for cycles in range(1, (file1_size // CHUNK_SIZE) + 2):
-        # print float(cycles) / (f1size // _CHUNKSIZE)
-        if f1.read(CHUNK_SIZE) != f2.read(CHUNK_SIZE):
-            return False, (CHUNK_SIZE // cycles) - CHUNK_SIZE
+    CHUNK_SIZE = 163840  # 2**14 times 10
+    with FileOrOpen(file1) as f1:
+        with FileOrOpen(file2) as f2:
+            if start:
+                f1.seek(start)
+                f2.seek(start)
+            for cycles in range(1, (file1_size // CHUNK_SIZE) + 2):
+                # print float(cycles) / (f1size // _CHUNKSIZE)
+                if f1.read(CHUNK_SIZE) != f2.read(CHUNK_SIZE):
+                    return False, (CHUNK_SIZE // cycles) - CHUNK_SIZE
     return True, -1
 
 
@@ -117,26 +109,14 @@ def copyfile(one, two, mode=None):
             shutil.copy(one, two)
 
 
-def replaceinfile(filename, original, replace):
-    a = open(filename)
-    b = a.read().replace(original, replace)
-    a.close()
-    a = open(filename, 'w')
-    a.write(b)
-    a.close()
-
-
-def iter_file(file, chunk_size=16384, file_len=None, mode='rb'):
+def iter_file(file, chunk_size=16384, mode='rb'):
     if isinstance(file, str):  # filename
-        if file_len is None:
-            file_len = int(os.stat(file)[6])
         file = open(file, mode)
-    # file must now be a file-like object
-    elif file_len is None:
-        raise ValueError("File size must be given for file-like object.")
-
-    for cycles in range(1, (file_len // chunk_size) + 2):
-        yield file.read(chunk_size)
+    while 1:
+        chunk = file.read(chunk_size)
+        if not chunk:
+            return
+        yield chunk
 
 
 def files_by_size(files, min_size=1):
@@ -156,12 +136,11 @@ def coerce_dir(thing):
     return thing
 
 
-def dict_of_data(files, block_size, do_open=False):
+def dict_of_data(files, block_size):
     data = {}
     for file in files:
-        if do_open:
-            file = open(file, 'rb')
-        data.setdefault(file.read(block_size), []).append(file)
+        with FileOrOpen(file) as file:
+            data.setdefault(file.read(block_size), []).append(file)
     return data
 
 
@@ -179,7 +158,7 @@ def get_duplicate_files(files, min_size=1, BLOCKSIZE=2 ** 14, first_block_size=3
             continue
         # reads a small amount first, as most files will be different so read
         # a little amount for a first check..
-        data = dict_of_data(files, first_block_size, True)
+        data = dict_of_data(files, first_block_size)
         o_files = set()
         for i in data.values():
             if len(i) > 1:  # if the block is not unique in this set of files
@@ -210,11 +189,12 @@ def get_same_as_file(file, list):
     samesizes = [file for file in list if targetsize == os.stat(file)[6]]
     if not samesizes:
         return samesizes  # []
+    # TODO Read through files in chunks rather than loading whole files, like below functions do.
     targetdata = open(file, 'rb').read()
     return [file for file in samesizes if open(file, 'rb').read() == targetdata]
 
 
-def get_same_as_many_files(files1, files2, minsize=1):  # def get_same_as_many_files2(files, li):
+def get_same_as_many_files(files1, files2, minsize=1):
     # there's probably some optimization in which list is smaller
     if not files1 or not files2:
         return []
@@ -243,10 +223,10 @@ def get_same_as_many_files(files1, files2, minsize=1):  # def get_same_as_many_f
             targetlist.append(i)
     del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
-    for j, i in list(same_sizes.items()):
-        if not i:
-            del files_sizes[j]
-            del same_sizes[j]
+    for size, files in list(same_sizes.items()):
+        if not files:
+            del files_sizes[size]
+            del same_sizes[size]
     if not same_sizes:  # no files in 'li' are the same size as any in 'files'
         return []
     positives = []
@@ -510,13 +490,21 @@ def merge_files(files, read=2 ** 15):
                 f.write(d)
 
 
-def md5file(filename):
-    h = hashlib.md5()
-    block = h.block_size * 128
-    with open(filename, 'rb') as f:
+def hashfile(hash_type, filename, block_size=None):
+    h = hash_type()
+    block_size = block_size or (h.block_size * 128)
+    with open(filename, 'rb') as file:
         while 1:
-            b = f.read(block)
-            if not b:
+            bytes = file.read(block_size)
+            if not bytes:
                 break
-            h.update(b)
+            h.update(bytes)
     return h.hexdigest()
+
+
+def md5file(filename, block_size=None):
+    return hashfile(hashlib.md5, filename, block_size)
+
+
+def sha256file(filename, block_size=None):
+    return hashfile(hashlib.sha256, filename, block_size)
