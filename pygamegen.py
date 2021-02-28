@@ -167,28 +167,10 @@ def invert(surf):
     return pygame.image.fromstring(bytes(newstring), surf.get_size(), 'RGBA')
 
 
-def avg_surf(s):
-    rgb = [0, 0, 0]
-    z = pygame.image.tostring(s, 'RGB')
-    for color in range(3):
-        c = 0
-        for i in z[color::3]:
-            c += i
-        rgb[color] = c
-    size = len(z) // 3
-    return tuple(i // size for i in rgb)
-
-
-def avg_surf_less_mem(s):
-    rgb = [0, 0, 0]
-    z = pygame.image.tostring(s, 'RGB')
-    for color in range(3):
-        c = 0
-        for i in range(color, len(z), 3):
-            c += z[i]
-        rgb[color] = c
-    size = len(z) // 3
-    return tuple(i // size for i in rgb)
+def avg_surf(surface):
+    img_bytes = pygame.image.tostring(surface, 'RGB')
+    size = len(img_bytes) // 3
+    return tuple(sum(img_bytes[color::3]) // size for color in range(3))
 
 
 def iter_surf(surface):
