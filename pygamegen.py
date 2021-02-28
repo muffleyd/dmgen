@@ -159,11 +159,11 @@ def invert(surf):
     if isinstance(surf, str):
         surf = pygame.image.load(surf)
     string = pygame.image.tostring(surf, "RGBA")
-    newstring = bytearray()
-    for ind in range(0, len(string), 4):
-        for i in range(3):
-            newstring.append(255 - string[ind + i])
-        newstring.append(string[ind + 3])
+    newstring = bytearray(string)
+    for index in range(0, len(string), 4):
+        # Invert RGB, not A.
+        for color_index in range(index, index + 3):
+            newstring[color_index] = 255 - string[color_index]
     return pygame.image.fromstring(bytes(newstring), surf.get_size(), 'RGBA')
 
 
