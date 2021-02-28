@@ -21,5 +21,6 @@ class FilegenTest(unittest.TestCase):
         surf.fill((128, 0, 255))
         self.assertEqual(pg.mk_bw(surf).get_at((0, 0))[:3], (128, 128, 128))
 
+
 if __name__ == "__main__":
     unittest.main()
