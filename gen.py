@@ -671,18 +671,16 @@ def _return_print_dict(di, spaces=0, between='\n'):
 
 
 class timer:
-    def __init__(self, prnt=True, decimals=3, newline=True, before='', after=''):
-        self.prnt = prnt
-        # yea yea... I have practice doing rediculous strings like this.
-        # Do not try this at home.
-        # if decimals is 3, this ends up as
-        #  "%s%.3f%s"% (before, self.runtime, after)
-        # path is: (before="before ", after=" after")
-        #  start: '%%s%%%%.%df%%s' %decimals
-        # second: '%s%%.3f%s' %(before, after)
-        #  third: 'before %.3f after'
-        # then in .print_me(), self.runtime goes in %.3f
-        self.printing = ('%%s%%%%.%df%%s' % decimals) % (before, after)
+    # String is formatted twice. First pass inserts before_print and after_print at the start and end.
+    #  decimals_print is inserted to finalize the syntax for the second format.
+    # First pass assuming decimals_print is 3: {before}%.3f{after}.
+    printing = '%s%%.%df%s'
+
+    def __init__(self, do_print=True, decimals=3, newline=True, before='', after=''):
+        self.do_print = do_print
+        self.before_print = before
+        self.decimals_print = decimals
+        self.after_print = after
         self.newline = newline
 
     def get_runtime(self):
@@ -690,14 +688,15 @@ class timer:
             raise ValueError('timer still running')
         return self.runtime
 
+    def build_print_string(self):
+        return self.printing % (self.before_print, self.decimals_print, self.after_print) % self.runtime
+
     def print_me(self, newline=None):
-        if newline is None:
-            newline = self.newline
-        toprint = self.printing % self.runtime
+        to_print = self.build_print_string()
         if newline:
-            print(toprint)
+            print(to_print)
         else:
-            print(toprint, end=' ')
+            print(to_print, end=' ')
 
     def __repr__(self):
         return str(self.get_runtime())
@@ -709,7 +708,7 @@ class timer:
 
     def __exit__(self, *exc):
         self.runtime = curtime() - self.start
-        if self.prnt:
+        if self.do_print:
             self.print_me()
 
 
@@ -852,7 +851,7 @@ def formatli(li):  # I made to print out a number triangle from a euler problem
     f = [' '.join(map(str, i)) for i in li]
     maxlen = max((len(i) for i in f))
     for i in f:
-        print(' ' * ((maxlen / 2) - len(i) / 2), end=' ')
+        print(' ' * ((maxlen // 2) - int(i) // 2), end=' ')
         print(i)
 
 
