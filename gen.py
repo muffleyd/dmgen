@@ -182,45 +182,65 @@ def convert_sr_str(s):
 TEST_SECONDS_TTR = 0.5
 
 
-def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
-    if isinstance(args, dict) and kwargs == {}:
-        args, kwargs = (), args
+def test_seconds(func, args=(), kwargs=None, time_to_run=TEST_SECONDS_TTR, loops=0):
+    """
+    Runs a function for some length of time to benchmark its speed.
+
+    :param func: The function to benchmark, called like so: func(*args, **kwargs).
+    :param args: Unnamed arguments passed into func like func(*args).
+    :param kwargs: Named arguments passed into func like func(**kwargs).
+    :param time_to_run: How long the benchmarking should continue.
+    :param loops: How many times to call func before checking if it's time to stop.
+                  For extremely short-running functions this can be very important to fine-tune.
+                  e.g. test_seconds(time.time, loops=100) will run 2.3x more times than test_seconds(time.time).
+    :return tuple: (average time per func call, times func ran within time_to_run, result from func).
+                   Since the actual runtime may not equal time_to_run exactly, the second argument may be a float.
+    """
+    if kwargs is None:
+        if isinstance(args, dict):
+            args, kwargs = (), args
+        else:
+            kwargs = {}
     elif not hasattr(args, '__iter__'):
         args = [args]
-    if ttr is None:
-        ttr = TEST_SECONDS_TTR
     ran = 0
-    endtime = 0
-    starttime = curtime()
-    if loops:
-        while starttime + ttr > endtime:
+    start_time = curtime()
+    # If loops <= 1 we just run it once. If we let loops == 1 in here there would be needless range() overhead.
+    if loops >= 2:
+        while 1:
             # Run the function `loops` times if it's a slower function so less of
             #  the runtime is spent getting the current time and adding 1 to ran.
-            # test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions.
+            # test_seconds(time.time) vs test_seconds(time.time, loops=100) is 2.3x the func executions.
             for _ in range(loops):
                 answer = func(*args, **kwargs)
             ran += loops
-            endtime = curtime()
+            end_time = curtime()
+            if start_time + time_to_run <= end_time:
+                break
     else:
-        while starttime + ttr > endtime:
+        while 1:
             answer = func(*args, **kwargs)
             ran += 1
-            endtime = curtime()
+            end_time = curtime()
+            if start_time + time_to_run <= end_time:
+                break
 
-    runtime = endtime - starttime
+    runtime = end_time - start_time
     if runtime:
-        if not ttr:
-            actualran = ran / runtime
+        if not time_to_run:
+            actual_ran = ran / runtime
         else:
-            actualran = ran / (runtime / ttr)
-        if not actualran % 1:
-            actualran = int(actualran)
+            actual_ran = ran / (runtime / time_to_run)
+        if not actual_ran % 1:
+            actual_ran = int(actual_ran)
     else:
-        actualran = 1
-    return runtime / ran, actualran, answer
+        actual_ran = 1
+    return runtime / ran, actual_ran, answer
 
 
-def test_seconds_prnt(func, args=(), kwargs={}, ttr=None):
+def test_seconds_prnt(func, args=(), kwargs=None, ttr=None):
+    if kwargs is None:
+        kwargs = {}
     a, b, c = test_seconds(func, args, kwargs, ttr)
     print('(%s, %s, %s)' % (not isinstance(a, int) and round(a, 4) or a,
                             not isinstance(b, int) and round(b, 4) or b,
@@ -250,7 +270,6 @@ LINT_DEFAULT_IGNORES = ['C0103', 'C0111', 'C0323',
 
 
 def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
-    ##    with switch_dir('
     ignore = defaultignores and ignore + LINT_DEFAULT_IGNORES or ignore
     file = file or sys.argv[0]
     if outputfile is sys.stdout:
@@ -277,8 +296,7 @@ def lint_many(files=[], outputfolder=None, ignore=[],
         f = os.path.join(outputfolder, os.path.split(i)[0])
         if not os.path.exists(f):
             os.makedirs(f)
-        lint(i, os.path.join(outputfolder, i + 'LINT.txt'), ignore,
-             extras, defaultignore)
+        lint(i, os.path.join(outputfolder, i + 'LINT.txt'), ignore, extras, defaultignore)
 
 
 def default_of(ask, default, type):
@@ -799,10 +817,10 @@ def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
     a = list(range(5))
     b = list(range(15))
     print(test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference],
-                       ttr=ttr, loops=10000)[:2])
+                       time_to_run=ttr, loops=10000)[:2])
     print(test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference],
-                       ttr=ttr, loops=10000)[:2])
+                       time_to_run=ttr, loops=10000)[:2])
     print(test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference],
-                       ttr=ttr, loops=10000)[:2])
+                       time_to_run=ttr, loops=10000)[:2])
     print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference],
-                       ttr=ttr, loops=10000)[:2])
+                       time_to_run=ttr, loops=10000)[:2])
