@@ -1,5 +1,6 @@
 
 # TODO Remove the 80% of this I wrote in 2006 and haven't used since.
+#  This has started at least.
 
 import os
 import sys
@@ -8,8 +9,6 @@ import math
 import random
 import threading
 import queue
-import getpass
-import types
 from collections import deque
 
 curtime = time.time
@@ -28,27 +27,27 @@ class nested_context:
         return [i.__enter__() for i in self.contexts]
 
     def __exit__(self, etype, exc, tb):
-        noraise = False
+        no_raise = False
         for i in reversed(self.contexts):
             try:
-                noraise = i.__exit__(etype, exc, tb)
+                no_raise = i.__exit__(etype, exc, tb)
             except:  # 'i' has raised an exception, bad, but... gotta push it along
-                noraise = False
+                no_raise = False
                 etype, exc, tb = sys.exc_info()
             else:
-                if noraise:
+                if no_raise:
                     etype = exc = tb = None
         if exc:
             raise etype(exc).with_traceback(tb)
-        return noraise
+        return no_raise
 
 
 class empty_printer:
-    def __init__(self, dostderr=False):
-        self.dostderr = dostderr
+    def __init__(self, do_stderr=False):
+        self.do_stderr = do_stderr
 
     def realwrite(self, what):
-        self.oldstdout.write(what)
+        self.old_stdout.write(what)
 
     def flush(self):
         pass
@@ -63,66 +62,27 @@ class empty_printer:
         return ''
 
     def __enter__(self):
-        self.oldstdout = sys.stdout
-        if self.dostderr:
-            self.oldstderr = sys.stderr
+        self.old_stdout = sys.stdout
+        if self.do_stderr:
+            self.old_stderr = sys.stderr
             sys.stderr = self
         sys.stdout = self
         return self
 
     def __exit__(self, a, b, c):
-        sys.stdout = self.oldstdout
-        if self.dostderr:
-            sys.stderr = self.oldstderr
+        sys.stdout = self.old_stdout
+        if self.do_stderr:
+            sys.stderr = self.old_stderr
 
 
-_gen_stdout = empty_printer()
-
-
-def toggle_printing():
-    global _gen_stdout
-    _gen_stdout, sys.stdout = sys.stdout, _gen_stdout
-    return not isinstance(sys.stdout, empty_printer)
-
-
-def real_print(val):
-    sys.stdout.realwrite(val + "\n")
-
-
-try:
-    _gen_stdin
-except NameError:
-    pass
-else:
-    if isinstance(sys.stdin, stdin):
-        tstdin()
-
-
-class stdin:
-    """basic dropin replacement for sys.stdin"""
-
-    def __init__(self, s=[], doprint=True):
-        self.data = deque(s)
-        self.readline = doprint and self.readline_P or self.readline_NP
+class print_capture:
+    def __init__(self, print_at_end=True):
+        self.data = deque()
+        self.print_at_end = print_at_end
 
     def write(self, s):
         self.data.append(s)
 
-    def readline_P(self):
-        s = self.readline_NP()
-        print(s)
-        return s
-
-    def readline_NP(self):
-        return self.data.popleft()
-
-
-class print_capture(stdin):
-    def __init__(self, doprint=True):
-        self.doprint = doprint
-        stdin.__init__(self, doprint=False)
-
-    ##        print self.write
     def __enter__(self):
         self.oldstdout = sys.stdout
         sys.stdout = self
@@ -130,28 +90,8 @@ class print_capture(stdin):
 
     def __exit__(self, a, b, c):
         sys.stdout = self.oldstdout
-        if self.doprint:
+        if self.print_at_end:
             print(''.join(self.data))
-
-
-##        for i in self.data:
-##            print i,
-try:
-    _gen_stdin
-except NameError:
-    _gen_stdin = stdin()
-
-
-def tstdin(iterable=None, doprint=True):
-    global _gen_stdin
-    if iterable is not None:
-        if isinstance(sys.stdin, stdin):
-            sys.stdin = stdin(iterable, doprint)
-            return
-        else:
-            _gen_stdin = stdin(iterable, doprint)
-    _gen_stdin, sys.stdin = sys.stdin, _gen_stdin
-    return not isinstance(sys.stdin, stdin)
 
 
 if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
