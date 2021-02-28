@@ -244,7 +244,7 @@ def find_best_compression(filename, threads=3, depth=5,
     else:
         worker = threaded_worker.threaded_worker(_run, threads)
     if verbose:
-        gen.timeit()
+        timer = gen.timer().__enter__()
     try:
         if verbose:
             print(filename, tempf, initsize, depth, end=' ')
@@ -320,7 +320,7 @@ def find_best_compression(filename, threads=3, depth=5,
         pass
     finally:
         if verbose:
-            gen.timeit()
+            timer.__exit__()
         if worker is not threads:
             worker.close(wait=1)
         try:

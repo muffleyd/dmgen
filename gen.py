@@ -154,77 +154,6 @@ def tstdin(iterable=None, doprint=True):
     return not isinstance(sys.stdin, stdin)
 
 
-__ENDPRINT = (lambda: -1)
-__RAWINPUT = (lambda: -2)
-
-
-def Print(*what, **OUT):
-    if what and what[0] is __ENDPRINT:
-        pqueue.put((what[0], None))
-    else:
-        pqueue.put((' '.join(str(i) for i in what), OUT.get('OUT')))
-
-
-def end_print_main():
-    Print(__ENDPRINT)
-
-
-def print_main(out=None):  # , gen=False):
-    if out is None:
-        out = sys.stdout
-    while 1:
-        d = pqueue.get()
-        where = d[1] or out
-        if d[0] is __ENDPRINT:
-            break
-        elif d[0] is __RAWINPUT:
-            where.write(d[2])
-            inputq.put(d[3].readline().strip())
-        else:
-            print(d[0], file=where)
-
-
-##        if gen:
-##            yield None
-def Raw_Input(q='', OUT=None, IN=None):
-    pqueue.put((__RAWINPUT, OUT, q, IN or sys.stdin))
-    return inputq.get()
-
-
-def print_empty():
-    # dunno if this is a good idea
-    global pqueue, inputq
-    pqueue = queue.Queue()
-    inputq = queue.Queue(1)
-
-
-print_empty()  # defines them
-
-
-class threadsafeSTDOUT:
-    def __init__(self, stdout=None):
-        if stdout is None:
-            self.stdout = sys.stdout
-            sys.stdout = self
-        else:
-            self.stdout = stdout
-        self.writing = threading.Lock()
-
-    def __del__(self):
-        sys.stdout = self.stdout
-
-    def Print(self, s, newline=True):
-        # this issue isn't printing at the same time, it's a thread printing
-        # such that the IDLE output window shifts everything up that breaks it
-        self.writing.acquire()
-        try:
-            self.stdout.write(str(s) + (newline and '\n' or ' '))
-        finally:
-            self.writing.release()
-
-    write = Print
-
-
 if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
     FFMPEG_EXE = os.path.join(os.desktop, 'ffmpeg.exe')
 
@@ -284,9 +213,9 @@ def factors(num):
     return facts
 
 
-def filledQueue(length=0, modFill=0):
+def filled_queue(length=0):
     que = queue.Queue(length)
-    for i in range(modFill, length + modFill):
+    for i in range(length):
         que.put(i)
     return que
 
@@ -294,7 +223,7 @@ def filledQueue(length=0, modFill=0):
 def convert_sr_str(s):
     finalout = [[]]
     CURSPOT = 0
-    for char in s + '\n':   # hack cause i'm lazy
+    for char in s + '\n':  # Hack because I'm lazy.
         if char == '\r':
             CURSPOT = 0
         elif char == '\n':
@@ -325,9 +254,9 @@ def test_seconds(func, args=(), kwargs={}, ttr=None, loops=0):
     starttime = curtime()
     if loops:
         while starttime + ttr > endtime:
-            # run the function loops times if it's a slower function so less of
-            # the runtime is spent getting the current time and adding 1 to ran
-            # test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions
+            # Run the function `loops` times if it's a slower function so less of
+            #  the runtime is spent getting the current time and adding 1 to ran.
+            # test_seconds(time.time) vs test_seconds(time.time, loops=10000) is 2.3x the func executions.
             for _ in range(loops):
                 answer = func(*args, **kwargs)
             ran += loops
@@ -412,24 +341,6 @@ def lint_many(files=[], outputfolder=None, ignore=[],
              extras, defaultignore)
 
 
-def diff(one, two, out=None):
-    if isinstance(out, str):
-        out = open(out, 'w')
-    elif not out:
-        out = sys.stdout
-    diff = os.popen('fc.exe "%s" "%s"' % (one, two)).read()
-    return diff
-
-
-##    print >>out, diff
-
-def _tryremove(what, li):
-    try:
-        li.remove(what)
-    except ValueError:
-        pass
-
-
 def default_of(ask, default, type):
     d = input(ask)
     if not d:
@@ -450,7 +361,7 @@ def runalittlebitfaster():
 def count(iter, val):
     if type(iter) == tuple:
         return len([i for i in iter if i == val])
-    if type(iter) == dict:
+    if isinstance(iter, dict):
         return int(not not iter.get(val, False))
     try:
         return iter.count(val)
@@ -465,11 +376,11 @@ def count(iter, val):
 def chainfor(var):
     if hasattr(var, '__iter__'):
         try:
-            it = iter(var)
+            iterator = iter(var)
         except TypeError:
             return []
         a = []
-        for i in it:
+        for i in iterator:
             a.extend(chainfor(i))
         return a
     return [var]
@@ -484,10 +395,6 @@ def listof(something):
 def uptodateimport(s):
     import importlib
     return importlib.reload(__import__(s))
-
-
-def filename_extension(file, ext='py'):
-    return os.path.splitext(file)[0] + '.' + ext
 
 
 def stritem_replace(string, index, value, len=1):
@@ -511,10 +418,6 @@ def _fibonacci(k):
     z = _fibonacci(k - 2) + _fibonacci(k - 1)
     _fibonacci_known.append(z)
     return z
-
-
-def samesign(a, b):  # (int, int)
-    return a ^ b >= 0
 
 
 def isprime(i):
@@ -586,20 +489,6 @@ def binarybyte(number):  # direct method is fastest :]
            ((number // 2) & 1 and '1' or '0') + (number & 1 and '1' or '0')
 
 
-def passwordprompt():
-    return getpass.getpass()
-
-
-def intsofchar(what):
-    if len(what) == 1:
-        return ord(what[0])  # * ord(what[0])
-    return (ord(what[0]) * ord(what[0])) * intsofchar(what[1:])
-
-
-def intofchar(what):
-    return [int(i) for i in list(str(intsofchar(what)).strip('0'))]
-
-
 def encode(what, by):
     by = [ord(char) for char in by]
     i = iter(by)
@@ -626,25 +515,22 @@ def rinsertevery(string, each=8, join=' '):
     return insertevery(string[::-1], each, join)[::-1]
 
 
-def printf(toprint, extra='', split='\n'):
-    if not toprint:
-        return
-    print("%s\n%s" % (extra, split.join(map(str, toprint))))
-
-
-def strrange(start, stop=None, step=1, tolen=1):
+def str_range(start, stop=None, step=1, str_len=1):
+    """
+    Functions like range() except returns strings zfilled to str_len or largest number's string length.
+    """
     if stop is None:
         stop = start
         start = 0
-
-    stoplen = len(str(stop - 1))
-    startlen = len(str(start))
-    if stoplen > startlen:
-        toplen = stoplen
+    stop_len = len(str(stop - 1))
+    start_len = len(str(start))
+    if stop_len > start_len:
+        top_len = stop_len
     else:
-        toplen = startlen
-    if toplen > tolen: tolen = toplen
-    return [i.zfill(tolen) for i in map(str, range(start, stop, step))]
+        top_len = start_len
+    if top_len > str_len:
+        str_len = top_len
+    return [i.zfill(str_len) for i in map(str, range(start, stop, step))]
 
 
 def remove_duplicates(it, todo=None):
@@ -713,32 +599,6 @@ def _set_compare(one, two, func):
 def _set_compare2(one, two, func):
     if len(one) < len(two):
         if not isinstance(one, set):
-            if isinstance(two, set):
-                s = two
-                t = one
-            else:
-                s = set(one)
-                t = two
-        else:
-            s = one
-            t = two
-    else:
-        if not isinstance(two, set):
-            if isinstance(one, set):
-                s = one
-                t = two
-            else:
-                s = set(two)
-                t = one
-        else:
-            s = two
-            t = one
-    return list(func(s, t))
-
-
-def _set_compare2(one, two, func):
-    if len(one) < len(two):
-        if not isinstance(one, set):
             s = set(one)
         else:
             s = one
@@ -760,19 +620,6 @@ def change_tuple(tuple, index, data):
     if index >= len(tuple):
         raise IndexError(index)
     return tuple[:index] + (data,) + tuple[index + 1:]
-
-
-def list_same(one, two):
-    return _set_compare(one, two, set.intersection)
-
-
-def list_diff(one, two):
-    return _set_compare(one, two, set.symmetric_difference)
-
-
-def remove_all_of(list, what):
-    # isiter(what) == True
-    return [i for i in list if i not in what]
 
 
 def pop_rand(li):
@@ -799,31 +646,8 @@ def pop_kwargs(kwargs_dict, *varnames, **kwargs):
     return toreturn
 
 
-def _dict_plus_oncollide(one, two, ind):
-    return ind, two[ind]
-
-
-def dict_plus(*dicts, **kwargs):
-    """def dict_plus(*dicts, oncollide=_dict_plus_oncollide)"""
-    # oncollide is a function that takes dict1, dict2, and current item
-    # of dict1, called when item exists in both dictionaries.
-    # @returns the item and key to be stored in the resulting dict
-    oncollide = pop_kwargs(kwargs, 'oncollide', _dict_plus_oncollide)
-    if not isinstance(oncollide, types.FunctionType):
-        raise TypeError("oncollide must be a function")
-    new = dict(iter(dicts[-1].items()))
-    for d in dicts[:-1]:
-        for i in d:
-            if i in new:
-                key, val = oncollide(d, new, i)
-                new[key] = val
-            else:
-                new[i] = d[i]
-    return new
-
-
 def flip_dict(di):
-    return dict((j, i) for (i, j) in di.items())
+    return {value: key for key, value in di.items()}
 
 
 def parse_dict(di, recurse=False, spaces=0, between='\n'):
@@ -844,23 +668,6 @@ def _return_print_dict(di, spaces=0, between='\n'):
                                     type(di[i]) == dict and \
                                     _return_print_dict(di[i], spaces + 2) or
                                     repr(di[i])) for i in di])
-
-
-def ls(folder='.', match='', case=False):
-    ##    print match
-    if hasattr(match, '__iter__'):
-        match = [str(i) for i in match]
-        if not case:
-            match = [i.lower() for i in match]
-            return [i for i in os.listdir(folder)
-                    for j in match if j in i.lower()]
-        return [i for i in os.listdir(folder) for j in match if j in i]
-    elif not isinstance(match, str):
-        match = str(match)
-    if not case:
-        match = match.lower()
-        return [i for i in os.listdir(folder) if match in i.lower()]
-    return [i for i in os.listdir(folder) if match in i]
 
 
 class timer:
@@ -904,34 +711,6 @@ class timer:
         self.runtime = curtime() - self.start
         if self.prnt:
             self.print_me()
-
-
-def timeit():
-    z = timeret()
-    if z is not None:
-        print(z)
-
-
-def timeret():
-    global TIMEIT
-    try:
-        a = curtime() - TIMEIT
-        del TIMEIT
-        return a
-    except NameError:
-        TIMEIT = curtime()
-
-
-def randomize_list(li):
-    try:
-        li = li[:]
-    except TypeError:
-        li = list(li)
-    rand = random.random
-    for i in range(len(li)):
-        r = int(rand() * len(li))
-        li[i], li[r] = li[r], li[i]
-    return li
 
 
 def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=None):
@@ -1117,17 +896,8 @@ def ensure_every_function_works():
                                    True, False, False, False]
         ##        assert primerange(100) == primerange0(100)
         ##        assert primerange(101) == primerange0(101)
-        print('* filename_extension')
-        assert filename_extension('hello.world', 'moto') == 'hello.moto'
-        assert filename_extension('hello', 'world') == 'hello.world'
         assert fibonacci(99) == 218922995834555169026
         assert _fibonacci_known[98] == 135301852344706746049
-        print('* samesign')
-        assert samesign(1, 2) == True
-        assert samesign(-1, -2) == True
-        assert samesign(-1, 2) == False
-        assert samesign(1, -2) == False
-        assert samesign(0, -2) == False
         print('* binary_search_insert')
         baseli = list(range(10))
         binary_search_insert(baseli, 55)
@@ -1150,11 +920,11 @@ def ensure_every_function_works():
         assert binarybyte(-1) == '11111111'
         print('* insertevery')
         assert insertevery(changebase(int(2147483647 * .8), 2), 8) == '11001100 11001100 11001100 1100101'
-        print('* strrange')
-        assert strrange(10) == ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        assert strrange(9, 11) == ['09', '10']
-        assert strrange(10, tolen=2) == ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09']
-        assert strrange(0, 10, tolen=2) == strrange(10, tolen=2)
+        print('* str_range')
+        assert str_range(10) == ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        assert str_range(9, 11) == ['09', '10']
+        assert str_range(10, str_len=2) == ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09']
+        assert str_range(0, 10, str_len=2) == str_range(10, str_len=2)
         print('* remove_duplicates')
         assert remove_duplicates(list(range(10))) == list(range(10))
         assert remove_duplicates([1, 1, 1, 1, 1, 1]) == [1]
@@ -1167,38 +937,9 @@ def ensure_every_function_works():
         assert extras((1, 1, 1, 1, 1, 1)) == ((1,), [1, 1, 1, 1, 1])
         assert extras([8, 6, 7, 5, 3, 0, 9, 9, 9, 9, 9, 9, 9]) == ([8, 6, 7, 5, 3, 0, 9], [9, 9, 9, 9, 9, 9])
         assert extras('hello world') == ('helo wrd', ['l', 'o', 'l'])
-        print('* list_same')
-        assert sorted(list_same(list(range(10)), list(range(5, 15)))) == [5, 6, 7, 8, 9]
-        assert list_same(list(range(10)), list(range(11, 20))) == []
-        assert sorted(list_same(list(range(10)), list(range(10)))) == list(range(10))
-        assert sorted(list_same('aerhaskeuf', 'fjasekluas')) == ['a', 'e', 'f', 'k', 's', 'u']
-        print('* list_diff')
-        assert sorted(list_diff(list(range(10)), list(range(5, 15)))) == [0, 1, 2, 3, 4, 10, 11, 12, 13, 14]
-        assert sorted(list_diff(list(range(10)), list(range(11, 20)))) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
-                                                                           15, 16, 17, 18, 19]
-        assert list_diff(list(range(10)), list(range(10))) == []
-        assert sorted(list_diff('aerhaskeuf', ['f', 'j', 'a', 's', 'e', 'k', 'l', 'u', 'a', 's'])) == ['h', 'j', 'l',
-                                                                                                       'r']
-        print('* remove_all_of')
-        assert remove_all_of(list(range(10)), [11]) == list(range(10))
-        assert remove_all_of(list(range(10)), [0]) == list(range(1, 10))
-        assert remove_all_of([9, 9, 9, 9, 9, 9, 9], [9]) == []
-        assert remove_all_of([9, 9, 9, '9', 9, 9, '9'], [9]) == ['9', '9']
-        assert remove_all_of([9, 9, 9, '9', 9, 9, '9'], ['9']) == [9, 9, 9, 9, 9]
-        assert remove_all_of(list(range(10)), list(range(3, 6))) == [0, 1, 2, 6, 7, 8, 9]
-        print('* randomize_list (1:10000**10000 of test failing when it works, runs 5 times)')
-        assert randomize_list(list(range(10000))) != list(range(10000))
-        assert randomize_list(list(range(10000))) != list(range(10000))
-        assert randomize_list(list(range(10000))) != list(range(10000))
-        assert randomize_list(list(range(10000))) != list(range(10000))
-        assert randomize_list(list(range(10000))) != list(range(10000))
     finally:
         tstdin()
 
-
-##if __name__ == '__main__':
-##    ensure_every_function_works()
-##
 
 def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
     a = list(range(5))
@@ -1211,18 +952,3 @@ def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
                        ttr=ttr, loops=10000)[:2])
     print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference],
                        ttr=ttr, loops=10000)[:2])
-
-##def tt():
-##    import threaded_worker
-##    def a(tw):
-##        def run():
-##            for i in xrange(4):
-##                time.sleep(1)
-##                Print(i+1)
-##        tw.put(func=run)
-##        time.sleep(1.3)
-##        tw(func=run)
-##        end_print_main()
-##    with threaded_worker.threaded_worker(a, 3) as tw:
-##        tw.put(tw)
-##        print_main()
