@@ -386,7 +386,7 @@ def chainfor(var):
     return [var]
 
 
-def listof(something):
+def list_of(something):
     if hasattr(something, '__iter__'):
         return something
     return [something]
@@ -853,91 +853,6 @@ def formatli(li):  # I made to print out a number triangle from a euler problem
     for i in f:
         print(' ' * ((maxlen // 2) - int(i) // 2), end=' ')
         print(i)
-
-
-def ensure_every_function_works():
-    # my very own test function?
-    tstdin()
-    try:
-        sys.stdin.write('1')
-        print('* default_of')
-        assert default_of('give me a 1! ', float, int) == 1
-        # runalittlebitfaster doesn't work, as I said.. a while ago
-        print('* count')
-        assert count([1, 4, 2, 3, 3, 1, 2], 1) == 2
-        assert count([1, 23, 4, 1, 2, 3, 4, 1], 2) == 1
-        assert count((1, 4, 2, 3, 3, 1, 2), 1) == 2
-        assert count(set((1, 23, 4, 1, 2, 3, 4, 1)), 23) == 1
-        assert count({1: 2, 2: 1, 3: 4}, 1) == 1
-        assert count({5: 2, 2: 1, 3: 4}, 1) == 0
-        print('* listof')
-        assert listof([1, 2, 3, 4, 4]) == [1, 2, 3, 4, 4]
-        assert listof((1, 2, 3, 4, 4)) == (1, 2, 3, 4, 4)
-        assert listof(9999999) == [9999999]
-        print('* prime range (additive seive)')
-        assert primerange(100) == [False, False, True, True, False, True, False, True, False, False, False, True, False,
-                                   True, False, False, False, True, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, True, False, False, False, False, False,
-                                   True, False, False, False, True, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, False, False, False, False, True, False,
-                                   True, False, False, False, False, False, True, False, False, False, True, False,
-                                   True, False, False, False, False, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, False, False, False, False, False, False,
-                                   True, False, False]
-        assert primerange(101) == [False, False, True, True, False, True, False, True, False, False, False, True, False,
-                                   True, False, False, False, True, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, True, False, False, False, False, False,
-                                   True, False, False, False, True, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, False, False, False, False, True, False,
-                                   True, False, False, False, False, False, True, False, False, False, True, False,
-                                   True, False, False, False, False, False, True, False, False, False, True, False,
-                                   False, False, False, False, True, False, False, False, False, False, False, False,
-                                   True, False, False, False]
-        ##        assert primerange(100) == primerange0(100)
-        ##        assert primerange(101) == primerange0(101)
-        assert fibonacci(99) == 218922995834555169026
-        assert _fibonacci_known[98] == 135301852344706746049
-        print('* binary_search_insert')
-        baseli = list(range(10))
-        binary_search_insert(baseli, 55)
-        assert (baseli == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 55]), baseli
-        binary_search_insert(baseli, 4.9)
-        assert (baseli == [0, 1, 2, 3, 4, 4.9, 5, 6, 7, 8, 9, 55]), baseli
-        binary_search_insert(baseli, -2)
-        assert (baseli == [-2, 0, 1, 2, 3, 4, 4.9, 5, 6, 7, 8, 9, 55]), baseli
-        print('* array')  # i think I have array backwards right now
-        assert array(2, 3) == [[0, 0], [0, 0], [0, 0]]
-        print('* changebase')
-        assert changebase(255, 2) == '11111111'
-        assert changebase(255, 16) == 'FF'
-        assert changebase(65535, 4) == '33333333'
-        assert changebase(65536, 4) == '100000000'
-        print('* binarybyte')
-        assert binarybyte(255) == '11111111'
-        assert binarybyte(254) == '11111110'
-        assert binarybyte(25) == '00011001'
-        assert binarybyte(-1) == '11111111'
-        print('* insertevery')
-        assert insertevery(changebase(int(2147483647 * .8), 2), 8) == '11001100 11001100 11001100 1100101'
-        print('* str_range')
-        assert str_range(10) == ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        assert str_range(9, 11) == ['09', '10']
-        assert str_range(10, str_len=2) == ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09']
-        assert str_range(0, 10, str_len=2) == str_range(10, str_len=2)
-        print('* remove_duplicates')
-        assert remove_duplicates(list(range(10))) == list(range(10))
-        assert remove_duplicates([1, 1, 1, 1, 1, 1]) == [1]
-        assert remove_duplicates((1, 1, 1, 1, 1, 1)) == (1,)
-        assert remove_duplicates([8, 6, 7, 5, 3, 0, 9, 9, 9, 9, 9, 9, 9]) == [8, 6, 7, 5, 3, 0, 9]
-        assert remove_duplicates('hello world') == 'helo wrd'
-        print('* extras')
-        assert extras(list(range(10))) == (list(range(10)), [])
-        assert extras([1, 1, 1, 1, 1, 1]) == ([1], [1, 1, 1, 1, 1])
-        assert extras((1, 1, 1, 1, 1, 1)) == ((1,), [1, 1, 1, 1, 1])
-        assert extras([8, 6, 7, 5, 3, 0, 9, 9, 9, 9, 9, 9, 9]) == ([8, 6, 7, 5, 3, 0, 9], [9, 9, 9, 9, 9, 9])
-        assert extras('hello world') == ('helo wrd', ['l', 'o', 'l'])
-    finally:
-        tstdin()
 
 
 def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
