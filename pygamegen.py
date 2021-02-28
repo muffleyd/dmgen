@@ -124,19 +124,19 @@ def mk_bw(pic):
 
 def fit_to(image, dims=(1920, 1080)):
     width, height = image.get_size()
-    w = dims[0] / width
-    h = dims[1] / height
-    if w < h:
-        if w > 1:
+    mod_width = dims[0] / width
+    mod_height = dims[1] / height
+    if mod_width < mod_height:
+        if mod_width > 1:
             return image
-        w2 = dims[0]
-        h2 = height * w
+        final_width = dims[0]
+        final_height = height * mod_width
     else:
-        if h > 1:
+        if mod_height > 1:
             return image
-        w2 = width * h
-        h2 = dims[1]
-    return pygame.transform.smoothscale(image, (int(float(w2)), int(float(h2))))
+        final_width = width * mod_height
+        final_height = dims[1]
+    return pygame.transform.smoothscale(image, (int(final_width), int(final_height)))
 
 
 def get_at_mouse():
