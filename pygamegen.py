@@ -159,12 +159,12 @@ def invert(surf):
     if isinstance(surf, str):
         surf = pygame.image.load(surf)
     string = pygame.image.tostring(surf, "RGBA")
-    newstring = []
+    newstring = bytearray()
     for ind in range(0, len(string), 4):
         for i in range(3):
-            newstring.append(chr(255 - ord(string[ind + i])))
+            newstring.append(255 - string[ind + i])
         newstring.append(string[ind + 3])
-    return pygame.image.fromstring(''.join(newstring), surf.get_size(), 'RGBA')
+    return pygame.image.fromstring(bytes(newstring), surf.get_size(), 'RGBA')
 
 
 def avg_surf(s):
@@ -173,7 +173,7 @@ def avg_surf(s):
     for color in range(3):
         c = 0
         for i in z[color::3]:
-            c += ord(i)
+            c += i
         rgb[color] = c
     size = len(z) // 3
     return tuple(i // size for i in rgb)
@@ -185,7 +185,7 @@ def avg_surf_less_mem(s):
     for color in range(3):
         c = 0
         for i in range(color, len(z), 3):
-            c += ord(z[i])
+            c += z[i]
         rgb[color] = c
     size = len(z) // 3
     return tuple(i // size for i in rgb)
