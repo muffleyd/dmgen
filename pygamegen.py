@@ -101,21 +101,19 @@ def replace_color(image, color1, color2, empty=False):
 def mk_bw(pic):
     if isinstance(pic, str):
         pic = pygame.image.load(pic)
-    newl = bytearray()
+    new_bytes = bytearray(pic.get_width() * pic.get_height())
     iterpic = iter(pygame.image.tostring(pic, 'RGB'))
-    # alpha = pic.get_alpha() is not None
-    itern = iterpic.__next__
-    for p in iterpic:
-        rgb = p + itern() + itern()
-        # if alpha:
-        # itern() #alpha, ignore
+    iterpic_next = iterpic.__next__
+    for index, p in enumerate(iterpic):
+        rgb = p + iterpic_next() + iterpic_next()
+        # round() is too slow.
         if rgb % 3 == 2:
             rgb += 1
-        newl.append(rgb // 3)
-    new = pygame.image.frombuffer(newl, pic.get_size(), 'P')
+        new_bytes[index] = rgb // 3
+    new = pygame.image.frombuffer(new_bytes, pic.get_size(), 'P')
     try:
         new.set_palette([(i, i, i) for i in range(256)])
-    except:
+    except pygame.error:
         pygame.display.set_mode((1, 1))
         try:
             new.set_palette([(i, i, i) for i in range(256)])
@@ -164,7 +162,7 @@ def invert(surf):
         # Invert RGB, not A.
         for color_index in range(index, index + 3):
             newstring[color_index] = 255 - string[color_index]
-    return pygame.image.fromstring(bytes(newstring), surf.get_size(), 'RGBA')
+    return pygame.image.frombuffer(bytes(newstring), surf.get_size(), 'RGBA')
 
 
 def avg_surf(surface):
@@ -322,9 +320,9 @@ def _colors_in(pic, includealpha=False):
         format = 'RGBA'
     else:
         format = 'RGB'
-    mod = len(format)
+    bytes = len(format)
     data = pygame.image.tostring(pic, format)
-    return set(data[i:i + mod] for i in range(0, len(data), mod))
+    return set(data[i:i + bytes] for i in range(0, len(data), bytes))
 
 
 def num_colors_in(pic, includealpha=False):
@@ -332,7 +330,7 @@ def num_colors_in(pic, includealpha=False):
 
 
 def colors_in(pic, includealpha=False):
-    return [tuple(indivs) for indivs in _colors_in(pic, includealpha)]
+    return [tuple(colors) for colors in _colors_in(pic, includealpha)]
 
 
 def colors_info(pic, includealpha=False):
@@ -790,53 +788,6 @@ def convert_bmp_to_png(filename, saveas=None):
     return new
 
 
-def convert_png_to_ico(filename):
-    new = '.'.join(filename.split('.')[:-1]) + '.ico'
-    ico_exe = os.path.join(os.desktop, 'stuff', 'png2ico.exe')
-    end = os.spawnv(os.P_WAIT, ico_exe, (ico_exe, '"%s"' % new, '"%s"' % filename))
-    if end == 0:  # sucess!
-        return new
-    else:
-        raise Exception("Error on png --> ico conversion: %s" % end)
-    # os.popen('"%s" "%s" "%s"'%(os.path.join(os.desktop, 'png2ico.exe'), base+'.ico', filename)).read()
-
-
-def make_ico(what, filename=None):
-    # Things this doesn't do
-    # Resize down to max 256 width/height if above 256.
-    # Scale width to a power of 8
-    if not filename: filename = '.'.join(what.split('.')[:-1]) + '.ico'
-    pngname = filegen.unused_filename('.png')
-    init = pygame.image.load(what)
-    # scaling
-    # width = init.get_width()
-    # height = init.get_width()
-    # scaleby = 0
-    # if width < height:
-    #     if height > 256:
-    #         _scaleby = 256./height
-    #     else:
-    #         _scaleby = 1.
-    #     w_scaleby = int(round(width*_scaleby))
-    #     if w_scaleby%8:
-    #         if w_scaleby%8 > 4:
-    # else:
-    #     if width > 256:
-    #        scaleby = 256./width
-    #     else:
-    #         scaleby = float(width-(width%8))/width
-    # if not scaleby:
-    # /scaling
-
-    pygame.image.save(init, pngname)
-    try:
-        newwhat = convert_png_to_ico(pngname)
-    finally:
-        os.remove(pngname)
-    os.rename(newwhat, filename)
-    return filename
-
-
 def save_image(surf, name):
     if surf == 'screen':
         surf = pygame.display.get_surface()
@@ -846,8 +797,8 @@ def save_image(surf, name):
 
 
 def load_image(name, convert=False):
-    a = pygame.image.load(name)
-    return convert and a.convert() or a
+    surf = pygame.image.load(name)
+    return convert and surf.convert() or surf
 
 
 def load_image_fromweb(url, convert=False):
