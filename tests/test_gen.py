@@ -112,6 +112,35 @@ class GenTest(unittest.TestCase):
         self.assertEqual(gen.extras([8, 6, 7, 5, 3, 0, 9, 9, 9, 9, 9, 9, 9]), ([8, 6, 7, 5, 3, 0, 9], [9, 9, 9, 9, 9, 9]))
         self.assertEqual(gen.extras('hello world'), ('helo wrd', ['l', 'o', 'l']))
 
+    def test_test_seconds(self):
+        import time
+        time_to_run = 0.001
+        sleep_time = 0.01
+
+        def func(int1, int2, int3, sleep=True):
+            if sleep:
+                time.sleep(sleep_time)
+            return (int1 + int2) * int3
+
+        real_answer = func(1, 2, 3, False)
+
+        run_per, run_times, answer = gen.test_seconds(func, [1, 2, 3], time_to_run=time_to_run)
+        # Verify the answer came out right.
+        self.assertEqual(answer, real_answer)
+        # Verify each run is >= the time the function sleeps. Subtract a tiny amount to avoid minuscule clock errors.
+        self.assertGreaterEqual(run_per, sleep_time - 0.0000001)
+        # Since the time to run is less than the time to sleep, verify its run_times is less than 1.
+        self.assertLess(run_times, 1)
+
+        # Test out mixed *args and **kwargs.
+        run_per, run_times, answer = gen.test_seconds(func, [1], {'int2': 2, 'int3': 3}, time_to_run=time_to_run)
+        self.assertEqual(answer, real_answer)
+
+        # Test out the loops branch.
+        run_per, run_times, answer = gen.test_seconds(func, [1], {'int2': 2, 'int3': 3}, time_to_run=time_to_run,
+                                                      loops=10)
+        self.assertEqual(answer, real_answer)
+
 
 if __name__ == "__main__":
     unittest.main()
