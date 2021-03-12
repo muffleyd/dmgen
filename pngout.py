@@ -25,8 +25,12 @@ elif os.name == 'posix':
 else:
     PREFIX = ''
 
-myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
-PNGOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'pngout.exe')
+PNGOUT_EXE_PATH = ''
+if os.name == 'nt':
+    myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
+    PNGOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'pngout.exe')
+if not os.path.exists(PNGOUT_EXE_PATH):
+    PNGOUT_EXE_PATH = shutil.which('pngout') or ''
 
 
 def pngout(filename, destfilename=None, options=''):
@@ -35,6 +39,8 @@ def pngout(filename, destfilename=None, options=''):
     """runs pngout on filename to destfilename (if given, else it's smart)
     fill this out with the pngout.exe options and such"""
     # handle options spacing + slashes yourself please
+    if not PNGOUT_EXE_PATH:
+        raise FileNotFoundError('PNGOUT_EXE_PATH not set')
     return os.popen(PREFIX + '%s %s "%s"%s /y'
                     % (PNGOUT_EXE_PATH, options, filename,
                        destfilename and ' "%s"' % destfilename or '')).read()

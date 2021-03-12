@@ -11,7 +11,7 @@ if os.name == 'nt':
     myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
     JPEGTRAN_EXE_PATH = os.path.join(myhome, 'Desktop', 'jpegtran.exe')
 if not os.path.exists(JPEGTRAN_EXE_PATH):
-    JPEGTRAN_EXE_PATH = 'jpegtran'
+    JPEGTRAN_EXE_PATH = shutil.which('jpegtran') or ''
 if not os.path.exists(JPEGTRAN_EXE_PATH):
     EXE_MISSING = 'jpegtran executable not found, set variable `JPEGTRAN_EXE_PATH` as file location'
     raise Warning(EXE_MISSING)
@@ -29,6 +29,8 @@ def jpeg(filename, destfilename=None, options='', optimize=True):
     # handle options spacing + slashes yourself please
     """Runs jpegtran on filename to destfilename (if given, else it's smart).
     Fill this out with the jpegtran executable options."""
+    if not JPEGTRAN_EXE_PATH:
+        raise FileNotFoundError('JPEGTRAN_EXE_PATH not set')
     if '-copy ' not in options:
         options = '-copy none ' + options
     out = PREFIX + '%s %s%s-outfile "%s" "%s"' % (

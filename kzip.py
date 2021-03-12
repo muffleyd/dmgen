@@ -6,12 +6,19 @@ from dmgen import gen
 from dmgen import zipgen
 from dmgen import filegen
 
-myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
-KZIP_EXE_PATH = os.path.join(myhome, 'Desktop', 'kzip.exe')
+
+KZIP_EXE_PATH = ''
+if os.name == 'nt':
+    myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
+    KZIP_EXE_PATH = os.path.join(myhome, 'Desktop', 'kzip.exe')
+if not os.path.exists(KZIP_EXE_PATH):
+    KZIP_EXE_PATH = shutil.which('kzip') or ''
 
 SWITCHDIR_LOCK = threading.Lock()
 
 def kzip(zipfile, *files):
+    if not KZIP_EXE_PATH:
+        raise FileNotFoundError('KZIP_EXE_PATH not set')
     if len(files) == 1 and hasattr(files[0], '__iter__'):
         files = files[0]
     a,s,d = os.popen3('START /LOW /B /WAIT %s /r /y "%s" %s'%(
@@ -19,6 +26,8 @@ def kzip(zipfile, *files):
     read = s.read()
 
 def rekzip(zipfile):
+    if not KZIP_EXE_PATH:
+        raise FileNotFoundError('KZIP_EXE_PATH not set')
     with filegen.switch_dir(os.path.split(zipfile)[0]):
         tempfolder = gen.unused_filename(folder=filegen.TEMPfolder)
         tempzipfile = os.path.abspath(gen.unused_filename(ending='.zip', folder=filegen.TEMPfolder))
@@ -37,6 +46,8 @@ def rekzip(zipfile):
     return zipfile, read, d.read()
 
 def run(zipfile, tempfolder, tempzipfile):
+    if not KZIP_EXE_PATH:
+        raise FileNotFoundError('KZIP_EXE_PATH not set')
     try:
         with SWITCHDIR_LOCK:
             zipgen.zipunzip(zipfile, destfolder=tempfolder)

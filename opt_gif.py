@@ -1,15 +1,22 @@
 import os, sys
+import shutil
 import time
 from dmgen import filegen
 from dmgen import cores
 from dmgen import threaded_worker
 
-myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
-GIFOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'gifsicle.exe')
+GIFOUT_EXE_PATH = ''
+if os.name == 'nt':
+    myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
+    GIFOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'gifsicle.exe')
+if not os.path.exists(GIFOUT_EXE_PATH):
+    GIFOUT_EXE_PATH = shutil.which('gifsicle') or ''
 
 
 def gif(filename, destfilename, options=None):
     # print 'start %s'%filename
+    if not GIFOUT_EXE_PATH:
+        raise FileNotFoundError('GIFOUT_EXE_PATH not set')
     z = os.popen('start /LOW /B /WAIT %s %s %s > "%s"'
                  % (GIFOUT_EXE_PATH, options == None and "-O=3" or options,
                     filename, destfilename))
