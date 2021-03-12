@@ -4,7 +4,7 @@ from dmgen import filegen
 from dmgen import cores
 from dmgen import threaded_worker
 
-myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
+myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
 GIFOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'gifsicle.exe')
 
 

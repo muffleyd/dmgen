@@ -25,7 +25,7 @@ elif os.name == 'posix':
 else:
     PREFIX = ''
 
-myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
+myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
 PNGOUT_EXE_PATH = os.path.join(myhome, 'Desktop', 'pngout.exe')
 
 

@@ -15,8 +15,8 @@ curtime = time.time
 
 hdrive_lock = threading.Lock()
 
-os.myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
-os.desktop = os.path.join(os.myhome, 'Desktop')
+myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
+os.desktop = os.path.join(myhome, 'Desktop')
 
 
 class nested_context:

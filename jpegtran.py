@@ -8,7 +8,7 @@ from dmgen.cores import CORES
 
 JPEGTRAN_EXE_PATH = ''
 if os.name == 'nt':
-    myhome = os.environ.get('HOMEDRIVE') + os.environ.get('HOMEPATH')
+    myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
     JPEGTRAN_EXE_PATH = os.path.join(myhome, 'Desktop', 'jpegtran.exe')
 if not os.path.exists(JPEGTRAN_EXE_PATH):
     JPEGTRAN_EXE_PATH = 'jpegtran'

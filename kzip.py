@@ -6,7 +6,7 @@ from dmgen import gen
 from dmgen import zipgen
 from dmgen import filegen
 
-myhome = os.path.sep.join(os.environ['TMP'].split(os.path.sep)[:3])
+myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
 KZIP_EXE_PATH = os.path.join(myhome, 'Desktop', 'kzip.exe')
 
 SWITCHDIR_LOCK = threading.Lock()
