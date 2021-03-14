@@ -414,7 +414,7 @@ def main(filename, threads=0, depth=5):
             if filename[-4:].lower() != '.png':
                 os.remove(filename)
         else:
-            do_many([i for i in filegen.ifiles_in(filename) if is_png(i)], int(depth), threads)
+            do_many([i for i in filegen.files_in(filename) if is_png(i)], int(depth), threads)
     else:
         raise ValueError('File not found %s' % filename)
 

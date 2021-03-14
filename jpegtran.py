@@ -102,7 +102,7 @@ def do(filename, options='', tw=None):
 def do_many(files, options='', threads=None, verbose=True):
     # global worker #global for debugging purposes
     if isinstance(files, str):
-        files = filegen.ifiles_in(files)
+        files = filegen.files_in(files)
     if not threads:
         threads = CORES
     todo = []
