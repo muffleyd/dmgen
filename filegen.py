@@ -119,14 +119,25 @@ def iter_file(file, chunk_size=16384, mode='rb'):
         yield chunk
 
 
+# TODO Better allow scandir objects into the files lists.
+
 def files_by_size(files, min_size=1):
     data_sizes = {}  # data_sizes[file_size] -> [filename1, filename2, etc]
     for i in files:
-        if not os.path.isfile(i):
+        if hasattr(i, 'is_file'):
+            is_file = i.is_file()
+        else:
+            is_file = os.path.isfile(i)
+        if not is_file:
             continue
-        this_size = os.stat(i)[6]  # six is for size
+        if hasattr(i, 'stat'):
+            stat = i.stat()
+        else:
+            stat = os.stat(i)
+        this_size = stat.st_size
         if this_size >= min_size:
-            data_sizes.setdefault(this_size, []).append(i)
+            path = hasattr(i, 'path') and i.path or i
+            data_sizes.setdefault(this_size, []).append(path)
     return data_sizes
 
 
@@ -194,6 +205,8 @@ def get_same_as_file(file, list):
     return [file for file in samesizes if open(file, 'rb').read() == targetdata]
 
 
+# TODO Merge these two.
+
 def get_same_as_many_files(files1, files2, minsize=1):
     # there's probably some optimization in which list is smaller
     if not files1 or not files2:
@@ -204,23 +217,37 @@ def get_same_as_many_files(files1, files2, minsize=1):
     same_sizes = {}
     files_sizes = {}
     files_set = set()  # prevents comparing a file to itself (same size, afterall!)
-    isfile = os.path.isfile
     for i in files1:
-        if not isfile(i):
+        if hasattr(i, 'is_file'):
+            is_file = i.is_file()
+        else:
+            is_file = os.path.isfile(i)
+        if not is_file:
             continue
-        files_set.add(abspath(i))  #
-        isize = os.stat(i)[6]
-        if isize < minsize:
+        path = hasattr(i, 'path') and i.path or i
+        files_set.add(abspath(path))
+
+        if hasattr(i, 'stat'):
+            stat = i.stat()
+        else:
+            stat = os.stat(i)
+        i_size = stat.st_size
+        if i_size < minsize:
             continue
-        same_sizes[isize] = []
-        files_sizes.setdefault(isize, []).append(['', i])  # [file data, filename]
+        same_sizes[i_size] = []
+        files_sizes.setdefault(i_size, []).append(['', path])  # [file data, filename]
 
     for i in files2:
-        if abspath(i) in files_set:
+        path = hasattr(i, 'path') and i.path or i
+        if abspath(path) in files_set:
             continue  # don't compare a file to itself
-        target_list = same_sizes.get(os.stat(i)[6])
+        if hasattr(i, 'stat'):
+            stat = i.stat()
+        else:
+            stat = os.stat(i)
+        target_list = same_sizes.get(stat.st_size)
         if target_list is not None:
-            target_list.append(i)
+            target_list.append(path)
     del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
     for size, files in list(same_sizes.items()):
@@ -250,26 +277,43 @@ def get_same_as_many_files2(files1, files2, minsize=1):
         return []
     files1 = coerce_dir(files1)
     files2 = coerce_dir(files2)
-    abspath = os.path.abspath
-    isfile = os.path.isfile
     files_sizes = {}
     files_set = {}  # prevents comparing a file to itself (same size, afterall!)
     for i in files1:
-        if not isfile(i):
+        if hasattr(i, 'is_file'):
+            is_file = i.is_file()
+        else:
+            is_file = os.path.isfile(i)
+        if not is_file:
             continue
-        isize = os.stat(i)[6]
-        if isize < minsize:
+
+        if hasattr(i, 'stat'):
+            stat = i.stat()
+        else:
+            stat = os.stat(i)
+        i_size = stat.st_size
+        if i_size < minsize:
             continue
-        files_set[abspath(i)] = 1  # see first line of next for loop (for i in li)
-        files_sizes.setdefault(isize, ([], []))[0].append(['', i])
+        path = hasattr(i, 'path') and i.path or i
+        files_set[path] = 1  # see first line of next for loop (for i in li)
+        files_sizes.setdefault(i_size, ([], []))[0].append(['', path])
         # ([[filedata, filename], [fd2, fn2], [etc]], [same sized files in arg2])
 
     for i in files2:  # place the filenames
-        if not isfile(i) or files_set.get(abspath(i)):
+        if hasattr(i, 'is_file'):
+            is_file = i.is_file()
+        else:
+            is_file = os.path.isfile(i)
+        path = hasattr(i, 'path') and i.path or i
+        if not is_file or files_set.get(path):
             continue  # don't compare a file to itself
-        target_list = files_sizes.get(os.stat(i)[6])
+        if hasattr(i, 'stat'):
+            stat = i.stat()
+        else:
+            stat = os.stat(i)
+        target_list = files_sizes.get(stat.st_size)
         if target_list is not None:
-            target_list[1].append(i)
+            target_list[1].append(path)
     del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
     for j, i in list(files_sizes.items()):
@@ -410,7 +454,7 @@ def unused_filename(ending='', donotuse=(), folder='', maxlen=15, start=''):
     rand = random.random
     name = None
     while not name or name in donotuse or name in (i.lower() for i in os.listdir(folder)):
-               # ''.join([random.choice(allowedchars)
+        # ''.join([random.choice(allowedchars)
         name = (start +
                 ''.join([allowedchars[int(rand() * len(allowedchars))]
                          for i in range(int(1 + rand() * generate_characters))]) +
