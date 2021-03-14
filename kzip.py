@@ -65,7 +65,7 @@ def run(zipfile, tempfolder, tempzipfile):
 def main():
     with threaded_worker.threaded_worker(run, 2) as tw:
         l = []
-        for i in filegen.ifiles_in('C:\\'):
+        for i in filegen.files_in('C:\\'):
             if i[-4:] == '.zip':
                 tarfolder = os.path.abspath(os.path.split(i)[0])
                 l.append(tw.put(i, os.path.join(tarfolder, gen.unused_filename(folder=tarfolder)),

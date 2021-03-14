@@ -19,7 +19,7 @@ def search_files(folder, filename='', substr=None, ignorecase=True,
     filename = filename.lower()
     if ignorecase and substr:
         substr = substr.lower()
-    for i in ifiles_in(folder):
+    for i in files_in(folder):
         if filename in splitpath(i)[-1].lower():
             if substr and os.stat(i)[6] <= maxsize:
                 d = open(i, 'rb').read()
@@ -132,7 +132,7 @@ def files_by_size(files, min_size=1):
 
 def coerce_dir(thing):
     if isinstance(thing, str):
-        return ifiles_in(thing)
+        return files_in(thing)
     return thing
 
 
@@ -292,8 +292,10 @@ def get_same_as_many_files2(files1, files2, minsize=1):
     return positives
 
 
-def ifiles_in(directory='.', include='', include_end='', exclude=[]):  # generator for files_in
-    if type(exclude) != set:
+def files_in(directory='.', include='', include_end='', exclude=None):  # generator for files_in
+    if exclude is None:
+        exclude = set()
+    elif type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     pathsep = os.path.sep
     walker = _walk(directory)
@@ -326,22 +328,19 @@ def ifiles_in(directory='.', include='', include_end='', exclude=[]):  # generat
                     yield current_directory + pathsep + onefile
 
 
-def files_in(directory='', exclude=[]):
-    # returns a list of every file in directory and it's subdirectories
-    return list(ifiles_in(directory, '', '', exclude))
-
-
 # yields scandir objects for each file in a directory and its children
-def ifiles_in_scandir(directory='.', exclude=[]):  # generator for files_in_scandir
-    if type(exclude) != set:
+def files_in_scandir(directory='.', exclude=None):
+    if exclude is None:
+        exclude = set()
+    elif type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
-    for i in _ifiles_in_scandir(directory, exclude):
+    for i in _files_in_scandir(directory, exclude):
         yield i
 
 
-def _ifiles_in_scandir(directory, exclude):
+def _files_in_scandir(directory, exclude):
     walker = os.scandir(directory)
     if directory == '.' or not directory:
         directory = ''
@@ -357,30 +356,21 @@ def _ifiles_in_scandir(directory, exclude):
             continue
         yield onefile
     for dir in folders:
-        for i in _ifiles_in_scandir(dir, exclude):
+        for i in _files_in_scandir(dir, exclude):
             yield i
 
 
-def files_in_scandir(directory='', exclude=[]):
-    # returns a list of every item yielded from ifiles_in_scandir()
-    return list(ifiles_in_scandir(directory, exclude))
-
-
-def listfolders(directory='.'):
+def list_folders(directory='.'):
     return (i for i in os.scandir(directory) if i.is_dir())
 
 
-def listfiles(directory='.'):
+def list_files(directory='.'):
     return (i for i in os.scandir(directory) if not i.is_dir())
 
 
-def ifoldersfiles_in(directory, includes=[], exclude=[]):
+def foldersfiles_in(directory, includes=[], exclude=[]):
     raise NotImplementedError()
     return []
-
-
-def foldersfiles_in(directory='', includes=[], exclude=[]):
-    return list(ifoldersfiles_in(directory, includes, exclude))
 
 
 def folder_stats(directory):
