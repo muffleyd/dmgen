@@ -649,7 +649,7 @@ class timer:
     def build_print_string(self):
         return self.printing % (self.before_print, self.decimals_print, self.after_print) % self.runtime
 
-    def print_me(self, newline=None):
+    def print_me(self, newline=True):
         to_print = self.build_print_string()
         if newline:
             print(to_print)
