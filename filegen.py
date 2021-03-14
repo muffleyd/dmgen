@@ -218,9 +218,9 @@ def get_same_as_many_files(files1, files2, minsize=1):
     for i in files2:
         if abspath(i) in files_set:
             continue  # don't compare a file to itself
-        targetlist = same_sizes.get(os.stat(i)[6])
-        if targetlist is not None:
-            targetlist.append(i)
+        target_list = same_sizes.get(os.stat(i)[6])
+        if target_list is not None:
+            target_list.append(i)
     del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
     for size, files in list(same_sizes.items()):
@@ -230,16 +230,16 @@ def get_same_as_many_files(files1, files2, minsize=1):
     if not same_sizes:  # no files in 'li' are the same size as any in 'files'
         return []
     positives = []
-    for targetsize, filenames in list(files_sizes.items()):
-        for data in filenames:  # do reading of files of size 'targetsize' here
+    for target_size, file_info in list(files_sizes.items()):
+        for data in file_info:  # do reading of files of size 'target_size' here
             data[0] = open(data[1], 'rb').read()
-        for targetfilename in same_sizes[targetsize]:
-            targetdata = open(targetfilename, 'rb').read()
-            for filess in files_sizes.values():
-                for filesdata, filesname in filess:  # filess... comeon..
-                    if targetdata == filesdata:
-                        positives.append((filesname, targetfilename))
-        for data in filenames:  # release the memory for the read in files
+        for target_filename in same_sizes[target_size]:
+            target_data = open(target_filename, 'rb').read()
+            for same_size_files in files_sizes.values():
+                for file_data, file_name in same_size_files:
+                    if target_data == file_data:
+                        positives.append((file_name, target_filename))
+        for data in file_info:  # release the memory for the read in files
             data[0] = ''
     return positives
 
@@ -267,9 +267,9 @@ def get_same_as_many_files2(files1, files2, minsize=1):
     for i in files2:  # place the filenames
         if not isfile(i) or files_set.get(abspath(i)):
             continue  # don't compare a file to itself
-        targetlist = files_sizes.get(os.stat(i)[6])
-        if targetlist is not None:
-            targetlist[1].append(i)
+        target_list = files_sizes.get(os.stat(i)[6])
+        if target_list is not None:
+            target_list[1].append(i)
     del files_set, files1, files2  # all files are correctly in both dicts, so bye bye!
 
     for j, i in list(files_sizes.items()):
