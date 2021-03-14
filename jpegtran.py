@@ -24,10 +24,12 @@ elif os.name == 'posix':
 else:
     PREFIX = ''
 
+TEMP_prefix = 'jpeg_TEMP_'
 
-def jpeg(filename, destfilename=None, options='', optimize=True):
+
+def jpeg(filename, output_filename=None, options='', optimize=True):
     # handle options spacing + slashes yourself please
-    """Runs jpegtran on filename to destfilename (if given, else it's smart).
+    """Runs jpegtran on filename to output_filename (if given, else it's smart).
     Fill this out with the jpegtran executable options."""
     if not JPEGTRAN_EXE_PATH:
         raise FileNotFoundError('JPEGTRAN_EXE_PATH not set')
@@ -37,26 +39,23 @@ def jpeg(filename, destfilename=None, options='', optimize=True):
         JPEGTRAN_EXE_PATH,
         optimize and '-optimize ' or '',
         options and '%s ' % options or '',
-        destfilename or filename,
+        output_filename or filename,
         filename)
     p = subprocess.Popen(out, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     f = (None, p.stdout, p.stderr)
     p.wait()
-    return destfilename or filename, f[1].read(), f[2].read()
-
-
-TEMPprefix = 'jpeg_TEMP_'
+    return output_filename or filename, f[1].read(), f[2].read()
 
 
 def do2(input_filename, output_filename=None, options='', tw=None):
     if output_filename is None:
         output_filename = input_filename
-    initsize = size = os.stat(input_filename)[6]
-    folder, tfile = os.path.split(input_filename)
+    initial_size = size = os.stat(input_filename)[6]
+    directory, filename = os.path.split(input_filename)
     if filegen.TEMPfolder:
-        folder = filegen.TEMPfolder
-    temp1 = filegen.unused_filename('_' + tfile, folder=folder)
-    temp2 = filegen.unused_filename('_prog_' + tfile, [temp1], folder=folder)
+        directory = filegen.TEMPfolder
+    temp1 = filegen.unused_filename('_' + filename, folder=directory)
+    temp2 = filegen.unused_filename('_prog_' + filename, [temp1], folder=directory)
     if tw is None:
         _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES), wait_at_end=True)
     else:
@@ -64,23 +63,23 @@ def do2(input_filename, output_filename=None, options='', tw=None):
     try:
         gets = (_tw.put(input_filename, temp1, options, func=_tw.func or jpeg),
                 _tw.put(input_filename, temp2, '-progressive ' + options, func=_tw.func or jpeg))
-        newfile = None
+        new_file = None
         out = None
-        newsize = None
+        new_size = None
         for get in gets:
             temp, out, err = _tw.get(get)
             if err or out:
                 raise Exception(err or out)
             if os.path.exists(temp):
-                newsize = os.stat(temp)[6]
-                if newsize and newsize < size:
-                    newfile = temp
-                    size = newsize
+                new_size = os.stat(temp)[6]
+                if new_size and new_size < size:
+                    new_file = temp
+                    size = new_size
             if err:
                 out += '\nError: ' + err
-        if newfile:
+        if new_file:
             os.remove(input_filename)
-            shutil.move(newfile, output_filename)
+            shutil.move(new_file, output_filename)
     finally:
         if tw is None:
             _tw.__exit__()
@@ -89,10 +88,10 @@ def do2(input_filename, output_filename=None, options='', tw=None):
                 os.remove(temp1)
             if os.path.exists(temp2):
                 os.remove(temp2)
-        except:
+        except Exception:
             print('%s %s %s' % (input_filename, temp1, temp2))
             raise
-    return input_filename, out, initsize, newsize
+    return input_filename, out, initial_size, new_size
 
 
 def do(filename, options='', tw=None):
@@ -107,35 +106,35 @@ def do_many(files, options='', threads=None, verbose=True):
         threads = CORES
     todo = []
     failed = []
-    startsize = endsize = 0
+    start_size = end_size = 0
     with threaded_worker.threaded_worker(do, threads, wait_at_end=True) as worker:
         with threaded_worker.threaded_worker(jpeg, threads, wait_at_end=True) as internal_worker:
             for filename in files:
                 todo.append(worker.put(filename, options, internal_worker))
             for ind in range(1, len(todo) + 1):
                 try:
-                    filename, out, size, newsize = worker.get(ind)
+                    filename, out, size, new_size = worker.get(ind)
                 except KeyboardInterrupt:
                     raise
                 except Exception as e:
                     failed.append((ind, e, traceback.format_exc()))
                     continue
                 front = '%d/%d %s:' % (ind, len(todo), filename)
-                if newsize < size:
-                    endsize += newsize
-                    startsize += size
+                if new_size < size:
+                    end_size += new_size
+                    start_size += size
                 if verbose:
-                    if newsize < size:
-                        print('%s %d %.1f%%' % (front, newsize - size,
-                                                100 * float(newsize) / size))
-                    elif newsize == size:
+                    if new_size < size:
+                        print('%s %d %.1f%%' % (front, new_size - size,
+                                                100 * float(new_size) / size))
+                    elif new_size == size:
                         print('%s no diff' % front)
                     else:
                         print('%s worse' % front)
                     if out:
                         print('output:', out)
-    if verbose and startsize:
-        print('%d -> %d (%.1f%%)' % (startsize, endsize, 100. * endsize / startsize))
+    if verbose and start_size:
+        print('%d -> %d (%.1f%%)' % (start_size, end_size, 100. * end_size / start_size))
     return failed
 
 
