@@ -128,7 +128,7 @@ class GenTest(unittest.TestCase):
         # Verify the answer came out right.
         self.assertEqual(answer, real_answer)
         # Verify each run is >= the time the function sleeps. Subtract a tiny amount to avoid minuscule clock errors.
-        self.assertGreaterEqual(run_per, sleep_time - 0.0000001)
+        self.assertGreaterEqual(run_per, sleep_time - 0.000001)
         # Since the time to run is less than the time to sleep, verify its run_times is less than 1.
         self.assertLess(run_times, 1)
 
