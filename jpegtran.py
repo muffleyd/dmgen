@@ -48,23 +48,25 @@ def jpeg(filename, destfilename=None, options='', optimize=True):
 TEMPprefix = 'jpeg_TEMP_'
 
 
-def do2(filename, target=None, options='', tw=None):
-    if target is None:
-        target = filename
-    initsize = size = os.stat(filename)[6]
-    folder, tfile = os.path.split(filename)
+def do2(input_filename, output_filename=None, options='', tw=None):
+    if output_filename is None:
+        output_filename = input_filename
+    initsize = size = os.stat(input_filename)[6]
+    folder, tfile = os.path.split(input_filename)
     if filegen.TEMPfolder:
         folder = filegen.TEMPfolder
     temp1 = filegen.unused_filename('_' + tfile, folder=folder)
     temp2 = filegen.unused_filename('_prog_' + tfile, [temp1], folder=folder)
     if tw is None:
-        _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES))
+        _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES), wait_at_end=True)
     else:
         _tw = tw
     try:
-        gets = (_tw.put(filename, temp1, options, func=_tw.func or jpeg),
-                _tw.put(filename, temp2, '-progressive ' + options, func=_tw.func or jpeg))
+        gets = (_tw.put(input_filename, temp1, options, func=_tw.func or jpeg),
+                _tw.put(input_filename, temp2, '-progressive ' + options, func=_tw.func or jpeg))
         newfile = None
+        out = None
+        newsize = None
         for get in gets:
             temp, out, err = _tw.get(get)
             if err or out:
@@ -77,20 +79,20 @@ def do2(filename, target=None, options='', tw=None):
             if err:
                 out += '\nError: ' + err
         if newfile:
-            os.remove(filename)
-            shutil.move(newfile, target)
+            os.remove(input_filename)
+            shutil.move(newfile, output_filename)
     finally:
         if tw is None:
-            _tw.close(wait=1)
+            _tw.__exit__()
         try:
             if os.path.exists(temp1):
                 os.remove(temp1)
             if os.path.exists(temp2):
                 os.remove(temp2)
         except:
-            print('%s %s %s' % (filename, temp1, temp2))
+            print('%s %s %s' % (input_filename, temp1, temp2))
             raise
-    return filename, out, initsize, newsize
+    return input_filename, out, initsize, newsize
 
 
 def do(filename, options='', tw=None):

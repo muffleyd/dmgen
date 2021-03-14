@@ -23,7 +23,7 @@ partial.__doc__ = _partial.__doc__
 try:
     from Queue2 import Queue
 except ImportError:
-    from queue import Queue as _Queue
+    from queue import Queue as _Queue, Full
     from time import time as _time
 
     class Queue(_Queue):
@@ -39,7 +39,7 @@ except ImportError:
             self.task_done()
 
         def put(self, item, block=True, timeout=None, head=False):
-            '''Put an item into the queue.
+            """Put an item into the queue.
 
             If optional args 'block' is true and 'timeout' is None (the default),
             block if necessary until a free slot is available. If 'timeout' is
@@ -48,7 +48,7 @@ except ImportError:
             Otherwise ('block' is false), put an item on the queue if a free slot
             is immediately available, else raise the Full exception ('timeout'
             is ignored in that case).
-            '''
+            """
             with self.not_full:
                 if self.maxsize > 0:
                     if not block:
@@ -137,21 +137,21 @@ class threaded_worker(object):
                  onexc=lambda etype, value, tb: None,
                  wait_at_end=False, raise_onexc=True,
                  track=False):
-        """Starts the worker.  I am helpful and descriptive.
+        """Starts the worker.
         func is the function that will be called by default in .put().
         threads is the number of threads to run together.
         max_pending is the amount of pending data that can be placed before
-         a .put() call blocks and waits for an active thread to finish;
-         default means do not block, 0 means a .put() will block until its
-         data is being run, effectively preventing any pending data.
+          a .put() call blocks and waits for an active thread to finish;
+          default means do not block, 0 means a .put() will block until its
+          data is being run, effectively preventing any pending data.
         onexc is a function to be called if an exception kills the worker
-         in a 'with' statement.  Recieves the 3 exception arguments.
+          in a 'with' statement.  Recieves the 3 exception arguments.
         wait_at_end is a flag indicating if after leaving a 'with' context,
-         should we wait for threads to end.
+          should we wait for threads to end.
         raise_onexc is a bool; if True, an exception in a 'with' statment will
-         raise, else it will not.  Either way, function onexc will be called.
+          raise, else it will not.  Either way, function onexc will be called.
         track will keep the worker in a list ONLY if it has active threads
-         for debugging purposes."""
+          for debugging purposes."""
         self.track = track
         if track:
             self.active = []
@@ -217,7 +217,7 @@ class threaded_worker(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, etype, value, tb):
+    def __exit__(self, etype=None, value=None, tb=None):
         if etype:  # run onexception function
             self.onexc(etype, value, tb)
         if self.raise_onexc and etype:
@@ -226,7 +226,7 @@ class threaded_worker(object):
             return False
         else:  # issue order to close and wait or don't
             if self.wait_at_end:
-                self.close(wait=1)
+                self.close(wait=True)
             else:
                 self.close()
             return True
@@ -258,7 +258,7 @@ class threaded_worker(object):
         falls back on self.close().
 
         See function 'close'"""
-        self.close(wait=wait, now=1)
+        self.close(wait=wait, now=True)
 
     def close(self, num=None, wait=False, now=False):
         """Finishes the pending jobs, and then ends the threads.
@@ -319,7 +319,7 @@ class threaded_worker(object):
         # (possibly due to OS complaint: too many threads)
         for t in range(num):
             thread = threading.Thread(target=self._handle)
-            thread.setDaemon(1)
+            thread.setDaemon(True)
             thread.start()
             self._updatenumthreads(1)
 
@@ -356,14 +356,14 @@ class threaded_worker(object):
 
         all non-keyword items sent here are used as arguments for func
         keyword arguments to be sent to func must be a mapping struct set to
-         'kwargs' as a key-word argument.
+          'kwargs' as a key-word argument.
         keyword arguments 'func' and 'store' can be sent here too
         'func' is the function that will be called for this data
         'store' is a boolean for if the return data should be stored to be
-         retrieved later.  *NOTE* if store is False, exceptions raised from
-         that function call will just be lost.
+          retrieved later.  *NOTE* if store is False, exceptions raised from
+          that function call will just be lost.
         'alsoreturn' is a variable that will be returned along with the data
-         from the function execution.  Forced into an iterable."""
+          from the function execution.  Forced into an iterable."""
         func = kwargs.pop('func', self.func)
         if not hasattr(func, '__call__'):
             func = data[0]
@@ -536,14 +536,14 @@ def thread_map2(data, func, threads=1, toput=None,
     done = False
     with threaded_worker(_thread_map2_put, 1, max_pending, max_done_stored) as putter:
         with threaded_worker(func, threads, max_pending, max_done_stored) as tw:
-            mainput = putter.put(tw, data, toput, *args, **kwargs)
+            main_put = putter.put(tw, data, toput, *args, **kwargs)
             while tw.check(index) is None:
                 pass  # loops until the first item is started
             while 1:
                 # if not done and putter not found to be done
-                if not done and putter.check(mainput):
+                if not done and putter.check(main_put):
                     # set todo with the number of items put into tw
-                    todo += putter.get(mainput)
+                    todo += putter.get(main_put)
                     done = True
                 # if putter is done and todo is back to 0, end it
                 if done and not todo:
