@@ -62,18 +62,18 @@ def assert_file_trees(one, two, just_compare_files=0):
 
 
 class FileOrOpen:
-    def __init__(self, file):
+    def __init__(self, file, close_on_exit=True):
+        self.close_on_exit = close_on_exit
         self.file = file
         self.opened_file = False
 
     def __enter__(self):
         if not hasattr(self.file, 'read'):
-            self.opened_file = True
             self.file = open(self.file, 'rb')
         return self.file
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.opened_file:
+        if self.close_on_exit and self.opened_file:
             self.file.close()
 
 
@@ -150,7 +150,7 @@ def coerce_dir(thing):
 def dict_of_data(files, block_size):
     data = {}
     for file in files:
-        with FileOrOpen(file) as file:
+        with FileOrOpen(file, False) as file:
             data.setdefault(file.read(block_size), []).append(file)
     return data
 
