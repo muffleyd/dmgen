@@ -292,71 +292,38 @@ def get_same_as_many_files2(files1, files2, minsize=1):
     return positives
 
 
-def files_in(directory='.', include='', include_end='', exclude=None):  # generator for files_in
-    if exclude is None:
-        exclude = set()
-    elif type(exclude) != set:
-        exclude = set(isinstance(exclude, str) and [exclude] or exclude)
-    pathsep = os.path.sep
-    walker = _walk(directory)
-    include_end = include_end.lower()
-
-    # to avoid returning "./filename"
-    if not directory or directory == '.':
-        for onefile in next(walker)[2]:
-            if onefile in exclude or include not in onefile:
-                continue
-            if include_end:
-                if onefile[-len(include_end):].lower() != include_end:
-                    continue
-            yield onefile
-
-    for current_directory, folders, files in walker:
-        if exclude:
-            current_directories = current_directory.split(os.path.sep)
-        for i in exclude:
-            if i in current_directories:
-                break
-        else:
-            for onefile in files:
-                if onefile in exclude:
-                    continue
-                if include_end:
-                    if onefile[-len(include_end):].lower() != include_end:
-                        continue
-                if include in current_directory or include in onefile:
-                    yield current_directory + pathsep + onefile
+def files_in(directory='.', include='', include_end='', exclude=None):
+    return (i.path for i in files_in_scandir(directory, include, include_end, exclude))
 
 
 # yields scandir objects for each file in a directory and its children
-def files_in_scandir(directory='.', exclude=None):
+def files_in_scandir(directory='.', include='', include_end='', exclude=None):
     if exclude is None:
         exclude = set()
     elif type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
-    for i in _files_in_scandir(directory, exclude):
+    for i in _files_in_scandir(directory, include, include_end, exclude):
         yield i
 
 
-def _files_in_scandir(directory, exclude):
-    walker = os.scandir(directory)
-    if directory == '.' or not directory:
-        directory = ''
-    else:
-        directory += os.path.sep
+def _files_in_scandir(directory, include, include_end, exclude):
     folders = []
-    for onefile in walker:
-        for e in exclude:
-            if e in onefile.name:
-                continue
-        if onefile.is_dir():
-            folders.append(onefile.path)
+    for dir_entry in os.scandir(directory):
+        if dir_entry.name in exclude:
             continue
-        yield onefile
+        if dir_entry.is_dir():
+            folders.append(dir_entry.path)
+            continue
+        if include not in dir_entry.path:
+            continue
+        if include_end:
+            if dir_entry.name[-len(include_end):].lower() != include_end:
+                continue
+        yield dir_entry
     for dir in folders:
-        for i in _files_in_scandir(dir, exclude):
+        for i in _files_in_scandir(dir, include, include_end, exclude):
             yield i
 
 
