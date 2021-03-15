@@ -517,12 +517,12 @@ def tmap(data, func, threads=1, toput=None, *args, **kwargs):
 
 def _thread_map2_put(tw, data, toput, *args, **kwargs):
     done = 0
-    for d in data:
+    for original_data in data:
         if toput:
-            data = toput(d)
+            processed_data = toput(original_data)
         else:
-            data = d
-        tw.put(data, alsoreturn=d, *args, **kwargs)
+            processed_data = original_data
+        tw.put(processed_data, alsoreturn=original_data, *args, **kwargs)
         done += 1
     return done
 
