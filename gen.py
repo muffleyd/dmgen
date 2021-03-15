@@ -94,6 +94,31 @@ class print_capture:
             print(''.join(self.data))
 
 
+class CmdLineStdin:
+    """Reads input from `data` until its exhausted, then uses the initial stdin."""
+    def __init__(self, data):
+        self.init_stdin = None
+        self.data = data
+
+    def __enter__(self):
+        sys.stdin, self.init_stdin = self, sys.stdin
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdin = self.init_stdin
+
+    def write(self, s):
+        self.data.append(s)
+
+    def readline(self):
+        if not self.data:
+            s = self.init_stdin.readline()
+        else:
+            s = self.data.pop(0)
+            print(s)
+        return s
+
+
 if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
     FFMPEG_EXE = os.path.join(os.desktop, 'ffmpeg.exe')
 
