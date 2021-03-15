@@ -156,12 +156,15 @@ class threaded_worker(object):
         if track:
             self.active = []
         self.func = func
+        self.completed_inds = Queue()
+        # pending_inds stores which indexes are either being worked on or are completed and not yet get()'d.  It's
+        #  important to track this in case max_done_stored is set to prevent some very slow jobs from being locked out.
         if max_done_stored is UNLIMITED_PENDING:
-            self.completed_inds = Queue()
+            self.pending_inds = Queue()
         elif max_done_stored == 0:
             raise NotImplementedError('not supported yet')
         else:
-            self.completed_inds = Queue(max_done_stored)
+            self.pending_inds = Queue(max_done_stored)
         self.results = [None]
         if max_pending == 0:
             self.pending = Queue(1)
@@ -436,7 +439,9 @@ class threaded_worker(object):
             things[2] = None
             return
         if index is not None:
-            self.completed_inds.remove(index)  # not good, alter Queue.py for this
+            # Not good, alter Queue.py for this.
+            self.completed_inds.remove(index)
+            self.pending_inds.remove(index)
         if things[2]:
             exc = things[1][0]
             exc[1].traceback = exc[2]
@@ -459,6 +464,7 @@ class threaded_worker(object):
                 current_work = (func, data, kwargs, index)
                 self.active.append(current_work)
             self.active_threads += 1
+            self.pending_inds.put(index)
             try:
                 returned_data = func(*data, **kwargs)
                 exc = 0
