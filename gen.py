@@ -61,6 +61,9 @@ class empty_printer:
     def read(self):
         return ''
 
+    def real_print(self, *args):
+        print(*args, file=self.old_stdout)
+
     def __enter__(self):
         self.old_stdout = sys.stdout
         if self.do_stderr:
