@@ -368,14 +368,14 @@ def do_many(files, depth=5, threads=CORES):
             for index, filename in enumerate(files):
                 fdata.append((filename, os.stat(filename)[6]))
                 worker.put(filename, inworker, depth, alsoreturn=index)
-            for x in range(len(files)):
+            for x in range(len(fdata)):
                 try:
                     front = filename = ''
                     options, alsoreturn = worker.get()
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = '%d/%d %s:' % (x + 1, len(files), filename)
+                    front = '%d/%d %s:' % (x + 1, len(fdata), filename)
 
                 except KeyboardInterrupt:
                     raise
