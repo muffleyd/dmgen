@@ -363,7 +363,7 @@ def do_many(files, depth=5, threads=CORES):
     failed = []
     # pstdout, out = sys.stdout, open('output.txt','w')
     fdata = []
-    with gen.empty_printer():
+    with gen.empty_printer() as printer:
         try:
             for index, filename in enumerate(files):
                 fdata.append((filename, os.stat(filename)[6]))
@@ -381,7 +381,7 @@ def do_many(files, depth=5, threads=CORES):
                     raise
                 except Exception as e:
                     failed.append((filename, e))
-                    gen.real_print('%s error %s' % (front, str(e)))
+                    printer.real_print('%s error %s' % (front, str(e)))
                     continue
                 newsize = os.stat(filename)[6]
                 if newsize < size:
