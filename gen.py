@@ -289,7 +289,7 @@ def test_seconds_prnt(func, args=(), kwargs=None, ttr=None):
 
 
 def dims_from_pixels(pixels, format):
-    # format is 4/3., 16/9., etc, or None for...
+    # format is 4/3, 16/9, etc, or None for...
     if format is None:  # guessing
         for form in (4 / 3, 5 / 4, 16 / 9, 16 / 10, 19 / 12):
             try:
@@ -396,9 +396,17 @@ def list_of(something):
     return [something]
 
 
-def uptodateimport(s):
+def updated_import(module):
     import importlib
-    return importlib.reload(__import__(s))
+    if isinstance(module, str):
+        module = __import__(module)
+    return importlib.reload(module)
+
+
+def uptodateimport(s):
+    import warnings
+    warnings.warn('uptodateimport(s) is deprecated, use updated_import(module)')
+    return updated_import(s)
 
 
 def stritem_replace(string, index, value, len=1):
