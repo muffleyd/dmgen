@@ -140,6 +140,7 @@ class GenTest(unittest.TestCase):
         run_per, run_times, answer = gen.test_seconds(func, [1], {'int2': 2, 'int3': 3}, time_to_run=time_to_run,
                                                       loops=10)
         self.assertEqual(answer, real_answer)
+        self.assertGreaterEqual(run_per, sleep_time - 0.000001)
 
 
 if __name__ == "__main__":
