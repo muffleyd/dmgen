@@ -9,9 +9,10 @@ import math
 import random
 import threading
 import queue
+import functools
 from collections import deque
 
-curtime = time.time
+monotonic = time.monotonic
 
 hdrive_lock = threading.Lock()
 
@@ -220,6 +221,10 @@ def test_seconds(func, args=(), kwargs=None, time_to_run=TEST_SECONDS_TTR, loops
     :param loops: How many times to call func before checking if it's time to stop.
                   For extremely short-running functions this can be very important to fine-tune.
                   e.g. test_seconds(time.time, loops=100) will run 2.3x more times than test_seconds(time.time).
+                  Going beyond 100 will have a minimal reduction in this function's overhead.
+                  If you choose to go higher, keep in mind which integers python generates vs looks up.
+                  Keep this below 256 for CPython.
+                  loops=2 will silently work like loops=1 due to range() overhead making it slower.
     :return tuple: (average time per func call, times func ran within time_to_run, result from func).
                    Since the actual runtime may not equal time_to_run exactly, the second argument may be a float.
     """
@@ -230,38 +235,47 @@ def test_seconds(func, args=(), kwargs=None, time_to_run=TEST_SECONDS_TTR, loops
             kwargs = {}
     elif not hasattr(args, '__iter__'):
         args = [args]
-    ran = 0
-    start_time = curtime()
+
+    # Build a function with partial so the overhead of *args and **kwargs is only done once.
+    benchmark_function = functools.partial(func, *args, **kwargs)
+
+    # Run benchmark_function() once here to get the answer and set an end_time.
+    # Also has the side effect of sometimes preventing large loop values from running for much longer than a short time_to_run.
+    ran = 1
+    start_time = monotonic()
+    answer = benchmark_function()
+    time_to_stop = start_time + time_to_run
+    end_time = monotonic()
+
     # If loops <= 1 we just run it once. If we let loops == 1 in here there would be needless range() overhead.
-    if loops >= 2:
-        while 1:
-            # Run the function `loops` times if it's a slower function so less of
-            #  the runtime is spent getting the current time and adding 1 to ran.
-            # test_seconds(time.time) vs test_seconds(time.time, loops=100) is 2.3x the func executions.
+    # For the same reason we don't run loops == 2 here; range() overhead is harmful when running the function twice per loop.
+    if loops >= 3:
+        # Run the function `loops` times if it's a slower function so less of
+        #  the runtime is spent getting the current time and adding 1 to ran.
+        # test_seconds(time.time) vs test_seconds(time.time, loops=100) is 2.3x the func executions.
+        while time_to_stop > end_time:
             for _ in range(loops):
-                answer = func(*args, **kwargs)
+                benchmark_function()
             ran += loops
-            end_time = curtime()
-            if start_time + time_to_run <= end_time:
-                break
+            end_time = monotonic()
     else:
-        while 1:
-            answer = func(*args, **kwargs)
+        while time_to_stop > end_time:
+            benchmark_function()
             ran += 1
-            end_time = curtime()
-            if start_time + time_to_run <= end_time:
-                break
+            end_time = monotonic()
 
     runtime = end_time - start_time
-    if runtime:
+    if runtime <= 0:
+        # If the runtime was so short as to be considered 0, avoid divide-by-zero errors.
+        actual_ran = ran
+    else:
+        # Since the runtime won't match time_to_run exactly, normalize `ran` for accurate comparisons.
         if not time_to_run:
             actual_ran = ran / runtime
         else:
             actual_ran = ran / (runtime / time_to_run)
         if not actual_ran % 1:
             actual_ran = int(actual_ran)
-    else:
-        actual_ran = 1
     return runtime / ran, actual_ran, answer
 
 
@@ -694,11 +708,11 @@ class timer:
 
     def __enter__(self):
         self.runtime = None
-        self.start = curtime()
+        self.start = monotonic()
         return self
 
     def __exit__(self, *exc):
-        self.runtime = curtime() - self.start
+        self.runtime = monotonic() - self.start
         if self.do_print:
             self.print_me()
 
