@@ -1,5 +1,15 @@
+import os
+import sys
+
+
 def main():
-    import os, sys
+    num = os.cpu_count()
+    if not num:
+        num = main_backup()
+    return num
+
+
+def main_backup():
     num = 1
     if sys.platform == 'win32':  # windows
         try:

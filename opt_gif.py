@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import shutil
 import time
 from dmgen import filegen
