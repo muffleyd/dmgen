@@ -676,11 +676,6 @@ def _return_print_dict(dictionary, spaces=0, between='\n'):
 
 
 class timer:
-    # String is formatted twice. First pass inserts before_print and after_print at the start and end.
-    #  decimals_print is inserted to finalize the syntax for the second format.
-    # First pass assuming decimals_print is 3: {before}%.3f{after}.
-    printing = '%s%%.%df%s'
-
     def __init__(self, do_print=True, decimals=3, newline=True, before='', after=''):
         self.do_print = do_print
         self.before_print = before
@@ -694,7 +689,10 @@ class timer:
         return self.runtime
 
     def build_print_string(self):
-        return self.printing % (self.before_print, self.decimals_print, self.after_print) % self.runtime
+        # Format runtime to decimal length.
+        runtime_fstring = f'{self.runtime:.{self.decimals_print}f}'
+        # Format the rest of the string.
+        return f'{self.before_print}{runtime_fstring}{self.after_print}'
 
     def print_me(self, newline=True):
         to_print = self.build_print_string()
