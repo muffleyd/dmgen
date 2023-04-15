@@ -9,7 +9,6 @@ __all__ = [
     'gzipgen',
     'jpegtran',
     'jpeg_crop',
-    'kzip',
     'make_png',
     'opt_gif',
     'p7zip',
