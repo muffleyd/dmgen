@@ -24,7 +24,7 @@ try:
     from Queue2 import Queue
 except ImportError:
     from queue import Queue as _Queue, Full
-    from time import time as _time
+    from time import monotonic as time
 
     class Queue(_Queue):
         def get(self, block=True, timeout=None):
@@ -52,17 +52,17 @@ except ImportError:
             with self.not_full:
                 if self.maxsize > 0:
                     if not block:
-                        if self._qsize() == self.maxsize:
+                        if self._qsize() >= self.maxsize:
                             raise Full
                     elif timeout is None:
-                        while self._qsize() == self.maxsize:
+                        while self._qsize() >= self.maxsize:
                             self.not_full.wait()
                     elif timeout < 0:
                         raise ValueError("'timeout' must be a positive number")
                     else:
-                        endtime = _time() + timeout
-                        while self._qsize() == self.maxsize:
-                            remaining = endtime - _time()
+                        endtime = time() + timeout
+                        while self._qsize() >= self.maxsize:
+                            remaining = endtime - time()
                             if remaining <= 0.0:
                                 raise Full
                             self.not_full.wait(remaining)
