@@ -6,8 +6,8 @@ import time
 import threading
 import traceback
 from collections import deque
-from dmgen import threaded_worker
-from dmgen import gen
+from . import threaded_worker
+from . import gen
 
 sepjoin = os.sep.join
 
@@ -175,7 +175,7 @@ def print_(worker, info):
         return 'new'
 
     if info:
-        from dmgen import filegen
+        from . import filegen
 
         def mk_num(val, by=1024):
             val //= by

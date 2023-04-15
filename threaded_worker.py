@@ -566,7 +566,7 @@ def test(fname='readme.txt'):
     global w
     import time
     import traceback
-    from dmgen import filegen
+    from . import filegen
 
     def f(filename, mode='r'):
         return open(filename, mode).read()

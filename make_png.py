@@ -1,7 +1,7 @@
 import os
 import sys
 import pygame
-from dmgen import filegen
+from . import filegen
 
 
 def main(filenames):

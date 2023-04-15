@@ -2,9 +2,9 @@ import os
 import shutil
 import subprocess
 import traceback
-from dmgen import threaded_worker
-from dmgen import filegen
-from dmgen.cores import CORES
+from . import threaded_worker
+from . import filegen
+from .cores import CORES
 
 JPEGTRAN_EXE_PATH = ''
 if os.name == 'nt':

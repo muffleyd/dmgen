@@ -4,13 +4,13 @@ import time
 import shutil
 import math
 import operator
-from dmgen.cores import CORES
-from dmgen import filegen
-from dmgen import gen
-from dmgen import threaded_worker
+from .cores import CORES
+from . import filegen
+from . import gen
+from . import threaded_worker
 
 try:
-    from dmgen import pygamegen
+    from . import pygamegen
 except ImportError as e:
     import warnings
 

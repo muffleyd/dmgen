@@ -1,8 +1,8 @@
 import os
 import sys
 import shutil
-from dmgen import zipgen
-from dmgen import filegen
+from . import zipgen
+from . import filegen
 EXE_PATH = '7z'
 
 p7zip_add = 'a'

@@ -1,7 +1,7 @@
 import os
 import zipfile
 import shutil
-from dmgen.filegen import unused_filename
+from .filegen import unused_filename
 
 
 def zipstr(string, zipfilename, inarchivename=None):
