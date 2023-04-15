@@ -1,6 +1,12 @@
 import os
-import http.client, http.cookiejar
-import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
+import http.client
+import http.cookiejar
+import urllib.request
+import urllib.parse
+import urllib.error
+import urllib.request
+import urllib.error
+import urllib.parse
 import time
 from io import StringIO
 
@@ -36,7 +42,7 @@ BROWSERHEADER = {}
 
 def enable_firefox_mode():
     global BROWSERHEADER
-    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0'
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0'
 
 
 def disable_firefox_mode():
@@ -49,8 +55,7 @@ enable_firefox_mode()
 
 def enable_chrome_mode():
     global BROWSERHEADER
-    BROWSERHEADER[
-        'User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'
+    BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
 
 
 def disable_chrome_mode():

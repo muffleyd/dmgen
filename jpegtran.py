@@ -13,8 +13,9 @@ if os.name == 'nt':
 if not os.path.exists(JPEGTRAN_EXE_PATH):
     JPEGTRAN_EXE_PATH = shutil.which('jpegtran') or ''
 if not os.path.exists(JPEGTRAN_EXE_PATH):
+    import warnings
     EXE_MISSING = 'jpegtran executable not found, set variable `JPEGTRAN_EXE_PATH` as file location'
-    raise Warning(EXE_MISSING)
+    warnings.warn(EXE_MISSING, Warning)
 
 # Process priority (windows and linux).
 if os.name == 'nt':

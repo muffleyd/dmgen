@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import time
 import shutil
 import math
@@ -260,8 +261,8 @@ def find_best_compression(filename, threads=3, depth=5,
             if verbose:
                 print('checking bitdepth', end=' ')
             message = "Image doesn't fit in selected bitdepth"
-            if (gen.convert_sr_str(pngout(filename, options=colors_options + ' /s4')).
-                        strip().split('\n')[-1][:len(message)] == message):
+            if (gen.convert_sr_str(pngout(filename, options=colors_options + ' /s4'))
+                    .strip().split('\n')[-1][:len(message)] == message):
                 colors_options = colors_options[:-1] + '8'  # make this better
         if verbose:
             print(colors_options)
@@ -391,7 +392,7 @@ def do_many(files, depth=5, threads=CORES):
                     s = '%s no diff' % front
                 else:
                     s = '%s worse' % front
-                gen.real_print(s)
+                printer.real_print(s)
         finally:
             worker.close(now=1)
             inworker.close(now=1)

@@ -19,7 +19,7 @@ def mod_image(image, rect, mod):
     image = pygame.transform.smoothscale(image, (
         int(image.get_width() * mod),
         int(image.get_height() * mod))
-                                         )
+    )
     if rect is None:
         rect = image.get_rect()
     else:
@@ -263,11 +263,14 @@ def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
                             if os.path.splitext(j)[1].lower() in ('.jpg', '.jpeg') or
                             open(os.path.join(i[0], j), 'rb').read(2) == '\xff\xd8')
             else:
-                iterover = (os.path.join(target, i)
-                            for i in os.listdir(target)
-                            if os.path.isfile(os.path.join(target, i)) and (
-                                    os.path.splitext(i)[1].lower() in ('.jpg', '.jpeg') or
-                                    open(os.path.join(target, i), 'rb').read(2) == '\xff\xd8'))
+                iterover = (
+                    os.path.join(target, i)
+                    for i in os.listdir(target)
+                    if os.path.isfile(os.path.join(target, i)) and (
+                        os.path.splitext(i)[1].lower() in ('.jpg', '.jpeg') or
+                        open(os.path.join(target, i), 'rb').read(2) == '\xff\xd8'
+                    )
+                )
         with threaded_worker.threaded_worker(None, 1) as tw:
             with threaded_worker.threaded_worker(None, CORES) as jpgtw:
                 ran = []

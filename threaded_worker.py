@@ -1,3 +1,6 @@
+from functools import partial as _partial
+import threading
+import sys
 version = '0.9'
 
 # Queue2:
@@ -5,9 +8,6 @@ version = '0.9'
 # allows items to be placed at the head of the Queue with
 #           q.put[_nowait](item, head=True)
 # I define these things below if Queue2 does not exist.
-import sys
-import threading
-from functools import partial as _partial
 
 
 def partial(target, *args, **keywords):
@@ -77,7 +77,7 @@ except ImportError:
         def _puthead(self, item):
             self.queue.appendleft(item)
 
-##TODO:
+# TODO:
 # thread 1 puts data, so this handles it. meanwhile thread 2 puts data, then
 # thread 3 puts data.  thread 3 requests it's answer, then thread 1's data
 # finishes. currently thread 2's answer will be handled first,
@@ -85,7 +85,7 @@ except ImportError:
 
 # Exceptions on store=False?
 
-##</TODO>
+# </TODO>
 
 # active threaded_workers (if track is True and has active threads)
 _workers = []
@@ -564,8 +564,10 @@ def thread_map2(data, func, threads=1, toput=None,
 
 def test(fname='readme.txt'):
     global w
-    import time, traceback
+    import time
+    import traceback
     from dmgen import filegen
+
     def f(filename, mode='r'):
         return open(filename, mode).read()
 

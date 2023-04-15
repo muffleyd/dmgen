@@ -99,6 +99,7 @@ class print_capture:
 
 class CmdLineStdin:
     """Reads input from `data` until its exhausted, then uses the initial stdin."""
+
     def __init__(self, data):
         self.init_stdin = None
         self.data = data
@@ -125,7 +126,6 @@ class CmdLineStdin:
 if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
     FFMPEG_EXE = os.path.join(os.desktop, 'ffmpeg.exe')
 
-
     def videolength(filename):
         z = os.popen3('""%s" -i "%s"' % (FFMPEG_EXE, filename))[2].read()
         anchor = 'Duration: '
@@ -134,7 +134,6 @@ if os.path.exists(os.path.join(os.desktop, 'ffmpeg.exe')):
         return (int(strtime[:2]) * 3600) + (int(strtime[3:5]) * 60) + float(strtime[6:])
 else:
     FFMPEG_EXE = None
-
 
     def videolength(filename):
         raise NotImplementedError('requires ffmpeg in expected location on windows')
@@ -298,6 +297,7 @@ LINT_DEFAULT_IGNORES = ['C0103', 'C0111', 'C0323',
 
 
 def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
+    import pylint.lint
     ignore = defaultignores and ignore + LINT_DEFAULT_IGNORES or ignore
     file = file or sys.argv[0]
     if outputfile is sys.stdout:
@@ -311,20 +311,26 @@ def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
                  extras and ' %s ' % extras or '',
                  ' "%s"' % file,
                  outputfile and ' > "%s"' % outputfile or '')
+    command = ['--extension-pkg-whitelist=pygame']
+    if ignore:
+        command.append('--disable=' + ','.join(ignore))
+    if extras:
+        command.append(extras)
+    if outputfile:
+        command.append('--output=%s' % (outputfile))
+    command.append(file)
     print(command)
-    returned = os.popen3(command)
-    ##    return returned
-    ##    return outputfile
-    return returned[1].read() or returned[2].read() or outputfile
+    pylint.lint.Run(command, do_exit=False)
 
 
-def lint_many(files=[], outputfolder=None, ignore=[],
-              extras='', defaultignore=True):
+def lint_many(files=[], outputfolder=None, ignore=[], extras='', defaultignore=True):
     for i in files:
         f = os.path.join(outputfolder, os.path.split(i)[0])
         if not os.path.exists(f):
             os.makedirs(f)
         lint(i, os.path.join(outputfolder, i + 'LINT.txt'), ignore, extras, defaultignore)
+
+# lint_many([i for i in os.listdir('.') if i[-3:] == '.py'], 'lint')
 
 
 def default_of(ask, default, type):
@@ -345,8 +351,6 @@ def runalittlebitfaster():
 
 
 def count(iter, val):
-    if type(iter) == tuple:
-        return len([i for i in iter if i == val])
     if isinstance(iter, dict):
         return int(not not iter.get(val, False))
     try:
@@ -360,16 +364,16 @@ def count(iter, val):
 
 
 def chainfor(var):
-    if hasattr(var, '__iter__'):
-        try:
-            iterator = iter(var)
-        except TypeError:
-            return []
-        a = []
-        for i in iterator:
-            a.extend(chainfor(i))
-        return a
-    return [var]
+    if not hasattr(var, '__iter__'):
+        return [var]
+    try:
+        iterator = iter(var)
+    except TypeError:
+        return []
+    values = []
+    for i in iterator:
+        values.extend(chainfor(i))
+    return values
 
 
 def list_of(something):
@@ -632,28 +636,29 @@ def pop_kwargs(kwargs_dict, *varnames, **kwargs):
     return toreturn
 
 
-def flip_dict(di):
-    return {value: key for key, value in di.items()}
+def flip_dict(dictionary):
+    return {value: key for key, value in dictionary.items()}
 
 
-def parse_dict(di, recurse=False, spaces=0, between='\n'):
-    return between.join(['%s%s: %s' % (' ' * spaces, repr(i),
-                                       (recurse and type(di[i]) == dict) and
-                                       _return_print_dict(di[i], spaces + 2) or
-                                       repr(di[i])) for i in di])
+def parse_dict(dictionary, recurse=False, spaces=0, between='\n'):
+    return between.join(['%s%s: %s' % (
+        ' ' * spaces,
+        repr(key),
+        (recurse and type(value) == dict) and _return_print_dict(value, spaces + 2) or repr(value)
+    ) for key, value in dictionary.items()])
 
 
-def print_dict(di, recurse=False, spaces=0, between='\n'):
-    print(parse_dict(di, recurse, spaces, between))
+def print_dict(dictionary, recurse=False, spaces=0, between='\n'):
+    print(parse_dict(dictionary, recurse, spaces, between))
 
 
-def _return_print_dict(di, spaces=0, between='\n'):
-    return ''.join(['%s%s%s: %s' % (between,
-                                    ' ' * spaces,
-                                    repr(i),
-                                    type(di[i]) == dict and \
-                                    _return_print_dict(di[i], spaces + 2) or
-                                    repr(di[i])) for i in di])
+def _return_print_dict(dictionary, spaces=0, between='\n'):
+    return ''.join(['%s%s%s: %s' % (
+        between,
+        ' ' * spaces,
+        repr(key),
+        isinstance(value, dict) and _return_print_dict(value, spaces + 2) or repr(value)
+    ) for key, value in dictionary.items()])
 
 
 class timer:
@@ -702,7 +707,7 @@ def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=N
     """Prints out the given input to a menu type format
 
        title is what is printed on the first (next) line
-       
+
        options is a LIST/TUPLE or a STRING which will be printed, and the inputs that correspond with each option
        ex: [['Option 1',['o','op1']], ['Option 2',['O','op2']]]
          will yield
@@ -774,7 +779,7 @@ def menu(title, options=None, question=None, numbers=0, format=1, mod=1, entry=N
 
     # example option (used throughout this section)
     # 'Option 1,     o/op, Option 2,, Option 3,  o/op3'
-    ##    NoOptionException = 'Bad menu, you have a double comma, along with numbers flag on, means this option has nothing assigned to it!'
+    # NoOptionException = 'Bad menu, you have a double comma, along with numbers flag on, means this option has nothing assigned to it!'
     if type(options) == str:
         options = [i.strip() for i in options.split(',')]
         options.append('')  # adds an extra option, if an odd number of args are sent (no comma after the last one)

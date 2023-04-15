@@ -3,7 +3,7 @@ import unittest
 from dmgen import pygamegen as pg
 
 
-class FilegenTest(unittest.TestCase):
+class PygamegenTest(unittest.TestCase):
     def test_avg_surf(self):
         surf = pg.pygame.Surface((100, 100))
         surf.fill((255, 127, 0))

@@ -262,7 +262,7 @@ def aacircle(surface, color, pos, radius, width=0, mod=4):
     pygame.draw.circle(surf, color, (surf.get_width() // 2, surf.get_height() // 2),
                        radius * mod, width * mod)
     surf = pygame.transform.smoothscale(surf, _surface.get_size())
-    ##    surf = pygame.transform.rotozoom(surf, 0, 1./mod)
+    # surf = pygame.transform.rotozoom(surf, 0, 1./mod)
     _surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
     if surface is None:
         return _surface
@@ -833,16 +833,16 @@ def impose_pic(base, ontop):  # optimize this, pygame.display.update(dirty_rects
     pygame.event.pump()
     prevrect = pygame.Rect(r)
     prevrect.bottomright = (0, 0)
-    ##    st = time.time()
+    # st = time.time()
     while [i for i in pygame.mouse.get_pressed() if i]:
         pygame.event.pump()  # if something's already pressed, wait
     while (not [i for i in pygame.mouse.get_pressed() if i] and
            not pygame.key.get_pressed()[pygame.K_ESCAPE]):
         # if not pygame.mouse.get_rel(), should just wait to not burn CPU
-        ##        ct = time.time()
-        ##        if ct - st > 1:
-        ##            pygame.display.set_caption(str(clock.get_fps()))
-        ##            st = time.time()
+        # ct = time.time()
+        # if ct - st > 1:
+        #     pygame.display.set_caption(str(clock.get_fps()))
+        #     st = time.time()
         clock.tick(60)
         pygame.event.pump()
         r.center = pygame.mouse.get_pos()

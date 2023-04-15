@@ -348,17 +348,16 @@ def files_in_scandir(directory='.', include='', include_end='', exclude=None):
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
-    for i in _files_in_scandir(directory, include, include_end, exclude):
-        yield i
+    return _files_in_scandir(directory, include, include_end, exclude)
 
 
 def _files_in_scandir(directory, include, include_end, exclude):
-    folders = []
+    directories = []
     for dir_entry in os.scandir(directory):
         if dir_entry.name in exclude:
             continue
         if dir_entry.is_dir():
-            folders.append(dir_entry.path)
+            directories.append(dir_entry.path)
             continue
         if include not in dir_entry.path:
             continue
@@ -366,8 +365,8 @@ def _files_in_scandir(directory, include, include_end, exclude):
             if dir_entry.name[-len(include_end):].lower() != include_end:
                 continue
         yield dir_entry
-    for dir in folders:
-        for i in _files_in_scandir(dir, include, include_end, exclude):
+    for directory in directories:
+        for i in _files_in_scandir(directory, include, include_end, exclude):
             yield i
 
 
@@ -457,14 +456,14 @@ def unused_filename(ending='', donotuse=(), folder='', maxlen=15, start=''):
         # ''.join([random.choice(allowedchars)
         name = (start +
                 ''.join([allowedchars[int(rand() * len(allowedchars))]
-                         for i in range(int(1 + rand() * generate_characters))]) +
+                         for _ in range(int(1 + rand() * generate_characters))]) +
                 ending)
     if folder and folder != '.':
         name = os.path.join(folder, name)
     return name
 
 
-##### Work on this thing.
+# Work on this thing.
 def split_file(file, blocks):
     folder = '.'.join(file.split('.')[:-1])
     if not os.path.exists(folder):
