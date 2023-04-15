@@ -13,7 +13,7 @@ version = '0.9'
 def partial(target, *args, **keywords):
     f = _partial(target, *args, **keywords)
     try:
-        f.__name__ = func.__name__
+        f.__name__ = target.__name__
     except:
         pass
     return f
