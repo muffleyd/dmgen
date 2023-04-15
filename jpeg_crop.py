@@ -1,11 +1,11 @@
 import os
 import sys
 import pygame
-from dmgen import filegen
-from dmgen import jpegtran
-from dmgen import pygamegen as pg
-from dmgen import threaded_worker
-from dmgen.cores import CORES
+from . import filegen
+from . import jpegtran
+from . import pygamegen as pg
+from . import threaded_worker
+from .cores import CORES
 
 
 def relpath(filename):

@@ -2,9 +2,9 @@ import os
 import sys
 import shutil
 import time
-from dmgen import filegen
-from dmgen import cores
-from dmgen import threaded_worker
+from . import filegen
+from . import cores
+from . import threaded_worker
 
 GIFOUT_EXE_PATH = ''
 if os.name == 'nt':

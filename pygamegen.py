@@ -8,12 +8,11 @@ from io import StringIO
 
 import pygame
 
-from dmgen import gen
-from dmgen import filegen
-from dmgen import webgen
+from . import gen
+from . import webgen
 
 try:
-    from dmgen import screen
+    from . import screen
 except ImportError:
     screen = None
 
@@ -542,7 +541,7 @@ def re_alpha_nemo(image):
         if a.get_at((x, y))[:3] == (0, 130, 0):
             a.set_at((x, y), (0, 130, 0, 0))
     pygame.image.save(a, image)
-    from dmgen import pngout
+    from . import pngout
     pngout.find_best_compression(image)
 
 

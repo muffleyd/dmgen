@@ -1,9 +1,9 @@
 import os
 import shutil
 import sys
-from dmgen import filegen
-from dmgen import pygamegen as pg
-from dmgen.opt_gif import GIFOUT_EXE_PATH
+from . import filegen
+from . import pygamegen as pg
+from .opt_gif import GIFOUT_EXE_PATH
 
 
 def explode(file, folder=None):
