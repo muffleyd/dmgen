@@ -442,6 +442,8 @@ class threaded_worker(object):
             # Not good, alter Queue.py for this.
             self.completed_inds.remove(index)
             self.pending_inds.remove(index)
+        else:
+            self.pending_inds.remove(_index)
         if things[2]:
             exc = things[1][0]
             exc[1].traceback = exc[2]
