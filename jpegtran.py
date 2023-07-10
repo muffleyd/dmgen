@@ -130,16 +130,18 @@ def do_many(files, options='', threads=None, verbose=True):
                     start_size += size
                 if verbose:
                     if new_size < size:
-                        print('%s %d %.1f%%' % (front, new_size - size,
-                                                100 * float(new_size) / size))
+                        print(f'{front} {new_size - size} {100 * new_size / size:.1f}%')
                     elif new_size == size:
-                        print('%s no diff' % front)
+                        print(f'{front} no diff')
                     else:
-                        print('%s worse' % front)
+                        print(f'{front} worse')
                     if out:
                         print('output:', out)
-    if verbose and start_size:
-        print('%d -> %d (%.1f%%)' % (start_size, end_size, 100. * end_size / start_size))
+    if verbose:
+        if start_size:
+            print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
+        else:
+            print(f'{start_size} -> {end_size} ({100:.1f}%)')
     return failed
 
 
