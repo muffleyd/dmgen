@@ -48,9 +48,14 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
 
 
 def do2(input_filename, output_filename=None, options='', tw=None):
+    if hasattr(input_filename, 'stat'):
+        stat = input_filename.stat()
+        input_filename = input_filename.path
+    else:
+        stat = os.stat(input_filename)
     if output_filename is None:
         output_filename = input_filename
-    initial_size = size = os.stat(input_filename)[6]
+    initial_size = size = stat[6]
     directory, filename = os.path.split(input_filename)
     if filegen.TEMPfolder:
         directory = filegen.TEMPfolder
@@ -101,7 +106,7 @@ def do(filename, options='', tw=None):
 def do_many(files, options='', threads=None, verbose=True):
     # global worker #global for debugging purposes
     if isinstance(files, str):
-        files = filegen.files_in(files)
+        files = filegen.files_in_scandir(files)
     if not threads:
         threads = CORES
     todo = []
