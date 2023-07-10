@@ -364,11 +364,12 @@ def do_many(files, depth=5, threads=CORES):
     failed = []
     # pstdout, out = sys.stdout, open('output.txt','w')
     fdata = []
-    with gen.empty_printer() as printer:
+    start_size = end_size = 0
+    if 1:
         try:
             for index, filename in enumerate(files):
                 fdata.append((filename, os.stat(filename)[6]))
-                worker.put(filename, inworker, depth, alsoreturn=index)
+                worker.put(filename, inworker, depth, verbose=False, alsoreturn=index)
             for x in range(len(fdata)):
                 try:
                     front = filename = ''
@@ -376,27 +377,31 @@ def do_many(files, depth=5, threads=CORES):
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = '%d/%d %s:' % (x + 1, len(fdata), filename)
+                    front = f'{x + 1}/{len(fdata)} {filename}:'
 
                 except KeyboardInterrupt:
                     raise
                 except Exception as e:
                     failed.append((filename, e))
-                    printer.real_print('%s error %s' % (front, str(e)))
+                    print(f'{front} error {str(e)}')
                     continue
-                newsize = os.stat(filename)[6]
-                if newsize < size:
-                    s = '%s %d %.1f%%' % (front, newsize - size,
-                                          100 * float(newsize) / size)
-                elif newsize == size:
-                    s = '%s no diff' % front
+                new_size = os.stat(filename)[6]
+                if new_size < size:
+                    end_size += new_size
+                    start_size += size
+                if new_size < size:
+                    s = f'{front} {new_size - size} {100 * new_size / size:.1f}%'
+                elif new_size == size:
+                    s = f'{front} no diff'
                 else:
-                    s = '%s worse' % front
-                printer.real_print(s)
+                    s = f'{front} worse'
+                print(s)
         finally:
             worker.close(now=1)
             inworker.close(now=1)
             worker.wait()
+    if start_size:
+        print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
     return failed
 
 
