@@ -336,18 +336,22 @@ def get_same_as_many_files2(files1, files2, minsize=1):
     return positives
 
 
-def files_in(directory='.', include='', include_end='', exclude=None):
+def files_in(directory='.', include='', include_end=None, exclude=None):
     return (i.path for i in files_in_scandir(directory, include, include_end, exclude))
 
 
 # yields scandir objects for each file in a directory and its children
-def files_in_scandir(directory='.', include='', include_end='', exclude=None):
+def files_in_scandir(directory='.', include='', include_end=None, exclude=None):
     if exclude is None:
         exclude = set()
     elif type(exclude) != set:
         exclude = set(isinstance(exclude, str) and [exclude] or exclude)
     if not directory:
         directory = '.'
+    if include_end is None:
+        include_end = set()
+    elif type(include_end) != set:
+        include_end = set(isinstance(include_end, str) and [include_end] or include_end)
     return _files_in_scandir(directory, include, include_end, exclude)
 
 
@@ -362,8 +366,9 @@ def _files_in_scandir(directory, include, include_end, exclude):
         if include not in dir_entry.path:
             continue
         if include_end:
-            if dir_entry.name[-len(include_end):].lower() != include_end:
-                continue
+            for i in include_end:
+                if dir_entry.name[-len(i):].lower() != i:
+                    continue
         yield dir_entry
     for directory in directories:
         for i in _files_in_scandir(directory, include, include_end, exclude):
