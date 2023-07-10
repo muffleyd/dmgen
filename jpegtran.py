@@ -43,9 +43,8 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
         output_filename or filename,
         filename)
     p = subprocess.Popen(out, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    f = (None, p.stdout, p.stderr)
     p.wait()
-    return output_filename or filename, f[1].read(), f[2].read()
+    return output_filename or filename, p.stdout.read(), p.stderr.read()
 
 
 def do2(input_filename, output_filename=None, options='', tw=None):
