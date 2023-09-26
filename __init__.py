@@ -14,6 +14,7 @@ __all__ = [
     'p7zip',
     'pngout',
     'pygamegen',
+    'response_cache',
     'screen',
     'threaded_worker',
     'webgen',
