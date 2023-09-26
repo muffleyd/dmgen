@@ -9,10 +9,11 @@ from dmgen import gen
 class ResponseCache:
     CACHE_FILENAME = '_response_cache.json'
 
-    def __init__(self, call_function=None, *, debug=True, cache_life=36000):
+    def __init__(self, call_function=None, *, debug=False, cache_life=36000, wait_for_close=True):
         self.call_function = call_function
         self.debug = debug
         self.cache_life = cache_life
+        self.do_wait_for_close = wait_for_close
         self.cache = {}
 
     def __enter__(self):
@@ -22,6 +23,8 @@ class ResponseCache:
 
     def __exit__(self, *args):
         self.close()
+        if self.do_wait_for_close:
+            self.wait_for_close()
 
     def start(self):
         self.lock = threading.Lock()
@@ -33,13 +36,13 @@ class ResponseCache:
         if not call_function:
             call_function = self.call_function
         if self.debug:
-            print(url)
+            print('fetching', url)
         # todo include options
         with self.lock:
             response, is_bytes, eol = self.cache.get(url, (None, None, None))
             if self.debug:
                 if response:
-                    print(url, len(response), eol, time.time())
+                    print(url, len(response), is_bytes, eol, time.time())
                 else:
                     print('not in cache', url)
             if eol is not None and eol < time.time():
