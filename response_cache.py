@@ -1,12 +1,13 @@
 import os
 import time
-import pickle
+import base64
+import json
 import threading
 from queue import Queue
-
+from dmgen import gen
 
 class ResponseCache:
-    CACHE_FILENAME = '_response_cache.pyp'
+    CACHE_FILENAME = '_response_cache.json'
 
     def __init__(self, call_function=None, *, debug=True, cache_life=36000):
         self.call_function = call_function
@@ -35,7 +36,7 @@ class ResponseCache:
             print(url)
         # todo include options
         with self.lock:
-            response, eol = self.cache.get(url, (None, None))
+            response, is_bytes, eol = self.cache.get(url, (None, None, None))
             if self.debug:
                 if response:
                     print(url, len(response), eol, time.time())
@@ -44,15 +45,23 @@ class ResponseCache:
             if eol is not None and eol < time.time():
                 del self.cache[url]
                 response = None
-        if not response:
+        if response:
+            if is_bytes:
+                response = base64.b64decode(response)
+        else:
             retry = True
             while retry:
                 response, retry = call_function(url)
             with self.lock:
-                self.cache[url] = (response, time.time() + self.cache_life)
+                # To be saved in json, bytes must be converted to ascii.
+                is_bytes = isinstance(response, bytes)
+                self.cache[url] = (
+                    is_bytes and base64.b64encode(response).decode() or response,
+                    is_bytes,
+                    time.time() + self.cache_life
+                )
             self.save()
         return response
-
 
     # saving to the API is handled by a thread
     def _saver_thread(self):
@@ -68,7 +77,7 @@ class ResponseCache:
                 return
             # waits for .1 additional seconds to allow additional save requests to pile up
             time.sleep(.1)
-            # obtains the API lock so api_call() can't modify the object during the pickle dump
+            # obtains the API lock so get_response() can't modify the object during the json dump
             with self.lock:
                 if self.debug:
                     print('clearing queue')
@@ -81,13 +90,17 @@ class ResponseCache:
                         if self.debug:
                             print('save aborted, exiting')
                         _EXIT = True
+                        self.queue.put(0)
                         break
                 if self.debug:
                     print('trimming')
                 self.trim()
                 if self.debug:
                     print('saving')
-                pickle.dump(self.cache, open(self.CACHE_FILENAME, 'wb'), 2)
+                with gen.timer(do_print=self.debug, before='dump to json '):
+                    data = json.dumps(self.cache)
+                with gen.timer(do_print=self.debug, before='write to file '):
+                    open(self.CACHE_FILENAME, 'w').write(data)
                 if self.debug:
                     print('saved')
 
@@ -105,14 +118,19 @@ class ResponseCache:
 
     def load(self):
         if os.path.exists(self.CACHE_FILENAME):
-            self.cache = pickle.load(open(self.CACHE_FILENAME, 'rb'))
+            self.cache = json.load(open(self.CACHE_FILENAME, 'r'))
+        # Handle out-of-date data structure.
+        for key in list(self.cache.keys()):
+            if len(self.cache[key]) == 2:
+                response, eol = self.cache[key]
+                self.cache[key] = (response, False, eol)
         self.trim()
 
     def trim(self):
         # clear old values
         ct = time.time()
         for url in list(self.cache.keys()):
-            eol = self.cache[url][1]
+            eol = self.cache[url][-1]
             if eol < ct:
                 del self.cache[url]
 
