@@ -305,8 +305,8 @@ def dims_from_pixels(pixels, format):
     return int(x), int(y)
 
 
-LINT_DEFAULT_IGNORES = ['C0103', 'C0111', 'C0323',
-                        'W0142', 'W0622', 'W0702', 'W0704', 'R0913',
+LINT_DEFAULT_IGNORES = ['C0103', 'C0111',
+                        'W0622', 'W0702', 'R0913',
                         'W0401', 'W0703', 'W0603']
 
 

@@ -4,9 +4,6 @@ import http.cookiejar
 import urllib.request
 import urllib.parse
 import urllib.error
-import urllib.request
-import urllib.error
-import urllib.parse
 import time
 from io import StringIO
 
@@ -40,14 +37,17 @@ CHARSET = {}  # 'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
 BROWSERHEADER = {}
 
 
+def disable_browser_mode():
+    global BROWSERHEADER
+    del BROWSERHEADER['User-Agent']
+
+
 def enable_firefox_mode():
     global BROWSERHEADER
     BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0'
 
 
-def disable_firefox_mode():
-    global BROWSERHEADER
-    del BROWSERHEADER['User-Agent']
+disable_firefox_mode = disable_browser_mode
 
 
 enable_firefox_mode()
@@ -58,9 +58,7 @@ def enable_chrome_mode():
     BROWSERHEADER['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
 
 
-def disable_chrome_mode():
-    global BROWSERHEADER
-    del BROWSERHEADER['User-Agent']
+disable_chrome_mode = disable_browser_mode
 
 
 def get_last_modified(response):
@@ -116,18 +114,18 @@ class _special_response(urllib.response.addinfourl):
             self.index = min(self.after, where)
 
 
-def urlopen(url, data=None, read=True, header={}, firefox=BROWSERHEADER,
+def urlopen(url, data=None, read=True, header=None, firefox=BROWSERHEADER,
             dounicode=True, unquote=True, lastmod=0):
-    header = dict(header)
+    header = header and dict(header) or {}
     if lastmod:
         header['If-Unmodified-Since'] = time.ctime(lastmod)
-    for i in HEADER_ENCODING:
-        if i not in header:
-            header[i] = HEADER_ENCODING[i]
+    for key, value in HEADER_ENCODING.items():
+        if key not in header:
+            header[key] = value
     if firefox:
-        for i in firefox:
-            if i not in header:
-                header[i] = firefox[i]
+        for key, value in firefox.items():
+            if key not in header:
+                header[key] = value
     if unquote:
         url = urllib.parse.unquote(url)
     try:
@@ -224,6 +222,7 @@ always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 _safe_map = {}
 for i, c in zip(range(256), str(bytearray(range(256)))):
     _safe_map[c] = c if (i < 128 and c in always_safe) else '%{0:02X}'.format(i)
+del i, c
 _safe_quoters = {}
 
 

@@ -41,7 +41,7 @@ def unmod_rect(rect, mod):
                        round(rect.height / mod))
 
 
-class jpeg(object):
+class jpeg:
     def __init__(self, filename, action=None, targetname=None, *attrs):
         self.filename = filename
         self.relname = relpath(filename)
@@ -252,8 +252,6 @@ def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
         targets = [targets]
     print(targets)
     more = []
-    import time
-    st = None
     for target in targets:
         if os.path.isfile(target):
             iterover = [target]
@@ -290,7 +288,6 @@ def crop_many(targets, x1=None, y1=None, x2=None, y2=None, recurse=False):
                                 continue
                             elif hasattr(ret, '__iter__'):
                                 x1, y1, x2, y2 = ret
-                                st = time.time()
                         else:
                             ran.append((filename, ret))
 

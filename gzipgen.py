@@ -26,7 +26,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
     """
     if isinstance(filename, str):
         if not os.path.isfile(filename):
-            raise IOError('File not found %s.' % filename)
+            raise IOError(f'File not found {filename}.')
         filename = os.path.abspath(filename)
         if gzfilename is None:
             gzfilename = filename + FILE_APPENDAGE
@@ -40,7 +40,7 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
             if hasattr(filename, 'name'):
                 gzfilename = filename + FILE_APPENDAGE
             else:
-                UNKNOWN_DESTINATION = ValueError('Destination could not be infered from %s.' % filename)
+                UNKNOWN_DESTINATION = ValueError(f'Destination could not be infered from {filename}.')
                 raise UNKNOWN_DESTINATION
         file = filename
 
@@ -59,8 +59,8 @@ def gzcompress(filename, gzfilename=None, data=None, removeArchivedFile=False,
     except:
         if zip is not gzfilename:
             zip.close()
-            if file:  # file-like objects cannot be removed,
-                os.remove(gzfilename)  # only files on disk can be
+            if file:  # File-like objects cannot be removed, only files on disk can be
+                os.remove(gzfilename)
         raise
     else:
         if zip is not gzfilename:

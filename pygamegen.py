@@ -44,7 +44,6 @@ def mk_rect(point1, point2):
 
 def _levels_perc(rgba, perc):
     r, g, b, a = rgba
-    m, avg = _levels_prep(rgba)
     return (int(round(r * perc)),
             int(round(g * perc)),
             int(round(b * perc)),
@@ -53,11 +52,10 @@ def _levels_perc(rgba, perc):
 
 def _levels_sqrt(rgba, pwr=.5):
     r, g, b, a = rgba
-    # print rgba
-    m, avg = _levels_prep(rgba)
+    _, avg = _levels_prep(rgba)
     mod = ((avg ** pwr) / (avg or 1)) or 1
     # if mod != 1:
-    #     print rgba, mod
+    #     print(rgba, mod)
     return (int(round(r * mod)),
             int(round(g * mod)),
             int(round(b * mod)),
@@ -65,7 +63,7 @@ def _levels_sqrt(rgba, pwr=.5):
 
 
 def _levels_prep(rgba):
-    r, g, b, a = rgba
+    r, g, b, _ = rgba
     return max(r, g, b), (r + g + b) // 3
 
 
@@ -147,7 +145,7 @@ def get_at_mouse_until_click():
     while 1:
         time.sleep(.05)
         color = get_at_mouse()
-        pygame.display.set_caption('%s: %s' % (pygame.mouse.get_pos(), str(color)))
+        pygame.display.set_caption(f'{pygame.mouse.get_pos()}: {color}')
         if pygame.mouse.get_pressed()[0]:
             break
 
@@ -197,7 +195,7 @@ def resize_image(filename):
         while 1:
             newdims = curdims[:]
             view_pic(pic)
-            choice = gen.menu('cur dims: %s' % str(curdims),
+            choice = gen.menu(f'cur dims: {curdims}',
                               'width,, height,, percent', numbers=1)
             val = ''
             while not val:
@@ -254,20 +252,20 @@ def set_alpha(image, *colors):
 
 def aacircle(surface, color, pos, radius, width=0, mod=4):
     if surface is None:
-        _surface = pygame.Surface((radius * 2, radius * 2))
+        surface = pygame.Surface((radius * 2, radius * 2))
     else:
-        _surface = surface
-    surf = pygame.Surface((_surface.get_width() * mod, _surface.get_height() * mod))
+        surface = surface
+    surf = pygame.Surface((surface.get_width() * mod, surface.get_height() * mod))
     pygame.draw.circle(surf, color, (surf.get_width() // 2, surf.get_height() // 2),
                        radius * mod, width * mod)
-    surf = pygame.transform.smoothscale(surf, _surface.get_size())
+    surf = pygame.transform.smoothscale(surf, surface.get_size())
     # surf = pygame.transform.rotozoom(surf, 0, 1./mod)
-    _surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
-    if surface is None:
-        return _surface
+    surface.blit(surf, (pos[0] - radius, pos[1] - radius, radius * 2, radius * 2))
+    return surface
 
 
-def str_getat(string, dims): pass
+def str_getat(string, dims):
+    pass
 
 
 def img_diff(one, two, empty=(0, 130, 0), alpha=False):
@@ -449,7 +447,7 @@ def wait_for_input2(buttons=[1, 0, 1], keys=[pygame.K_ESCAPE], move=False, quit=
         elif e.type == pygame.MOUSEBUTTONUP:
             if e.button <= maxbutton and buttons[e.button - 1]:
                 return e.type, e.button
-        elif e.type == pygame.QUIT:
+        elif quit and e.type == pygame.QUIT:
             return e.type, 1
         elif move and e.type == pygame.MOUSEMOTION:
             return e.type, e
@@ -463,8 +461,7 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
     size = [0, 0]
     if not isinstance(title, bool):
         TITLE = title
-    if (type(pic) != str and
-            hasattr(type(pic), '__iter__')):
+    if not isinstance(pic, str) and hasattr(type(pic), '__iter__'):
         if isinstance(title, str):
             TITLE = title
         else:
@@ -473,7 +470,8 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
                     if not isinstance(i, str):
                         title = False
             if title:
-                TITLE = '"%s"' % '", "'.join(pic)
+                joined_pic_titles = '", "'.join(pic)
+                TITLE = f'"{joined_pic_titles}"'
         pic = [not isinstance(name, pygame.surface.SurfaceType) and
                pygame.image.load(name) or name for name in pic]
         # for i, name in enumerate(pic):
@@ -488,7 +486,7 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
             _surf.blit(i, (width, 0, i.get_width(), i.get_height()))
             width += i.get_width() + 1
         image = _surf
-    elif type(pic) == pygame.surface.SurfaceType:
+    elif isinstance(pic, pygame.surface.SurfaceType):
         # pygame surface
         image = pic
         size = image.get_size()
@@ -497,7 +495,7 @@ def view_pic(pic, title=True, scale=1, back=(255, 125, 255), fitto=None):
         image = pic.image
         size = image.get_size()
     else:  # string or fileobj
-        if not TITLE and type(pic) == str:
+        if not TITLE and isinstance(pic, str):
             TITLE = pic
         try:
             image = pygame.image.load(pic)
@@ -541,8 +539,6 @@ def re_alpha_nemo(image):
         if a.get_at((x, y))[:3] == (0, 130, 0):
             a.set_at((x, y), (0, 130, 0, 0))
     pygame.image.save(a, image)
-    from . import pngout
-    pngout.find_best_compression(image)
 
 
 class SimplestSprite(pygame.sprite.Sprite):
@@ -554,7 +550,7 @@ class SimplestSprite(pygame.sprite.Sprite):
         self.rect = pygame.Rect(center, (1, 1))
 
     def __repr__(self):
-        return '<SimplestSprite: %s>' % self.rect
+        return f'<SimplestSprite: {self.rect}>'
 
     def __call__(self, pos):
         self.rect.center = pos
@@ -622,10 +618,10 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                         zmod += 1
                 if zmod:
                     if zmod < 0:
-                        for i in range(-zmod):
+                        for _ in range(-zmod):
                             zoom *= .9
                     else:
-                        for i in range(zmod):
+                        for _ in range(zmod):
                             zoom *= 1.11111111
                     pygame.display.set_caption(str(zoom) + ' ' + str(color))
                     s.fill((0, 0, 0), rect)
@@ -653,7 +649,7 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                         #     if zoom < 2:
                         #         s.fill((0, 0, 0), rect)
                         s.fill((0, 0, 0), rect)
-                        prev = pygame.Rect(rect)
+                        # prev = pygame.Rect(rect)
                         rect.x += (e.rel[0] * mod)
                         rect.y += (e.rel[1] * mod)
                         s.blit(use_s, rect)
@@ -734,9 +730,7 @@ class __mkscreen:
             pygame.quitdefault = pygame.quit
             pygame.quit = self.pygame_quit2
         self.lock.acquire()
-        t = threading.Thread(target=self._gen_handler,
-                             args=(size, flags, depth, fill))
-        t.setDaemon(True)
+        t = threading.Thread(target=self._gen_handler, args=(size, flags, depth, fill), daemon=True)
         t.start()
         self.lock.acquire()
         self.lock.release()
@@ -791,7 +785,7 @@ def save_image(surf, name):
     if surf == 'screen':
         surf = pygame.display.get_surface()
     if name.count('.') == 0:
-        name = '%s.png' % name
+        name = f'{name}.png'
     pygame.image.save(surf, name)
 
 
