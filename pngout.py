@@ -138,7 +138,7 @@ def _colors_in(filename):
             grey = False
         colors.add((r, g, b))
     # if there's more than one alpha, or the one alpha is not 255
-    alpha = (len(alphas) > 1 or alphas.pop() != '\xff') and 4 or 0
+    alpha = (len(alphas) > 1 or alphas.pop() != 255) and 4 or 0
     # print 'alpha:',bool(alpha)
     # print 'grey: ',grey
     target = '/c%d'
@@ -374,11 +374,11 @@ def do_many(files, depth=5, threads=CORES):
                 try:
                     filename = ''
                     front = f'{x + 1}/{total}'
-                    _, alsoreturn = worker.get()
+                    options, alsoreturn = worker.get()
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = f'{front} {filename}'
+                    front = f'{front} {filename} ({options})'
 
                 except KeyboardInterrupt:
                     raise
