@@ -446,8 +446,7 @@ class threaded_worker(object):
             self.pending_inds.remove(_index)
         if things[2]:
             exc = things[1][0]
-            exc[1].traceback = exc[2]
-            raise exc[0](exc[1]).with_traceback(exc[2])
+            raise exc
         if things[1][1] is None:
             return things[1][0]
         return things[1]
@@ -470,8 +469,8 @@ class threaded_worker(object):
             try:
                 returned_data = func(*data, **kwargs)
                 exc = 0
-            except:
-                returned_data = sys.exc_info()
+            except Exception as exception:
+                returned_data = exception
                 exc = 1
             self.active_threads -= 1
             del data, kwargs
