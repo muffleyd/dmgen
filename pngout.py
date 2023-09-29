@@ -359,25 +359,25 @@ def find_best_compression(filename, threads=3, depth=5,
 
 
 def do_many(files, depth=5, threads=CORES):
-    worker = threaded_worker.threaded_worker(find_best_compression, threads)
-    inworker = threaded_worker.threaded_worker(_run, threads)
     failed = []
     # pstdout, out = sys.stdout, open('output.txt','w')
     fdata = []
     start_size = end_size = 0
-    if 1:
-        try:
+    with threaded_worker.threaded_worker(find_best_compression, threads, wait_at_end=True) as worker:
+        with threaded_worker.threaded_worker(_run, threads) as inworker:
             for index, filename in enumerate(files):
                 fdata.append((filename, os.stat(filename)[6]))
                 worker.put(filename, inworker, depth, verbose=False, alsoreturn=index)
-            for x in range(len(fdata)):
+            total = len(fdata)
+            print(f'0/{total}')
+            for x in range(total):
                 try:
                     front = filename = ''
                     options, alsoreturn = worker.get()
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = f'{x + 1}/{len(fdata)} {filename}:'
+                    front = f'{x + 1}/{total} {filename}:'
 
                 except KeyboardInterrupt:
                     raise
@@ -396,10 +396,6 @@ def do_many(files, depth=5, threads=CORES):
                 else:
                     s = f'{front} worse'
                 print(s)
-        finally:
-            worker.close(now=1)
-            inworker.close(now=1)
-            worker.wait()
     if start_size:
         print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
     return failed

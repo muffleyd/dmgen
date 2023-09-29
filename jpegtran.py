@@ -74,7 +74,7 @@ def do2(input_filename, output_filename=None, options='', tw=None):
         for get in gets:
             temp, out, err = _tw.get(get)
             if err or out:
-                raise Exception(err or out)
+                raise Exception(f'Error while processing file "{temp}"\n{err or out}')
             if os.path.exists(temp):
                 new_size = os.stat(temp)[6]
                 if new_size and new_size < size:
@@ -116,7 +116,10 @@ def do_many(files, options='', threads=None, verbose=True):
         with threaded_worker.threaded_worker(jpeg, threads, wait_at_end=True) as internal_worker:
             for filename in files:
                 todo.append(worker.put(filename, options, internal_worker))
-            for ind in range(1, len(todo) + 1):
+            total = len(todo)
+            if verbose:
+                print(f'0/{total}')
+            for ind in range(1, total + 1):
                 try:
                     filename, out, size, new_size = worker.get(ind)
                 except KeyboardInterrupt:
@@ -124,11 +127,11 @@ def do_many(files, options='', threads=None, verbose=True):
                 except Exception as e:
                     failed.append((ind, e, traceback.format_exc()))
                     continue
-                front = '%d/%d %s:' % (ind, len(todo), filename)
                 if new_size < size:
                     end_size += new_size
                     start_size += size
                 if verbose:
+                    front = f'{ind}/{total} {filename}:'
                     if new_size < size:
                         print(f'{front} {new_size - size} {100 * new_size / size:.1f}%')
                     elif new_size == size:
