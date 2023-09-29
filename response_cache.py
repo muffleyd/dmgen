@@ -10,11 +10,15 @@ class ResponseCache:
     CACHE_FILENAME = '_response_cache.json'
 
     def __init__(self, call_function=None, *, debug=False, cache_life=36000, wait_for_close=True):
-        self.call_function = call_function
+        self.call_function = call_function or self.value_not_cached
         self.debug = debug
         self.cache_life = cache_life
         self.do_wait_for_close = wait_for_close
         self.cache = {}
+        self.loaded = False
+        self.lock = threading.Lock()
+        self.queue = Queue()
+        self.saver_thread = None
 
     def __enter__(self):
         self.load()
@@ -27,10 +31,13 @@ class ResponseCache:
             self.wait_for_close()
 
     def start(self):
-        self.lock = threading.Lock()
-        self.queue = Queue()
-        self.saver_thread = threading.Thread(target=self._saver_thread, daemon=True)
-        self.saver_thread.start()
+        if not self.saver_thread or not self.saver_thread.is_alive():
+            self.saver_thread = threading.Thread(target=self._saver_thread, daemon=True)
+            self.saver_thread.start()
+
+    # A default method to call during get_response which throws an exception if the value isn't already cached.
+    def value_not_cached(self, url):
+        raise ValueError('Value not in cache and no response function was provided.')
 
     def get_response(self, url, call_function=None):
         if not call_function:
@@ -85,7 +92,7 @@ class ResponseCache:
                 if self.debug:
                     print('clearing queue')
                 # empty the queue in case there has been additional save requests
-                for i in range(500):
+                for _ in range(500):
                     if self.queue.empty():
                         break
                     val = self.queue.get()
@@ -103,7 +110,8 @@ class ResponseCache:
                 with gen.timer(do_print=self.debug, before='dump to json '):
                     data = json.dumps(self.cache)
                 with gen.timer(do_print=self.debug, before='write to file '):
-                    open(self.CACHE_FILENAME, 'w').write(data)
+                    with open(self.CACHE_FILENAME, 'w') as cache_file:
+                        cache_file.write(data)
                 if self.debug:
                     print('saved')
 
@@ -119,22 +127,26 @@ class ResponseCache:
     def save(self):
         self.queue.put(1)
 
-    def load(self):
+    def load(self, force=False):
+        if self.loaded and not force:
+            return
         if os.path.exists(self.CACHE_FILENAME):
-            self.cache = json.load(open(self.CACHE_FILENAME, 'r'))
+            with open(self.CACHE_FILENAME, 'r') as cache_file:
+                self.cache = json.load(cache_file)
         # Handle out-of-date data structure.
         for key in list(self.cache.keys()):
             if len(self.cache[key]) == 2:
-                response, eol = self.cache[key]
-                self.cache[key] = (response, False, eol)
+                response, end_of_life = self.cache[key]
+                self.cache[key] = (response, False, end_of_life)
         self.trim()
+        self.loaded = True
 
     def trim(self):
         # clear old values
-        ct = time.time()
+        current_time = time.time()
         for url in list(self.cache.keys()):
-            eol = self.cache[url][-1]
-            if eol < ct:
+            end_of_life = self.cache[url][-1]
+            if end_of_life < current_time:
                 del self.cache[url]
 
     def close(self):
