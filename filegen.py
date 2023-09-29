@@ -367,8 +367,10 @@ def _files_in_scandir(directory, include, include_end, exclude):
             continue
         if include_end:
             for i in include_end:
-                if dir_entry.name[-len(i):].lower() != i:
-                    continue
+                if dir_entry.name[-len(i):].lower() == i:
+                    break
+            else:
+                continue
         yield dir_entry
     for directory in directories:
         for i in _files_in_scandir(directory, include, include_end, exclude):
