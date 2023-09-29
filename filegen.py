@@ -3,8 +3,6 @@ import shutil
 import random
 import hashlib
 
-_walk = os.walk
-
 
 def extensionis(filename, ext):
     if ext[0] != '.':
@@ -33,17 +31,17 @@ def search_files(folder, filename='', substr=None, ignorecase=True,
 
 
 def assert_file_trees(one, two, just_compare_files=0):
-    _1 = os.path.exists(one)
-    _2 = os.path.exists(two)
-    if not _1 or not _2:
-        if not _1 and not _2:
+    one_exists = os.path.exists(one)
+    two_exists = os.path.exists(two)
+    if not one_exists or not two_exists:
+        if not one_exists and not two_exists:
             raise Exception("Neither folder provided exists.")
-        if not _1:
-            raise Exception("Folder '%s' does not exist." % one)
-        raise Exception("Folder '%s' does not exist." % two)
+        if not one_exists:
+            raise Exception(f"Folder '{one}' does not exist.")
+        raise Exception(f"Folder '{two}' does not exist.")
 
-    t = _walk(two)
-    for i in _walk(one):
+    t = os.walk(two)
+    for i in os.walk(one):
         j = next(t)
         if not just_compare_files:
             if j[1] != i[1]:
@@ -393,7 +391,7 @@ def foldersfiles_in(directory, includes=[], exclude=[]):
 def folder_stats(directory):
     types = {}
     folders = 0
-    for i in _walk(directory):
+    for i in os.walk(directory):
         folders += len(i[1])
         for j in i[2]:
             ext = os.path.splitext(j)[1][1:]
@@ -407,6 +405,7 @@ def folder_stats(directory):
 class switch_dir:
     def __init__(self, directory):
         self.directory = directory
+        self.previous_directory = None
 
     def __enter__(self):
         self.previous_directory = os.path.abspath('.')
@@ -414,7 +413,8 @@ class switch_dir:
             os.chdir(self.directory)
 
     def __exit__(self, etype, exc, tb):
-        os.chdir(self.previous_directory)
+        if self.previous_directory is not None:
+            os.chdir(self.previous_directory)
 
 
 # Sort files by number where the file is like %s.%d.%s
@@ -477,12 +477,12 @@ def split_file(file, blocks):
         os.mkdir(folder)
     if os.path.isfile(folder):
         raise ValueError('folder to be created already exists as a file', folder)
-    with open(file, 'rb') as a:
+    with open(file, 'rb') as whole_file:
         size = int(os.stat(file)[6])
         split_points = [i * (size // blocks) for i in range(blocks)] + [size]
-        for i in range(blocks):
-            with open(os.path.join(folder, '%s.%s' % (file, str(i))), 'wb') as write:
-                write.write(a.read(split_points[i + 1] - split_points[i]))
+        for block in range(blocks):
+            with open(os.path.join(folder, f'{file}.{block}'), 'wb') as block_file:
+                block_file.write(whole_file.read(split_points[block + 1] - split_points[block]))
 
 
 def merge_files(files, read=2 ** 15):

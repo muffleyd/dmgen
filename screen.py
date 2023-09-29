@@ -5,9 +5,9 @@ MONITOR2_Y = 0
 def main():
     import tkinter
     root = tkinter.Tk()
-    WIDTH = root.winfo_screenwidth()
-    HEIGHT = root.winfo_screenheight()
-    return WIDTH, HEIGHT
+    width = root.winfo_screenwidth()
+    height = root.winfo_screenheight()
+    return width, height
 
 
 # untested

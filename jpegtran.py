@@ -19,9 +19,9 @@ if not os.path.exists(JPEGTRAN_EXE_PATH):
 
 # Process priority (windows and linux).
 if os.name == 'nt':
-    PREFIX = 'start /LOW /B /WAIT '
+    PREFIX = 'start /LOW /B /WAIT'
 elif os.name == 'posix':
-    PREFIX = 'nice -n 19 '
+    PREFIX = 'nice -n 19'
 else:
     PREFIX = ''
 
@@ -35,13 +35,12 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
     if not JPEGTRAN_EXE_PATH:
         raise FileNotFoundError('JPEGTRAN_EXE_PATH not set')
     if '-copy ' not in options:
-        options = '-copy none ' + options
-    out = PREFIX + '%s %s%s-outfile "%s" "%s"' % (
-        JPEGTRAN_EXE_PATH,
-        optimize and '-optimize ' or '',
-        options and '%s ' % options or '',
-        output_filename or filename,
-        filename)
+        options = f'-copy none {options}'
+    optimize_str = optimize and '-optimize' or ''
+    out = (
+        f'{PREFIX} {JPEGTRAN_EXE_PATH} {optimize_str} {options} '
+        f'-outfile "{output_filename or filename}" "{filename}"'
+    )
     p = subprocess.Popen(out, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     return output_filename or filename, p.stdout.read(), p.stderr.read()
@@ -94,7 +93,7 @@ def do2(input_filename, output_filename=None, options='', tw=None):
             if os.path.exists(temp2):
                 os.remove(temp2)
         except Exception:
-            print('%s %s %s' % (input_filename, temp1, temp2))
+            print(f'{input_filename} {temp1} {temp2}')
             raise
     return input_filename, out, initial_size, new_size
 

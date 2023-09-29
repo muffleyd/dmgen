@@ -14,12 +14,12 @@ def explode(file, folder=None):
     shutil.copy(file, folder)
     folder = os.path.abspath(folder)
     with filegen.switch_dir(folder):
-        os.system(GIFOUT_EXE_PATH + ' -e ' + tar)
+        os.system(f'{GIFOUT_EXE_PATH} -e {tar}')
         os.remove(tar)
         for i in os.listdir('.'):
             f = i.split('.')
             # turns a.b.gif.001 into a.b.001.gif
-            os.rename(i, '.'.join(f[:-2]) + '.' + f[-1] + '.' + f[-2])
+            os.rename(i, f"{'.'.join(f[:-2])}.{f[-1]}.{f[-2]}")
     return folder
 
 
@@ -27,14 +27,14 @@ def implode(file, folder, prefix=''):
     temp_filename = filegen.unused_filename('.gif')
     # Implode the gifs inside the directory
     with filegen.switch_dir(folder):
-        os.system(GIFOUT_EXE_PATH + ' -m %s*.gif > %s' % (prefix, temp_filename))
+        os.system(f'{GIFOUT_EXE_PATH} -m "{prefix}*.gif" > {temp_filename}')
     # Get the filename from `file` without the file extension.
     tar_base = os.path.splitext(file)[0]
     # Generate the actual output filename, not overwriting an existing file.
-    new_filename = tar_base + '_r.gif'
+    new_filename = f'{tar_base}_r.gif'
     i = 0
     while os.path.exists(new_filename):
-        new_filename = tar_base + '_r%d.gif' % i
+        new_filename = f'{tar_base}_r{i}.gif'
         i += 1
     # Move the imploded file to the current directory.
     shutil.move(temp_filename, new_filename)
@@ -47,7 +47,7 @@ def recolor(file, colormod=.5, prefix='m_'):
         for i in os.listdir(file):
             recolor(os.path.join(file, i), colormod, prefix)
         return
-    elif hasattr(file, '__iter__'):
+    if hasattr(file, '__iter__'):
         for i in file:
             recolor(file, colormod, prefix)
         return
@@ -56,7 +56,7 @@ def recolor(file, colormod=.5, prefix='m_'):
     with filegen.switch_dir(folder):
         if colormod < 1:
             colormod = int(len(pg.colors_in(file)) * colormod)
-        os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s' % (colormod, file, out))
+        os.popen(f'{GIFOUT_EXE_PATH} -k {colormod} {file} > {out}' % (colormod, file, out))
 
 
 def main(file, colormod=.5):
@@ -69,26 +69,26 @@ def main(file, colormod=.5):
         z = os.path.abspath(z)
         os.chdir(z)
         print('exploding')
-        os.system(GIFOUT_EXE_PATH + ' -e ' + tar)
+        os.system(f'{GIFOUT_EXE_PATH} -e {tar}')
         os.remove(tar)
         print('recoloring')
-        for ind, i in enumerate(os.listdir('.')):
-            out = 'm_' + i
+        for ind, filename in enumerate(os.listdir('.')):
+            out = f'm_{filename}'
             if not ind:
-                shutil.copy(i, out)
+                shutil.copy(filename, out)
                 continue
             if colormod < 1:
-                colors = int(len(pg.colors_in(i)) * colormod)
+                colors = int(len(pg.colors_in(filename)) * colormod)
             else:
                 colors = colormod
-            os.popen(GIFOUT_EXE_PATH + ' -k %d %s > %s' % (colors, i, out))
+            os.popen(f'{GIFOUT_EXE_PATH} -k {colors} {filename} > {out}')
         print('imploding')
-        os.system(GIFOUT_EXE_PATH + ' -m m_* > a.gif')
+        os.system(f'{GIFOUT_EXE_PATH} -m m_* > a.gif')
         tar_base = os.path.splitext(tar)[0]
-        new = os.path.join(initfolder, tar_base + '_r.gif')
+        new = os.path.join(initfolder, f'{tar_base}_r.gif')
         i = 0
         while os.path.exists(new):
-            new = os.path.join(initfolder, tar_base + '_r%d.gif' % i)
+            new = os.path.join(initfolder, f'{tar_base}_r{i}.gif')
             i += 1
         os.rename('a.gif', new)
     finally:

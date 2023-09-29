@@ -14,15 +14,16 @@ try:
 except ImportError as e:
     import warnings
 
-    w = Warning('bitdepth finding may not be optimal: %s' % e)
+    w = Warning(f'bitdepth finding may not be optimal: {e}')
     warnings.warn(w)
+    del e, w
     pygamegen = None
 
 # process priority (windows and linux):
 if os.name == 'nt':
-    PREFIX = 'start /LOW /B /WAIT '
+    PREFIX = 'start /LOW /B /WAIT'
 elif os.name == 'posix':
-    PREFIX = 'nice -n 19 '
+    PREFIX = 'nice -n 19'
 else:
     PREFIX = ''
 
@@ -34,6 +35,11 @@ if not os.path.exists(PNGOUT_EXE_PATH):
     PNGOUT_EXE_PATH = shutil.which('pngout') or ''
 
 
+def pngout_build_command(filename, destination_filename, options):
+    destination_string = destination_filename and f'"{destination_filename}"' or ''
+    return f'{PREFIX} {PNGOUT_EXE_PATH} {options} "{filename}" {destination_string} /y'
+
+
 def pngout(filename, destfilename=None, options=''):
     # process priority (windows only, even):
     # only works on windows
@@ -42,9 +48,8 @@ def pngout(filename, destfilename=None, options=''):
     # handle options spacing + slashes yourself please
     if not PNGOUT_EXE_PATH:
         raise FileNotFoundError('PNGOUT_EXE_PATH not set')
-    return os.popen(PREFIX + '%s %s "%s"%s /y'
-                    % (PNGOUT_EXE_PATH, options, filename,
-                       destfilename and ' "%s"' % destfilename or '')).read()
+    command = pngout_build_command(filename, destfilename, options)
+    return os.popen(command).read()
 
 
 def pngout_batch(files):  # no destfilename here
@@ -70,8 +75,7 @@ def keeprunning(files=[]):
     #         if found:
     #             existing.add(found.groups()[0])
     re_size = re.compile('Out:[ ]+([0-9]*) bytes')
-    outputlog = open(FILENAME, 'a')
-    try:
+    with open(FILENAME, 'a') as outputlog:
         for i in files:
             if i[-4:].lower() == '.png' and i not in existing:
                 print(i)
@@ -109,9 +113,6 @@ def keeprunning(files=[]):
                         times = 2
                     lastsize = thissize
 
-    finally:
-        outputlog.close()
-
 
 def _colors_in(filename):
     # returns:
@@ -124,7 +125,7 @@ def _colors_in(filename):
         return ''
     try:
         c = pygamegen._colors_in(filename, True)
-    except Exception as e:
+    except Exception:
         # print 'error checking image color data', filename, e
         return ''
 
@@ -143,21 +144,18 @@ def _colors_in(filename):
     target = '/c%d'
     if len(c) > 256:
         return target % (2 + alpha)
-    else:
-        target2 = '/d%d'
-        bits = int(math.ceil(math.log(len(colors), 2)))
-        target += (' ' + (target2 % bits))
-        if grey:
-            return target % alpha
-        else:
-            return target % 3
+    target2 = '/d%d'
+    bits = int(math.ceil(math.log(len(colors), 2)))
+    target += (' ' + (target2 % bits))
+    if grey:
+        return target % alpha
+    return target % 3
 
 
 def _mk_filename(filename, tempf, options):
     basedir = os.path.dirname(filename)
     base = os.path.splitext(os.path.basename(filename))[0]
-    return os.path.join(basedir, tempf,
-                        '%s %s.png' % (base, options.replace('/', '_')))
+    return os.path.join(basedir, tempf, f"{base}.{options.replace('/', '_')}.png")
 
 
 def _run(filename, tempf, options):
@@ -181,9 +179,10 @@ def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
         pow = 2 ** x
         if verbose:
             print(num, '->', (num - pow, num + pow), '->', end=' ')
-        prevsize, prevoptions, every = check(worker, filename, tempf,
-                                             ['/b%d' % (num - pow), '/b%d' % (num + pow)],
-                                             options, prevsize, prevoptions)
+        prevsize, prevoptions, _ = check(worker, filename, tempf, [
+            f'/b{num - pow}',
+            f'/b{num + pow}',
+        ], options, prevsize, prevoptions)
         num = get_slashb(prevoptions)
         if verbose:
             print(num, prevsize, prevoptions)
@@ -262,21 +261,21 @@ def find_best_compression(filename, threads=3, depth=5,
                 print('checking bitdepth', end=' ')
             message = "Image doesn't fit in selected bitdepth"
             if (gen.convert_sr_str(pngout(filename, options=colors_options + ' /s4'))
-                    .strip().split('\n')[-1][:len(message)] == message):
+                    .strip().rsplit('\n', 1)[-1][:len(message)] == message):
                 colors_options = colors_options[:-1] + '8'  # make this better
         if verbose:
             print(colors_options)
-        size_start, options, every = check(worker, filename, tempf,
-                                           ['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'],
-                                           # /s3 would be nice but seems to use a different algorithm and leads to
-                                           # a bad selection when paired with /s0 later on
-                                           colors_options + ' /s2')
+        size_start, options, _ = check(worker, filename, tempf,
+                                       ['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'],
+                                       # /s3 would be nice but seems to use a different algorithm and leads to
+                                       # a bad selection when paired with /s0 later on
+                                       colors_options + ' /s2')
         options = strip_option(options, 's')
         if verbose:
             print('prelim', size_start, options)
         if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
-            size256, boptions, every = check(worker, filename, tempf,
-                                             ['/b256'], options)
+            size256, boptions, _ = check(worker, filename, tempf,
+                                         ['/b256'], options)
             print(size256, options)
             raise NotAnException()
         size_b, boptions, every = check(worker, filename, tempf,
@@ -304,9 +303,9 @@ def find_best_compression(filename, threads=3, depth=5,
             if verbose:
                 print('slashbfinder:', smallestsize, smallestoptions)
             while 1:
-                smallestsize, prevb, every = check(worker, filename, tempf,
-                                                   ['/b%d' % (get_slashb(smallestoptions) * 2)],
-                                                   options, smallestsize, smallestoptions)
+                smallestsize, prevb, _ = check(worker, filename, tempf, [
+                    f'/b{get_slashb(smallestoptions) * 2}',
+                ], options, smallestsize, smallestoptions)
                 if verbose:
                     print('slashbfinder:', smallestsize, smallestoptions, prevb)
                 if get_slashb(smallestoptions) == get_slashb(prevb):
@@ -345,7 +344,8 @@ def find_best_compression(filename, threads=3, depth=5,
                 base, ext = os.path.splitext(filename)
                 shutil.move(tocopy, base + '.png')
                 if verbose:
-                    print('%.2f%%' % (100 * float(os.stat(filename)[6]) / initsize))
+                    file_size_percent = 100 * os.stat(filename).st_size / initsize
+                    print(f'{file_size_percent:.2f}%')
                 if remove_not_png and ext.lower() != '.png':
                     os.remove(filename)
         finally:
@@ -372,29 +372,31 @@ def do_many(files, depth=5, threads=CORES):
             print(f'0/{total}')
             for x in range(total):
                 try:
-                    front = filename = ''
-                    options, alsoreturn = worker.get()
+                    filename = ''
+                    front = f'{x + 1}/{total}'
+                    _, alsoreturn = worker.get()
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = f'{x + 1}/{total} {filename}:'
+                    front = f'{front} {filename}'
 
                 except KeyboardInterrupt:
                     raise
                 except Exception as e:
+                    # filename isn't correct here, TODO find how to make it correct.
                     failed.append((filename, e))
-                    print(f'{front} error {str(e)}')
+                    print(f'{front}: error {str(e)}')
                     continue
                 new_size = os.stat(filename)[6]
                 if new_size < size:
                     end_size += new_size
                     start_size += size
                 if new_size < size:
-                    s = f'{front} {new_size - size} {100 * new_size / size:.1f}%'
+                    s = f'{front}: {new_size - size} {100 * new_size / size:.1f}%'
                 elif new_size == size:
-                    s = f'{front} no diff'
+                    s = f'{front}: no diff'
                 else:
-                    s = f'{front} worse'
+                    s = f'{front}: worse'
                 print(s)
     if start_size:
         print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
@@ -410,15 +412,14 @@ def main(filename, threads=0, depth=5):
     threads = int(threads)
     if not threads:
         threads = CORES
-    if os.path.exists(filename):
-        if os.path.isfile(filename):
-            find_best_compression(os.path.abspath(filename), threads, int(depth))
-            if filename[-4:].lower() != '.png':
-                os.remove(filename)
-        else:
-            do_many([i for i in filegen.files_in(filename) if is_png(i)], int(depth), threads)
+    if not os.path.exists(filename):
+        raise ValueError(f'File not found {filename}')
+    if os.path.isfile(filename):
+        find_best_compression(os.path.abspath(filename), threads, int(depth))
+        if filename[-4:].lower() != '.png':
+            os.remove(filename)
     else:
-        raise ValueError('File not found %s' % filename)
+        do_many([i for i in filegen.files_in(filename) if is_png(i)], int(depth), threads)
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ def bz2compress(filename, bz2filename=None, removeArchivedFile=False,
     """Compresses 1 file (filename) into a BZ2 file.
     """
     if not os.path.isfile(filename):
-        raise IOError('File not found %s.' % filename)
+        raise IOError(f'File not found {filename}.')
     filename = os.path.abspath(filename)
     if bz2filename is None:
         bz2filename = filename + FILE_APPENDAGE
@@ -17,7 +17,7 @@ def bz2compress(filename, bz2filename=None, removeArchivedFile=False,
     if isinstance(bz2filename, bz2.BZ2File):
         zip = bz2filename
     else:
-        zip = bz2.BZ2File(bz2filename, 'w', buffering, compress_by)
+        zip = bz2.BZ2File(bz2filename, 'w', compresslevel=compress_by)
 
     try:
         zip.write(open(filename, 'rb').read())
@@ -26,9 +26,8 @@ def bz2compress(filename, bz2filename=None, removeArchivedFile=False,
             zip.close()
             os.remove(bz2filename)
         raise
-    else:
-        if zip is not bz2filename:
-            zip.close()
+    if zip is not bz2filename:
+        zip.close()
 
     if removeArchivedFile:
         os.remove(filename)
@@ -44,7 +43,7 @@ def bz2uncompress(bz2filename, outputfile=None, buffering=None):
         if outputfile is None:
             outputfile = zip.filename[:-4]
     else:
-        zip = bz2.BZ2File(bz2filename, 'r', buffering)
+        zip = bz2.BZ2File(bz2filename, 'r')
         if outputfile is None:
             outputfile = bz2filename[:-4]
 

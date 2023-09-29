@@ -1,6 +1,5 @@
 from functools import partial as _partial
 import threading
-import sys
 version = '0.9'
 
 # Queue2:
@@ -99,7 +98,7 @@ THREADS_AS_NEEDED = -1
 UNLIMITED_PENDING = -1
 
 
-class threaded_worker(object):
+class threaded_worker:
     """A class which allows multiple threads to request some action,
     and get the response at some later point.  Useful for putting I/O into
     some other thread and keep doing whatever calculations you need while the
@@ -214,7 +213,7 @@ class threaded_worker(object):
             items = self.results[:]
             if not items:
                 break
-            for i in items:
+            for _ in items:
                 yield self.get()
 
     def __enter__(self):
@@ -252,8 +251,8 @@ class threaded_worker(object):
 
     def wait(self):
         """waits for all threads to end and returns"""
-        self.isdone.acquire()
-        self.isdone.release()
+        with self.isdone:
+            pass
 
     def close_now(self, wait=False):
         """marks all threads for closing by placing the request at the start
@@ -280,7 +279,7 @@ class threaded_worker(object):
             num = self.numthreads
         elif num < 0:
             return
-        for t in range(num):
+        for _ in range(num):
             self.pending.put(_ENDTHREAD, head=now)
         if wait and num >= self.numthreads:
             # cannot just .join the Queue because there may be other items
@@ -290,28 +289,27 @@ class threaded_worker(object):
     def _updatenumthreads(self, mod):
         """internal use only. use .start() or .close() instead.
         starts/ends threads."""
-        self.changethreads_lock.acquire()
-        if not self.numthreads:  # was no threads until now
-            self.isdone.acquire()
-            if self.track:
-                _workers.append(self)
-        self.numthreads += mod
-        if not self.numthreads:  # was threads, now they are done
-            self.isdone.release()
-            # self.putlock.acquire()
-            # #releases all locks, marks all pending data as completed
-            # for i, j in self.results.items():
-            #    if j[2] is not None:
-            #        continue
-            #    j[2] = -1
-            #    j[0].release()
-            # self.putlock.release()
-            if self.track:
-                try:
-                    _workers.remove(self)
-                except ValueError:
-                    pass
-        self.changethreads_lock.release()
+        with self.changethreads_lock:
+            if not self.numthreads:  # was no threads until now
+                self.isdone.acquire()
+                if self.track:
+                    _workers.append(self)
+            self.numthreads += mod
+            if not self.numthreads:  # was threads, now they are done
+                self.isdone.release()
+                # self.putlock.acquire()
+                # #releases all locks, marks all pending data as completed
+                # for i, j in self.results.items():
+                #    if j[2] is not None:
+                #        continue
+                #    j[2] = -1
+                #    j[0].release()
+                # self.putlock.release()
+                if self.track:
+                    try:
+                        _workers.remove(self)
+                    except ValueError:
+                        pass
 
     def start(self, num=1):
         """Creates 'num' number of threads."""
@@ -320,9 +318,8 @@ class threaded_worker(object):
             return
         # number of threads updated one by one in case thread creation fails
         # (possibly due to OS complaint: too many threads)
-        for t in range(num):
-            thread = threading.Thread(target=self._handle)
-            thread.setDaemon(True)
+        for _ in range(num):
+            thread = threading.Thread(target=self._handle, daemon=True)
             thread.start()
             self._updatenumthreads(1)
 
@@ -350,8 +347,8 @@ class threaded_worker(object):
         if func is None:
             func = self.func
         f = partial(self.put, func=func, store=store)
-        f.__doc__ = """put(*args, **kwargs) #func=%s, store=%s""" % (
-            hasattr(func, 'func_name') and func.__name__ or func, store)
+        func_name = hasattr(func, 'func_name') and func.__name__ or func
+        f.__doc__ = f'put(*args, **kwargs) #func={func_name}, store={store}'
         return f
 
     def put(self, *data, **kwargs):
@@ -378,8 +375,7 @@ class threaded_worker(object):
                 alsoreturn = (alsoreturn,)
         else:
             alsoreturn = None
-        self.putlock.acquire()
-        try:
+        with self.putlock:
             if store:
                 thisindex = self.thisindex
                 self.thisindex += 1
@@ -389,8 +385,6 @@ class threaded_worker(object):
             else:
                 thisindex = 1  # cannot eval to False, that ends the thread
             self.pending.put((func, data, kwargs, alsoreturn, store, thisindex))
-        finally:
-            self.putlock.release()
 
         if self.threads_as_needed:
             self.start(1)
@@ -588,7 +582,7 @@ def test(fname='readme.txt'):
         _ = w.get(r)
         try:
             _ = w.get(r2)
-        except FileNotFoundError as a:
+        except FileNotFoundError:
             # File expected to be not found!
             pass
         print('success!')

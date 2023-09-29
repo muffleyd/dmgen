@@ -31,7 +31,7 @@ def zipinsert(filename, zipfilename=None, removeArchivedFile=False,
     """
     filename = os.path.abspath(filename)
     if not os.path.exists(filename):
-        raise OSError('File does not exist (%s)' % filename)
+        raise OSError(f'File does not exist ({filename})')
     if zipfilename is None:
         zipfilename = filename + '.zip'
 
@@ -141,7 +141,7 @@ def zipunzip(zipfilename, files=None, destfolder='.'):
 
     Extracts files from zipfilename."""
 
-    base_path, filename = os.path.split(zipfilename)
+    base_path, _ = os.path.split(zipfilename)
     base_path = os.path.join(base_path, destfolder)
     with zipfile.ZipFile(zipfilename) as zip:
         if files is None:
