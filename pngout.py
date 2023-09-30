@@ -77,62 +77,6 @@ def pngout_batch(files):  # no destfilename here
         print(gen.convert_sr_str(pngout(filename)))
 
 
-def keeprunning(files=[]):
-    import re
-    FILENAME = 'pngout log.txt'
-    # if os.path.exists(FILENAME):
-    #     existingstr = open(FILENAME).read()
-    # else:
-    #     existingstr = ''
-    existing = set()
-    # for i in existingstr.split('\n'):
-    #     found = re.search('In:[ ]*[0-9]+ bytes[ ]*(.*?) /c[0-9]', i)
-    #     if found:
-    #         existing.add(found.groups()[0])
-    #     else:
-    #         found = re.search('(.*?) not found',i)
-    #         if found:
-    #             existing.add(found.groups()[0])
-    re_size = re.compile('Out:[ ]+([0-9]*) bytes')
-    with open(FILENAME, 'a') as outputlog:
-        for i in files:
-            if i[-4:].lower() == '.png' and i not in existing:
-                print(i)
-                open('cur.txt', 'w').write(i)
-                slashb = gen.changebase(32, 2)
-                lastsize = 9999999999999999999999999999999  # a big file!
-                times = 2
-                while 1:
-                    p = gen.convert_sr_str(
-                        pngout(i, options='/b' + int(slashb, 2)))
-                    print(int(slashb, 2))
-                    print(slashb, file=outputlog)
-                    print(p)
-                    print(p, file=outputlog)
-                    outputlog.flush()
-                    thissize = re_size.search(p)
-                    if not thissize:
-                        print('SOMETHING WENT WRONG')
-                        print('SOMETHING WENT WRONG', file=outputlog)
-                        break
-                    thissize = thissize.groups()[0]
-                    if slashb == '1':
-                        slashb = '0'
-                    elif slashb == '0':
-                        break
-                    elif slashb[1] == '1':
-                        slashb = '1' + ('0' * (len(slashb) - 1))
-                    else:
-                        slashb = '11' + slashb[3:]
-                    if thissize >= lastsize:
-                        times -= 1
-                        if not times:
-                            break
-                    else:
-                        times = 2
-                    lastsize = thissize
-
-
 def _colors_in(filename):
     # returns:
     #   {}: let pngout figure it out
