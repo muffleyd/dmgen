@@ -13,10 +13,8 @@ try:
     from . import pygamegen
 except ImportError as e:
     import warnings
-
-    w = Warning(f'bitdepth finding may not be optimal: {e}')
-    warnings.warn(w)
-    del e, w
+    warnings.warn(Warning(f'bitdepth finding may not be optimal: {e}'))
+    del e
     pygamegen = None
 
 # process priority (windows and linux):
@@ -77,7 +75,7 @@ def pngout_batch(files):  # no destfilename here
         print(gen.convert_sr_str(pngout(filename)))
 
 
-def _colors_in(filename):
+def get_colors_options(filename):
     # returns:
     #   {}: let pngout figure it out
     #   {c: '%d', [d: '%d']}: Explicit options values.
@@ -119,24 +117,25 @@ def _colors_in(filename):
     return options
 
 
-def _mk_filename(filename, tempf, options):
+def filename_by_options(filename, output_filename, options):
     basedir = os.path.dirname(filename)
     base = os.path.splitext(os.path.basename(filename))[0]
-    return os.path.join(basedir, tempf, f"{base}.{options_to_string(options).replace('/', '_')}.png")
+    return os.path.join(basedir, output_filename, f"{base}.{options_to_string(options).replace('/', '_')}.png")
 
 
-def _run(filename, tempf, options):
-    tofilename = _mk_filename(filename, tempf, options)
-    pngoutput = pngout(filename, tofilename, '/y /force ' + options_to_string(options))
+def pngout_for_find_best_compression(filename, output_filename, options):
+    temp_filename = filename_by_options(filename, output_filename, options)
+    pngoutput = pngout(filename, temp_filename, '/y /force ' + options_to_string(options))
     try:
-        size = os.stat(tofilename)[6]
+        # TODO Parse pngoutput for size instead.
+        size = os.stat(temp_filename)[6]
     except OSError:  # usually file not made due to pngout error
         raise Exception(pngoutput)
-    # os.remove(tofilename)
+    # os.remove(temp_filename)
     return size, options
 
 
-def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
+def slashb_down(worker, filename, output_filename, options, prevsize, prevoptions,
                 num=128, log=None, downby=3, verbose=True):
     # print 'options:',options
     if not log:
@@ -146,7 +145,7 @@ def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
         pow = 2 ** x
         if verbose:
             print(num, '->', (num - pow, num + pow), '->', end=' ')
-        prevsize, prevoptions, _ = check(worker, filename, tempf, [
+        prevsize, prevoptions, _ = check(worker, filename, output_filename, [
             {'b': num - pow},
             {'b': num + pow},
         ], options, prevsize, prevoptions)
@@ -156,13 +155,13 @@ def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
     return prevoptions
 
 
-def check(worker, filename, tempf, options, andoptions='',
+def check(worker, filename, output_filename, options, andoptions='',
           msize=None, moptions=None):
     """returns the options used to make the smallest file"""
     if moptions is None:
         moptions = andoptions
     for index, option in enumerate(options):
-        options[index] = worker.put(filename, tempf, merge_options(andoptions, option))
+        options[index] = worker.put(filename, output_filename, merge_options(andoptions, option))
     if msize:
         options.insert(0, (msize, moptions))  # to be tested in min below
         mod = 1
@@ -180,32 +179,33 @@ class NotAnException(Exception):
         Exception.__init__(self)
 
 
-TEMPprefix = 'pngout_TEMP_'
+TEMP_PREFIX = 'pngout_TEMP_'
 
 
 def find_best_compression(filename, threads=3, depth=5,
                           remove_not_png=True, verbose=True):
     assert os.path.exists(filename)
-    pathjoin = os.path.join
-    initsize = int(os.stat(filename)[6])
+    initial_size = int(os.stat(filename)[6])
     # destination = os.path.dirname(filename)
-    tempffilename = os.path.basename(os.path.splitext(filename)[0])
-    maxlen = len(TEMPprefix) + len(tempffilename) + 10
-    tempf = filegen.unused_filename(maxlen=maxlen, start=TEMPprefix,
-                                    ending='_' + tempffilename, folder=filegen.TEMPfolder)  # , folder=destination)
-    # print TEMPprefix, tempffilename,len(TEMPprefix)+len(tempffilename)+1
-    # print tempf, len(tempf)
-    os.mkdir(tempf)
+    temp_filename = os.path.basename(os.path.splitext(filename)[0])
+    output_directory = filegen.unused_filename(
+        maxlen=len(TEMP_PREFIX) + len(temp_filename) + 10,
+        start=TEMP_PREFIX,
+        ending=f'_{temp_filename}',
+    )  # , folder=destination)
+    # print(TEMP_PREFIX, temp_filename, len(TEMP_PREFIX) + len(temp_filename) + 1)
+    # print(output_directory, len(output_directory))
+    os.mkdir(output_directory)
     if isinstance(threads, threaded_worker.threaded_worker):
         worker = threads
     else:
-        worker = threaded_worker.threaded_worker(_run, threads)
+        worker = threaded_worker.threaded_worker(pngout_for_find_best_compression, threads)
     if verbose:
         timer = gen.timer().__enter__()
     try:
         if verbose:
-            print(filename, tempf, initsize, depth, end=' ')
-        colors_options = _colors_in(filename)
+            print(filename, output_directory, initial_size, depth, end=' ')
+        colors_options = get_colors_options(filename)
         # if the color options chosen end up wrong,
         if 'd' in colors_options and colors_options['d'] != 8:
             if verbose:
@@ -216,7 +216,7 @@ def find_best_compression(filename, threads=3, depth=5,
                 colors_options['d'] = 8  # make this better
         if verbose:
             print(options_to_string(colors_options))
-        size_start, options, _ = check(worker, filename, tempf,
+        size_start, options, _ = check(worker, filename, output_directory,
                                        [{'f': 0}, {'f': 1}, {'f': 2}, {'f': 3}, {'f': 4}, {'f': 5}],
                                        # /s3 would be nice but seems to use a different algorithm and leads to
                                        # a bad selection when paired with /s0 later on
@@ -225,53 +225,54 @@ def find_best_compression(filename, threads=3, depth=5,
         if verbose:
             print('prelim', size_start, options_to_string(options))
         if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
-            size256, boptions, _ = check(worker, filename, tempf,
+            size256, b_options, _ = check(worker, filename, output_directory,
                                          [{'b': 256}], options)
             print(size256, options_to_string(options))
             raise NotAnException()
-        size_b, boptions, every = check(worker, filename, tempf,
+        b_size, b_options, every = check(worker, filename, output_directory,
                                         [{'b': 128}, {'b': 256}, {'b': 512}], options)
         size256 = every[1][0]
         if verbose:
-            print(size_b, options_to_string(boptions))
+            print(b_size, options_to_string(b_options))
         if depth < 3 or (hasattr(depth, '__iter__') and 2 not in depth):
             raise NotAnException()
         num = 128
         log = 6
+        # Are we going up or down to find /b?
         up = True
-        if size256 < size_b:
-            smallestsize = size256
-            smallestoptions = merge_options(options, {'b': 256})
-            if boptions[-3:] == '512':
+        if size256 < b_size:
+            smallest_size = size256
+            smallest_options = merge_options(options, {'b': 256})
+            if b_options[-3:] == '512':
                 num = 384
                 up = False
         else:
-            smallestsize = size_b
-            smallestoptions = boptions
+            smallest_size = b_size
+            smallest_options = b_options
         if verbose:
-            print(smallestsize, options_to_string(smallestoptions), num, log, up, options_to_string(boptions))
-        if up and boptions['b'] == 512:  # higher is potentially smaller
+            print(smallest_size, options_to_string(smallest_options), num, log, up, options_to_string(b_options))
+        if up and b_options['b'] == 512:  # higher is potentially smaller
             if verbose:
-                print('slashbfinder:', smallestsize, options_to_string(smallestoptions))
+                print('slashbfinder:', smallest_size, options_to_string(smallest_options))
             while 1:
-                smallestsize, prevb, _ = check(worker, filename, tempf, [
-                    {'b': smallestoptions['b'] * 2},
-                ], options, smallestsize, smallestoptions)
+                smallest_size, prevb, _ = check(worker, filename, output_directory, [
+                    {'b': smallest_options['b'] * 2},
+                ], options, smallest_size, smallest_options)
                 if verbose:
-                    print('slashbfinder:', smallestsize, options_to_string(smallestoptions), options_to_string(prevb))
-                if smallestoptions['b'] == prevb['b']:
+                    print('slashbfinder:', smallest_size, options_to_string(smallest_options), options_to_string(prevb))
+                if smallest_options['b'] == prevb['b']:
                     break
-                smallestoptions = prevb
-            smallestoptions = prevb
-            num = smallestoptions['b']
+                smallest_options = prevb
+            smallest_options = prevb
+            num = smallest_options['b']
             log = int(math.log(num / 4, 2))
-            # print 'starting point:',smallestsize,smallestoptions
+            # print 'starting point:',smallest_size,smallest_options
         # else lower is potentially smaller, no changes needed
         # uses depth as how many checks it should do in this slashb_down
         if hasattr(depth, '__iter__'):
             depth = max(depth)
-        options = slashb_down(worker, filename, tempf, options,
-                              smallestsize, smallestoptions, num, log, depth - 2,
+        options = slashb_down(worker, filename, output_directory, options,
+                              smallest_size, smallest_options, num, log, depth - 2,
                               verbose=verbose)
     except NotAnException:
         pass
@@ -283,10 +284,10 @@ def find_best_compression(filename, threads=3, depth=5,
         try:
             low = os.stat(filename)[6]
             tocopy = ''
-            for file in os.listdir(tempf):
+            for file in os.listdir(output_directory):
                 if file[-4:].lower() != '.png':
                     continue  # no thumbs.db here!
-                name = pathjoin(tempf, file)
+                name = os.path.join(output_directory, file)
                 size = os.stat(name)[6]
                 if size < low:
                     tocopy = name
@@ -295,17 +296,17 @@ def find_best_compression(filename, threads=3, depth=5,
                 base, ext = os.path.splitext(filename)
                 shutil.move(tocopy, base + '.png')
                 if verbose:
-                    file_size_percent = 100 * os.stat(filename).st_size / initsize
+                    file_size_percent = 100 * os.stat(filename).st_size / initial_size
                     print(f'{file_size_percent:.2f}%')
                 if remove_not_png and ext.lower() != '.png':
                     os.remove(filename)
         finally:
             try:
-                shutil.rmtree(tempf)
+                shutil.rmtree(output_directory)
             except IOError:
                 # sometimes... probably windows file indexing
                 time.sleep(.4)
-                shutil.rmtree(tempf)
+                shutil.rmtree(output_directory)
     return options
 
 
@@ -315,7 +316,7 @@ def do_many(files, depth=5, threads=CORES):
     fdata = []
     start_size = end_size = 0
     with threaded_worker.threaded_worker(find_best_compression, threads, wait_at_end=True) as worker:
-        with threaded_worker.threaded_worker(_run, threads) as inworker:
+        with threaded_worker.threaded_worker(pngout_for_find_best_compression, threads) as inworker:
             for index, filename in enumerate(files):
                 fdata.append((filename, os.stat(filename)[6]))
                 worker.put(filename, inworker, depth, verbose=False, alsoreturn=index)
@@ -325,9 +326,8 @@ def do_many(files, depth=5, threads=CORES):
                 try:
                     filename = ''
                     front = f'{x + 1}/{total}'
-                    options, alsoreturn = worker.get()
-
-                    index = alsoreturn[0]
+                    options, also_return = worker.get()
+                    index = also_return[0]
                     filename, size = fdata[index]
                     front = f'{front} {filename} ({options_to_string(options)})'
 
