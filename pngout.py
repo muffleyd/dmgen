@@ -40,16 +40,35 @@ def pngout_build_command(filename, destination_filename, options):
     return f'{PREFIX} {PNGOUT_EXE_PATH} {options} "{filename}" {destination_string} /y'
 
 
-def pngout(filename, destfilename=None, options=''):
-    # process priority (windows only, even):
-    # only works on windows
+def pngout(filename, destfilename=None, options=None):
     """runs pngout on filename to destfilename (if given, else it's smart)
     fill this out with the pngout.exe options and such"""
     # handle options spacing + slashes yourself please
     if not PNGOUT_EXE_PATH:
         raise FileNotFoundError('PNGOUT_EXE_PATH not set')
-    command = pngout_build_command(filename, destfilename, options)
+    command = pngout_build_command(filename, destfilename, options_to_string(options))
     return os.popen(command).read()
+
+
+def options_to_string(options):
+    if isinstance(options, dict):
+        # Convert {n: 20, y: True} to '/n20 /y'
+        return ' '.join(f'/{key}{value if value is not True else ""}' for key, value in options.items())
+    elif isinstance(options, str):
+        return options
+    elif hasattr(options, '__iter__'):
+        # Convert ['/n20', '/y'] to '/n20 /y'
+        return ' '.join(options)
+    elif not options:
+        return ''
+    else:
+        raise ValueError('Unknown options type.')
+
+
+def merge_options(one, two):
+    merged = one.copy()
+    merged.update(two)
+    return merged
 
 
 def pngout_batch(files):  # no destfilename here
@@ -116,51 +135,55 @@ def keeprunning(files=[]):
 
 def _colors_in(filename):
     # returns:
-    # '': let pngout figure it out
-    # '/c%d /d%d': /c%d (0=Gray, 2=RGB, 3=Pal, 4=Gray+Alpha, 6=RGB+Alpha) and
-    #              /d%d (bitdepth: 0(min),1,2,4,8 (/c0,/c3 modes))
-    # grey+alpha bits may not be correct, does it use len(colors), or highest
-    # num of colors or num of alphas
+    #   {}: let pngout figure it out
+    #   {c: '%d', [d: '%d']}: Explicit options values.
+    # /c (0=Gray, 2=RGB, 3=Pal, 4=Gray+Alpha, 6=RGB+Alpha) and
+    # /d (bitdepth: 0(min),1,2,4,8 (/c0,/c3 modes))
+    # grey+alpha bits may not be correct, does it use len(colors), or highest num of colors or num of alphas?
     if not pygamegen:
-        return ''
+        return {}
     try:
         c = pygamegen._colors_in(filename, True)
     except Exception:
         # print 'error checking image color data', filename, e
-        return ''
+        return {}
 
-    grey = len(c) <= 256
+    grey = False
     alphas = set()
     colors = set()
     for r, g, b, a in c:
         alphas.add(a)
-        if grey and not (r == g == b):
-            grey = False
         colors.add((r, g, b))
-    # if there's more than one alpha, or the one alpha is not 255
-    alpha = (len(alphas) > 1 or alphas.pop() != 255) and 4 or 0
-    # print 'alpha:',bool(alpha)
-    # print 'grey: ',grey
-    target = '/c%d'
-    if len(c) > 256:
-        return target % (2 + alpha)
-    target2 = '/d%d'
-    bits = int(math.ceil(math.log(len(colors), 2)))
-    target += (' ' + (target2 % bits))
+    if len(colors) <= 256:
+        for r, g, b in colors:
+            if not (r == g == b):
+                break
+        else:
+            grey = True
+    # If there's more than one alpha, or the one alpha is not 255
+    # This modified the grey/rgb /c value.
+    # /c0 = grey, /c4 = grey+alpha.
+    # /c2 = rgb, /c6 = rgb+alpha.
+    alpha_modifier = (len(alphas) > 1 or alphas.pop() != 255) and 4 or 0
+    if len(colors) > 256:
+        return {'c': 2 + alpha_modifier}
+    options = {'d': int(math.ceil(math.log(len(colors), 2)))}
     if grey:
-        return target % alpha
-    return target % 3
+        options['c'] = 0 + alpha_modifier
+    else:
+        options['c'] = 3
+    return options
 
 
 def _mk_filename(filename, tempf, options):
     basedir = os.path.dirname(filename)
     base = os.path.splitext(os.path.basename(filename))[0]
-    return os.path.join(basedir, tempf, f"{base}.{options.replace('/', '_')}.png")
+    return os.path.join(basedir, tempf, f"{base}.{options_to_string(options).replace('/', '_')}.png")
 
 
 def _run(filename, tempf, options):
     tofilename = _mk_filename(filename, tempf, options)
-    pngoutput = pngout(filename, tofilename, '/y /force ' + options)
+    pngoutput = pngout(filename, tofilename, '/y /force ' + options_to_string(options))
     try:
         size = os.stat(tofilename)[6]
     except OSError:  # usually file not made due to pngout error
@@ -180,25 +203,13 @@ def slashb_down(worker, filename, tempf, options, prevsize, prevoptions,
         if verbose:
             print(num, '->', (num - pow, num + pow), '->', end=' ')
         prevsize, prevoptions, _ = check(worker, filename, tempf, [
-            f'/b{num - pow}',
-            f'/b{num + pow}',
+            {'b': num - pow},
+            {'b': num + pow},
         ], options, prevsize, prevoptions)
-        num = get_slashb(prevoptions)
+        num = prevoptions['b']
         if verbose:
-            print(num, prevsize, prevoptions)
+            print(num, prevsize, options_to_string(prevoptions))
     return prevoptions
-
-
-def strip_option(options, char):
-    char = '/' + char
-    if char in options:
-        ind = options.index(char)
-        try:
-            end = options.index(' ', ind) + 1
-        except ValueError:
-            end = len(options)
-        return options[:ind] + options[end:]
-    return options
 
 
 def check(worker, filename, tempf, options, andoptions='',
@@ -207,7 +218,7 @@ def check(worker, filename, tempf, options, andoptions='',
     if moptions is None:
         moptions = andoptions
     for index, option in enumerate(options):
-        options[index] = worker.put(filename, tempf, andoptions + ' ' + option)
+        options[index] = worker.put(filename, tempf, merge_options(andoptions, option))
     if msize:
         options.insert(0, (msize, moptions))  # to be tested in min below
         mod = 1
@@ -217,10 +228,6 @@ def check(worker, filename, tempf, options, andoptions='',
         options[index] = worker.get(options[index])
     winner = min(options, key=operator.itemgetter(0))
     return winner[0], winner[1], options
-
-
-def get_slashb(options):  # /b is always last, make sure of that!
-    return int(options[options.rindex('/b') + 2:])
 
 
 class NotAnException(Exception):
@@ -256,33 +263,33 @@ def find_best_compression(filename, threads=3, depth=5,
             print(filename, tempf, initsize, depth, end=' ')
         colors_options = _colors_in(filename)
         # if the color options chosen end up wrong,
-        if colors_options and '/d' in colors_options and colors_options[-1] != '8':
+        if 'd' in colors_options and colors_options['d'] != 8:
             if verbose:
                 print('checking bitdepth', end=' ')
             message = "Image doesn't fit in selected bitdepth"
-            if (gen.convert_sr_str(pngout(filename, options=colors_options + ' /s4'))
+            if (gen.convert_sr_str(pngout(filename, options=merge_options(colors_options, {'s': 4})))
                     .strip().rsplit('\n', 1)[-1][:len(message)] == message):
-                colors_options = colors_options[:-1] + '8'  # make this better
+                colors_options['d'] = 8  # make this better
         if verbose:
-            print(colors_options)
+            print(options_to_string(colors_options))
         size_start, options, _ = check(worker, filename, tempf,
-                                       ['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'],
+                                       [{'f': 0}, {'f': 1}, {'f': 2}, {'f': 3}, {'f': 4}, {'f': 5}],
                                        # /s3 would be nice but seems to use a different algorithm and leads to
                                        # a bad selection when paired with /s0 later on
-                                       colors_options + ' /s2')
-        options = strip_option(options, 's')
+                                       merge_options(colors_options, {'s': 2}))
+        del options['s']
         if verbose:
-            print('prelim', size_start, options)
+            print('prelim', size_start, options_to_string(options))
         if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
             size256, boptions, _ = check(worker, filename, tempf,
-                                         ['/b256'], options)
-            print(size256, options)
+                                         [{'b': 256}], options)
+            print(size256, options_to_string(options))
             raise NotAnException()
         size_b, boptions, every = check(worker, filename, tempf,
-                                        ['/b128', '/b256', '/b512'], options)
+                                        [{'b': 128}, {'b': 256}, {'b': 512}], options)
         size256 = every[1][0]
         if verbose:
-            print(size_b, boptions)
+            print(size_b, options_to_string(boptions))
         if depth < 3 or (hasattr(depth, '__iter__') and 2 not in depth):
             raise NotAnException()
         num = 128
@@ -290,7 +297,7 @@ def find_best_compression(filename, threads=3, depth=5,
         up = True
         if size256 < size_b:
             smallestsize = size256
-            smallestoptions = options + ' /b256'
+            smallestoptions = merge_options(options, {'b': 256})
             if boptions[-3:] == '512':
                 num = 384
                 up = False
@@ -298,21 +305,21 @@ def find_best_compression(filename, threads=3, depth=5,
             smallestsize = size_b
             smallestoptions = boptions
         if verbose:
-            print(smallestsize, smallestoptions, num, log, up, boptions)
-        if up and boptions[-3:] == '512':  # higher is potentially smaller
+            print(smallestsize, options_to_string(smallestoptions), num, log, up, options_to_string(boptions))
+        if up and boptions['b'] == 512:  # higher is potentially smaller
             if verbose:
-                print('slashbfinder:', smallestsize, smallestoptions)
+                print('slashbfinder:', smallestsize, options_to_string(smallestoptions))
             while 1:
                 smallestsize, prevb, _ = check(worker, filename, tempf, [
-                    f'/b{get_slashb(smallestoptions) * 2}',
+                    {'b': smallestoptions['b'] * 2},
                 ], options, smallestsize, smallestoptions)
                 if verbose:
-                    print('slashbfinder:', smallestsize, smallestoptions, prevb)
-                if get_slashb(smallestoptions) == get_slashb(prevb):
+                    print('slashbfinder:', smallestsize, options_to_string(smallestoptions), options_to_string(prevb))
+                if smallestoptions['b'] == prevb['b']:
                     break
                 smallestoptions = prevb
             smallestoptions = prevb
-            num = get_slashb(smallestoptions)
+            num = smallestoptions['b']
             log = int(math.log(num / 4, 2))
             # print 'starting point:',smallestsize,smallestoptions
         # else lower is potentially smaller, no changes needed
@@ -378,7 +385,7 @@ def do_many(files, depth=5, threads=CORES):
 
                     index = alsoreturn[0]
                     filename, size = fdata[index]
-                    front = f'{front} {filename} ({options})'
+                    front = f'{front} {filename} ({options_to_string(options)})'
 
                 except KeyboardInterrupt:
                     raise
