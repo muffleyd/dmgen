@@ -35,7 +35,7 @@ if not os.path.exists(PNGOUT_EXE_PATH):
 
 def pngout_build_command(filename, destination_filename, options):
     destination_string = destination_filename and f'"{destination_filename}"' or ''
-    return f'{PREFIX} {PNGOUT_EXE_PATH} {options} "{filename}" {destination_string} /y'
+    return f'{PREFIX} {PNGOUT_EXE_PATH} {options} "{filename}" {destination_string} /y /v'
 
 
 def pngout(filename, destfilename=None, options=None):
