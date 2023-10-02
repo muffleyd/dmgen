@@ -107,13 +107,18 @@ def get_colors_options(filename):
     # /c0 = grey, /c4 = grey+alpha.
     # /c2 = rgb, /c6 = rgb+alpha.
     alpha_modifier = (len(alphas) > 1 or alphas.pop() != 255) and 4 or 0
-    if len(colors) > 256:
-        return {'c': 2 + alpha_modifier}
-    options = {'d': int(math.ceil(math.log(len(colors), 2)))}
+    options = {}
     if grey:
         options['c'] = 0 + alpha_modifier
+    elif len(colors) > 256 or alpha_modifier:
+        options['c'] = 2 + alpha_modifier
     else:
         options['c'] = 3
+    if options['c'] in (0, 3):
+        # TODO Set the real values here.
+        #      pngout silently converts these values up to the next valid option.
+        #      e.g. /d3 => /d4, /d5 or /d6 or /d7 => /d8.
+        options['d'] = math.ceil(math.log(len(colors), 2))
     return options
 
 
