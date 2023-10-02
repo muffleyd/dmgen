@@ -49,15 +49,14 @@ class PngoutTest(unittest.TestCase):
             )
 
         for d in (0, 1, 2, 4, 8):
-            # TODO help text says /d may only values for /c0 or /c3, not /c4.
-            for c in (0, 3, 4):
+            for c in (0, 3):
                 result = {'c': c, 'd': d}
                 with self.mock_pygamegen__colors_in(result):
                     self.assertEqual(
                         result,
                         pngout.get_colors_options(filename),
                     )
-        for c in (2, 6):
+        for c in (2, 4, 6):
             result = {'c': c}
             with self.mock_pygamegen__colors_in(result):
                 self.assertEqual(
@@ -75,15 +74,16 @@ def mock_pygamegen__colors_in(desired_options):
     if c_option not in (0, 2, 3, 4, 6):
         raise ValueError(desired_options)
     if 'd' in desired_options:
-        if c_option not in (0, 3, 4):
+        if c_option not in (0, 3):
             raise ValueError(desired_options)
         if desired_options['d'] not in (0, 1, 2, 4, 8):
             raise ValueError(desired_options)
         bits = desired_options['d']
         # TODO Minimum possible should be (bits // 2 + 1).
         min_bits = max(1, bits) - 1
-    # elif c_option == 4:
-    #     bits = 8
+    elif c_option == 4:
+        min_bits = 0
+        bits = 8
     elif c_option in (2, 6):
         min_bits = 8
         bits = 17  # TODO up to 24.
@@ -101,7 +101,7 @@ def generate_colors(color_count, grey, alpha):
         add_color(colors, grey)
     if alpha:
         colors = set(
-            (r, g, b, random.randrange(256)) for r, g, b, _ in colors
+            (r, g, b, int(random.random() * 256)) for r, g, b, _ in colors
         )
     return colors
 
@@ -109,12 +109,12 @@ def generate_colors(color_count, grey, alpha):
 def add_color(colors, grey):
     result = None
     while result in colors or not result:
-        r = random.randrange(256)
+        r = int(random.random() * 256)
         if grey:
             g = b = r
         else:
-            g = random.randrange(256)
-            b = random.randrange(256)
+            g = int(random.random() * 256)
+            b = int(random.random() * 256)
         # Alpha is handled elsewhere so /c4 doesn't get the wrong number of unique grey rgb combinations.
         a = 255
         result = (r, g, b, a)
@@ -123,4 +123,4 @@ def add_color(colors, grey):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(buffer=True)
