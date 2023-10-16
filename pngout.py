@@ -99,7 +99,7 @@ def get_colors_options(filename):
         alphas.add(a)
         colors.add((r, g, b))
         rgba_colors.add((r, g, b, a))
-    if len(rgba_colors) <= 256:
+    if len(colors) <= 256:
         for r, g, b in colors:
             if not (r == g == b):
                 break
