@@ -63,7 +63,19 @@ class PngoutTest(unittest.TestCase):
                     result,
                     pngout.get_colors_options(filename),
                 )
-        
+
+        # Test grey+alpha with more than 256 rgba values.
+        colors = set((i, i, i, 100) for i in range(256))
+        colors.update(set((i, i, i, 200) for i in range(256)))
+        with patch(
+            'dmgen.pngout.pygamegen._colors_in',
+            lambda x, y=False: colors
+        ):
+            self.assertEqual(
+                {'c': 4},
+                pngout.get_colors_options(filename)
+            )
+
         # Test fewer than 256 rgb values but more than 256 rgba values.
         colors = generate_colors(100, False, True)
         with patch(
@@ -136,12 +148,11 @@ def generate_colors(color_count, grey, alpha):
 def add_color(colors, grey):
     result = None
     while result in colors or not result:
-        r = int(random.random() * 256)
-        if grey:
-            g = b = r
-        else:
-            g = int(random.random() * 256)
-            b = int(random.random() * 256)
+        r = g = b = int(random.random() * 256)
+        if not grey:
+            while r == g == b:
+                g = int(random.random() * 256)
+                b = int(random.random() * 256)
         # Alpha is handled elsewhere so /c4 doesn't get the wrong number of unique grey rgb combinations.
         a = 255
         result = (r, g, b, a)
