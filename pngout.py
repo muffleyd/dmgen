@@ -118,11 +118,16 @@ def get_colors_options(filename):
     else:
         options['c'] = 3
     if options['c'] in (0, 3):
-        # TODO Set the real values here.
-        #      pngout silently converts these values up to the next valid option.
-        #      e.g. /d3 => /d4, /d5 or /d6 or /d7 => /d8.
-        options['d'] = math.ceil(math.log(len(rgba_colors), 2))
+        options['d'] = round_up_slash_d(math.log2(len(rgba_colors)))
     return options
+
+
+# pngout silently converts /d values up to the next valid option. Miror that here.
+# /d3 => /d4, /d5 or /d6 or /d7 => /d8.
+def round_up_slash_d(value):
+    if not value:
+        return 0
+    return 2 ** math.ceil(math.log2(value))
 
 
 def filename_by_options(filename, output_filename, options):
