@@ -32,7 +32,7 @@ class PngoutTest(unittest.TestCase):
             'dmgen.pngout.pygamegen._colors_in',
             lambda x, y: mock_pygamegen__colors_in(desired_options)
         ):
-            yield None
+            yield desired_options
 
     def test_get_colors_options(self):
         filename = 'filename.png'
@@ -50,15 +50,13 @@ class PngoutTest(unittest.TestCase):
 
         for d in (0, 1, 2, 4, 8):
             for c in (0, 3):
-                result = {'c': c, 'd': d}
-                with self.mock_pygamegen__colors_in(result):
+                with self.mock_pygamegen__colors_in({'c': c, 'd': d}) as result:
                     self.assertEqual(
                         result,
                         pngout.get_colors_options(filename),
                     )
         for c in (2, 4, 6):
-            result = {'c': c}
-            with self.mock_pygamegen__colors_in(result):
+            with self.mock_pygamegen__colors_in({'c': c}) as result:
                 self.assertEqual(
                     result,
                     pngout.get_colors_options(filename),
@@ -83,7 +81,7 @@ class PngoutTest(unittest.TestCase):
             lambda x, y=False: colors
         ):
             self.assertEqual(
-                {'c': 3, 'd': 7},
+                {'c': 3, 'd': 8},
                 pngout.get_colors_options(filename)
             )
         # Add additional alpha values but reuse rgb values.
@@ -104,6 +102,20 @@ class PngoutTest(unittest.TestCase):
                     pngout.get_colors_options(filename)
                 )
 
+    def test_round_up_slash_d(self):
+        for value, result in (
+            (0, 0),
+            (1, 1),
+            (2, 2),
+            (3, 4),
+            (4, 4),
+            (5, 8),
+            (6, 8),
+            (7, 8),
+            (8, 8),
+        ):
+            self.assertEqual(result, pngout.round_up_slash_d(value))
+
 def mock_pygamegen__colors_in(desired_options):
     if not desired_options:
         return {}
@@ -118,8 +130,7 @@ def mock_pygamegen__colors_in(desired_options):
         if desired_options['d'] not in (0, 1, 2, 4, 8):
             raise ValueError(desired_options)
         bits = desired_options['d']
-        # TODO Minimum possible should be (bits // 2 + 1).
-        min_bits = max(1, bits) - 1
+        min_bits = bits // 2
     elif c_option == 4:
         min_bits = 0
         bits = 8
