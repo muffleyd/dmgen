@@ -93,10 +93,13 @@ def get_colors_options(filename):
     grey = False
     alphas = set()
     colors = set()
+    # Palette (/c3) is valid if the full rgba set is <= 256 colors.
+    rgba_colors = set()
     for r, g, b, a in c:
         alphas.add(a)
         colors.add((r, g, b))
-    if len(colors) <= 256:
+        rgba_colors.add((r, g, b, a))
+    if len(rgba_colors) <= 256:
         for r, g, b in colors:
             if not (r == g == b):
                 break
@@ -110,7 +113,7 @@ def get_colors_options(filename):
     options = {}
     if grey:
         options['c'] = 0 + alpha_modifier
-    elif len(colors) > 256 or alpha_modifier:
+    elif len(rgba_colors) > 256:
         options['c'] = 2 + alpha_modifier
     else:
         options['c'] = 3
@@ -118,7 +121,7 @@ def get_colors_options(filename):
         # TODO Set the real values here.
         #      pngout silently converts these values up to the next valid option.
         #      e.g. /d3 => /d4, /d5 or /d6 or /d7 => /d8.
-        options['d'] = math.ceil(math.log(len(colors), 2))
+        options['d'] = math.ceil(math.log(len(rgba_colors), 2))
     return options
 
 

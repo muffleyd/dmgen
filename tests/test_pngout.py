@@ -63,7 +63,34 @@ class PngoutTest(unittest.TestCase):
                     result,
                     pngout.get_colors_options(filename),
                 )
-
+        
+        # Test fewer than 256 rgb values but more than 256 rgba values.
+        colors = generate_colors(100, False, True)
+        with patch(
+            'dmgen.pngout.pygamegen._colors_in',
+            lambda x, y=False: colors
+        ):
+            self.assertEqual(
+                {'c': 3, 'd': 7},
+                pngout.get_colors_options(filename)
+            )
+        # Add additional alpha values but reuse rgb values.
+        original_colors = list(colors)
+        for index, result in enumerate((
+            {'c': 3, 'd': 8},
+            {'c': 6},
+        )):
+            for r, g, b, a in original_colors:
+                colors.add((r, g, b, (a + 1 + index) % 256))
+            with patch(
+                'dmgen.pngout.pygamegen._colors_in',
+                lambda x, y=False: colors
+            ):
+                self.assertEqual(pngout.pygamegen._colors_in(filename), colors)
+                self.assertEqual(
+                    result,
+                    pngout.get_colors_options(filename)
+                )
 
 def mock_pygamegen__colors_in(desired_options):
     if not desired_options:
