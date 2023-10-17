@@ -11,10 +11,10 @@ from . import threaded_worker
 
 try:
     from . import pygamegen
-except ImportError as e:
+except ImportError as exc:
     import warnings
-    warnings.warn(Warning(f'bitdepth finding may not be optimal: {e}'))
-    del e
+    warnings.warn(Warning(f'bitdepth finding may not be optimal: {exc}'))
+    del exc
     pygamegen = None
 
 # process priority (windows and linux):
@@ -41,7 +41,6 @@ def pngout_build_command(filename, destination_filename, options):
 def pngout(filename, destfilename=None, options=None):
     """runs pngout on filename to destfilename (if given, else it's smart)
     fill this out with the pngout.exe options and such"""
-    # handle options spacing + slashes yourself please
     if not PNGOUT_EXE_PATH:
         raise FileNotFoundError('PNGOUT_EXE_PATH not set')
     command = pngout_build_command(filename, destfilename, options_to_string(options))
@@ -52,15 +51,14 @@ def options_to_string(options):
     if isinstance(options, dict):
         # Convert {n: 20, y: True} to '/n20 /y'
         return ' '.join(f'/{key}{value if value is not True else ""}' for key, value in options.items())
-    elif isinstance(options, str):
+    if isinstance(options, str):
         return options
-    elif hasattr(options, '__iter__'):
+    if hasattr(options, '__iter__'):
         # Convert ['/n20', '/y'] to '/n20 /y'
         return ' '.join(options)
-    elif not options:
+    if not options:
         return ''
-    else:
-        raise ValueError('Unknown options type.')
+    raise ValueError('Unknown options type.')
 
 
 def merge_options(one, two):
@@ -86,8 +84,8 @@ def get_colors_options(filename):
         return {}
     try:
         c = pygamegen._colors_in(filename, True)
-    except Exception:
-        # print 'error checking image color data', filename, e
+    except Exception as exc:
+        print('error checking image color data', filename, exc)
         return {}
 
     grey = False
@@ -101,7 +99,7 @@ def get_colors_options(filename):
         rgba_colors.add((r, g, b, a))
     if len(colors) <= 256:
         for r, g, b in colors:
-            if not (r == g == b):
+            if not r == g == b:
                 break
         else:
             grey = True
@@ -142,8 +140,8 @@ def pngout_for_find_best_compression(filename, output_filename, options):
     try:
         # TODO Parse pngoutput for size instead.
         size = os.stat(temp_filename)[6]
-    except OSError:  # usually file not made due to pngout error
-        raise Exception(pngoutput)
+    except OSError as exc:  # usually file not made due to pngout error
+        raise Exception(pngoutput) from exc
     # os.remove(temp_filename)
     return size, options
 
@@ -239,11 +237,11 @@ def find_best_compression(filename, threads=3, depth=5,
             print('prelim', size_start, options_to_string(options))
         if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
             size256, b_options, _ = check(worker, filename, output_directory,
-                                         [{'b': 256}], options)
+                                          [{'b': 256}], options)
             print(size256, options_to_string(options))
             raise NotAnException()
         b_size, b_options, every = check(worker, filename, output_directory,
-                                        [{'b': 128}, {'b': 256}, {'b': 512}], options)
+                                         [{'b': 128}, {'b': 256}, {'b': 512}], options)
         size256 = every[1][0]
         if verbose:
             print(b_size, options_to_string(b_options))
@@ -336,14 +334,13 @@ def do_many(files, depth=5, threads=CORES):
             total = len(fdata)
             print(f'0/{total}')
             for x in range(total):
+                filename = ''
+                front = f'{x + 1}/{total}'
                 try:
-                    filename = ''
-                    front = f'{x + 1}/{total}'
                     options, also_return = worker.get()
                     index = also_return[0]
                     filename, size = fdata[index]
                     front = f'{front} {filename} ({options_to_string(options)})'
-
                 except KeyboardInterrupt:
                     raise
                 except Exception as e:
@@ -390,13 +387,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         sys.argv.extend(input('input: ').split(' '))
     try:
-        r = main(*sys.argv[1:])
+        main(*sys.argv[1:])
     except:
         import traceback
-
         # open('pngout error log.txt','a').write(traceback.format_exc())
         print('EXCEPTION STARTED:')
         print(sys.argv[1:])
         input(traceback.format_exc())
-        r = 1
     sys.exit(0)
