@@ -73,7 +73,7 @@ def do2(input_filename, output_filename=None, options='', tw=None):
         for get in gets:
             temp, out, err = _tw.get(get)
             if err or out:
-                raise Exception(f'Error while processing file "{temp}"\n{err or out}')
+                raise Exception(f'Error while processing file "{input_filename}" -> "{temp}"\n{err or out}')
             if os.path.exists(temp):
                 new_size = os.stat(temp)[6]
                 if new_size and new_size < size:
