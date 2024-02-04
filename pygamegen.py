@@ -17,6 +17,14 @@ except ImportError:
     screen = None
 
 
+try:
+    import pygame.surfarray
+    import numpy
+except ImportError:
+    pygame.surfarray = None
+    numpy = None
+
+
 def mk_rect(point1, point2):
     rect = pygame.Rect(point1, (0, 0))
     if point1[0] < point2[0]:
@@ -308,6 +316,42 @@ def img_diff(one, two, empty=(0, 130, 0), alpha=False):
             new_two[xy:xy_plus] = second_rgba
     return (pygame.image.frombuffer(new_one, size, image_format),
             pygame.image.frombuffer(new_two, size, image_format))
+
+
+def img_diff_numpy(one, two, empty=(0, 130, 0), alpha=False):
+    """
+    Returns the difference between two images of the same size by covering the parts
+    of the images in the color `empty`.
+    """
+    if not numpy or not pygame.surfarray:
+        raise Exception('numpy not installed')
+    # Allow strings, expect them to be files
+    if isinstance(one, str):
+        one = pygame.image.load(one)
+    if isinstance(two, str):
+        two = pygame.image.load(two)
+    assert one.get_size() == two.get_size()
+    if alpha:
+        # Convert the packed 32-bit integer into the 4-element array.
+        one_color = pygame.surfarray.array2d(one)
+        one_array = one_color.view(dtype=numpy.uint8).reshape((*one_color.shape[0:2], 4))
+        two_color = pygame.surfarray.array2d(two)
+        two_array = two_color.view(dtype=numpy.uint8).reshape((*two_color.shape[0:2], 4))
+        if len(empty) == 3:
+            empty = (*empty, 255)
+    else:
+        # array3d does what we need without the alpha.
+        one_array = pygame.surfarray.array3d(one)
+        two_array = pygame.surfarray.array3d(two)
+
+    # Create the filter based on if the RGB(A) values match completely.
+    same_array = numpy.all(one_array == two_array, axis=2)
+    one_array[same_array] = empty
+    two_array[same_array] = empty
+
+    # Trim it to the first 3 values of each pixel in case alpha is included.
+    return (pygame.surfarray.make_surface(one_array[:,:,:3]),
+            pygame.surfarray.make_surface(two_array[:,:,:3]))
 
 
 def _colors_in(pic, includealpha=False):
