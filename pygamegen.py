@@ -325,7 +325,7 @@ def img_diff_numpy(one, two, empty=(0, 130, 0), alpha=False):
     """
     if not numpy or not pygame.surfarray:
         raise Exception('numpy not installed')
-    # Allow strings, expect them to be files
+    # Allow strings, expect them to be files.
     if isinstance(one, str):
         one = pygame.image.load(one)
     if isinstance(two, str):
@@ -333,6 +333,7 @@ def img_diff_numpy(one, two, empty=(0, 130, 0), alpha=False):
     assert one.get_size() == two.get_size()
     if alpha:
         # Convert the packed 32-bit integer into the 4-element array.
+        # Can't use pixels2d because *_color.view() throws a non-contiguous axis error.
         one_color = pygame.surfarray.array2d(one)
         one_array = one_color.view(dtype=numpy.uint8).reshape((*one_color.shape[0:2], 4))
         two_color = pygame.surfarray.array2d(two)
@@ -340,18 +341,22 @@ def img_diff_numpy(one, two, empty=(0, 130, 0), alpha=False):
         if len(empty) == 3:
             empty = (*empty, 255)
     else:
-        # array3d does what we need without the alpha.
-        one_array = pygame.surfarray.array3d(one)
-        two_array = pygame.surfarray.array3d(two)
+        # pixels3d does what we need without the alpha, and edits in-place.
+        one_array = pygame.surfarray.pixels3d(one)
+        two_array = pygame.surfarray.pixels3d(two)
 
     # Create the filter based on if the RGB(A) values match completely.
     same_array = numpy.all(one_array == two_array, axis=2)
     one_array[same_array] = empty
     two_array[same_array] = empty
 
-    # Trim it to the first 3 values of each pixel in case alpha is included.
-    return (pygame.surfarray.make_surface(one_array[:,:,:3]),
-            pygame.surfarray.make_surface(two_array[:,:,:3]))
+    if alpha:
+        # Above, alpha comparisons are done with an array copy, not reference.
+        # As such, recreate the surfaces from the modified arrays.
+        # Trim it to the first 3 values of each pixel to not pass alpha.
+        return (pygame.surfarray.make_surface(one_array[:,:,:3]),
+                pygame.surfarray.make_surface(two_array[:,:,:3]))
+    return one, two
 
 
 def _colors_in(pic, includealpha=False):
