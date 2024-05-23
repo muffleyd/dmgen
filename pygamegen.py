@@ -170,6 +170,19 @@ def invert(surf):
     return pygame.image.frombuffer(bytes(newstring), surf.get_size(), 'RGBA')
 
 
+def invert_numpy(surf):
+    if not numpy or not pygame.surfarray:
+        raise Exception('numpy not installed')
+    if isinstance(surf, str):
+        surf = pygame.image.load(surf)
+    else:
+        surf = surf.copy()
+    array = pygame.surfarray.pixels3d(surf)
+    array[:] = 255 - array
+    del array
+    return surf
+
+
 def avg_surf(surface):
     img_bytes = pygame.image.tostring(surface, 'RGB')
     size = len(img_bytes) // 3
@@ -668,10 +681,10 @@ def zoom_around(zoom=2, method=pygame.transform.smoothscale):
                 if zmod:
                     if zmod < 0:
                         for _ in range(-zmod):
-                            zoom *= .9
+                            zoom /= 1.1
                     else:
                         for _ in range(zmod):
-                            zoom *= 1.11111111
+                            zoom *= 1.1
                     pygame.display.set_caption(str(zoom) + ' ' + str(color))
                     s.fill((0, 0, 0), rect)
                     del use_s

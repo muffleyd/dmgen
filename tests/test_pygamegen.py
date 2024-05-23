@@ -13,6 +13,8 @@ class PygamegenTest(unittest.TestCase):
         surf = pg.pygame.Surface((100, 100))
         surf.fill((255, 127, 0))
         self.assertEqual(pg.avg_surf(pg.invert(surf)), (0, 128, 255))
+        surf.fill((0, 127, 0))
+        self.assertEqual(pg.avg_surf(pg.invert(surf)), (255, 128, 255))
 
     def test_mk_bw(self):
         surf = pg.pygame.Surface((100, 100))
