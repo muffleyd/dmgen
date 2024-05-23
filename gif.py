@@ -34,7 +34,11 @@ class Gif(object):
 
     def __init__(self, filename):
         if VERBOSE:
-            print('loading', os.path.relpath(filename))
+            try:
+                path = os.path.relpath(filename)
+            except ValueError:
+                path = os.path.abspath(filename)
+            print('loading', path)
         self.filename = filename
         self.data = data = open(filename, 'rb').read()
         # assert self.data[:6] == 'GIF89a'
