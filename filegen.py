@@ -216,9 +216,12 @@ def get_same_as_many_files(files1, files2, minsize=1):
     files1 = coerce_dir(files1)
     files2 = coerce_dir(files2)
     abspath = os.path.abspath
+    # [file_size] => [file_names]
     same_sizes = {}
+    # [file_size] => [[file_contents, file_name]]
     files_sizes = {}
-    files_set = set()  # prevents comparing a file to itself (same size, afterall!)
+    # A set of all files to ensure no file is compared to itself.
+    files_set = set()
     for i in files1:
         if not is_file(i):
             continue
