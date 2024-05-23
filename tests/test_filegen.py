@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import patch
 
-from mock_scandir import DirEntry
 import os
 import shutil
 import random
 from dmgen import filegen
+from dmgen.tests.mock_scandir import DirEntry
 
 
 class FilegenTest(unittest.TestCase):
