@@ -1,6 +1,8 @@
 from functools import partial as _partial
 import threading
-version = '0.9'
+from dataclasses import dataclass, field
+from typing import Any
+version = '0.10'
 
 # Queue2:
 # calls task_done() whenever something is removed,
@@ -19,62 +21,27 @@ def partial(target, *args, **keywords):
 
 
 partial.__doc__ = _partial.__doc__
-try:
-    from Queue2 import Queue
-except ImportError:
-    from queue import Queue as _Queue, Full
-    from time import monotonic as time
+from queue import Queue as _Queue, PriorityQueue as _PriorityQueue
+from time import monotonic as time
+class Queue(_Queue):
+    def get(self, block=True, timeout=None):
+        z = _Queue.get(self, block, timeout)
+        self.task_done()
+        return z
 
-    class Queue(_Queue):
-        def get(self, block=True, timeout=None):
-            z = _Queue.get(self, block, timeout)
-            self.task_done()
-            return z
+    def remove(self, item):
+        with self.not_empty:
+            self.queue.remove(item)
+            self.not_full.notify()
+        self.task_done()
 
-        def remove(self, item):
-            with self.not_empty:
-                self.queue.remove(item)
-                self.not_full.notify()
-            self.task_done()
+class PriorityQueue(Queue, _PriorityQueue):
+    pass
 
-        def put(self, item, block=True, timeout=None, head=False):
-            """Put an item into the queue.
-
-            If optional args 'block' is true and 'timeout' is None (the default),
-            block if necessary until a free slot is available. If 'timeout' is
-            a non-negative number, it blocks at most 'timeout' seconds and raises
-            the Full exception if no free slot was available within that time.
-            Otherwise ('block' is false), put an item on the queue if a free slot
-            is immediately available, else raise the Full exception ('timeout'
-            is ignored in that case).
-            """
-            with self.not_full:
-                if self.maxsize > 0:
-                    if not block:
-                        if self._qsize() >= self.maxsize:
-                            raise Full
-                    elif timeout is None:
-                        while self._qsize() >= self.maxsize:
-                            self.not_full.wait()
-                    elif timeout < 0:
-                        raise ValueError("'timeout' must be a positive number")
-                    else:
-                        endtime = time() + timeout
-                        while self._qsize() >= self.maxsize:
-                            remaining = endtime - time()
-                            if remaining <= 0.0:
-                                raise Full
-                            self.not_full.wait(remaining)
-                if head:
-                    self._puthead(item)
-                else:
-                    self._put(item)
-                self.unfinished_tasks += 1
-                self.not_empty.notify()
-
-        # Put a new item at the head of the queue
-        def _puthead(self, item):
-            self.queue.appendleft(item)
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: int
+    item: Any=field(compare=False)
 
 # TODO:
 # thread 1 puts data, so this handles it. meanwhile thread 2 puts data, then
@@ -166,13 +133,13 @@ class threaded_worker:
             self.pending_inds = Queue(max_done_stored)
         self.results = [None]
         if max_pending == 0:
-            self.pending = Queue(1)
+            self.pending = PriorityQueue(1)
             self.allow_pending = False
         elif max_pending is UNLIMITED_PENDING:
-            self.pending = Queue()
+            self.pending = PriorityQueue()
             self.allow_pending = True
         else:
-            self.pending = Queue(max_pending)
+            self.pending = PriorityQueue(max_pending)
             self.allow_pending = True
 
         self.isdone = threading.Lock()
@@ -280,7 +247,9 @@ class threaded_worker:
         elif num < 0:
             return
         for _ in range(num):
-            self.pending.put(_ENDTHREAD, head=now)
+            # Close now uses a higher priority than the normal data put so it's
+            # processed ASAP.
+            self.pending.put(PrioritizedItem(now and 255 or 0, _ENDTHREAD))
         if wait and num >= self.numthreads:
             # cannot just .join the Queue because there may be other items
             # after the .close()
@@ -384,7 +353,7 @@ class threaded_worker:
                 self.results.append([this_lock, None, None])
             else:
                 thisindex = 1  # cannot eval to False, that ends the thread
-            self.pending.put((func, data, kwargs, alsoreturn, store, thisindex))
+            self.pending.put(PrioritizedItem(0, (func, data, kwargs, alsoreturn, store, thisindex)))
 
         if self.threads_as_needed:
             self.start(1)
@@ -450,7 +419,7 @@ class threaded_worker:
            handles calling functions and places return values"""
         _THREADS.append(self)
         while 1:
-            func, data, kwargs, alsoreturn, store, index = self.pending.get()
+            func, data, kwargs, alsoreturn, store, index = self.pending.get().item
             if not index:  # ends the thread
                 self._updatenumthreads(-1)
                 _THREADS.remove(self)
