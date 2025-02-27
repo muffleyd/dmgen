@@ -584,45 +584,12 @@ def extras(it):
 
 
 def _set_compare(one, two, func):
-    # making the smaller one into a set is faster
-    if isinstance(one, set):
-        if isinstance(two, set):
-            if len(one) < len(two):
-                s = one
-                t = two
-            else:
-                s = two
-                t = one
-        else:
-            s = one
-            t = two
-    elif isinstance(two, set):
-        s = two
-        t = one
-    elif len(one) < len(two):
-        s = set(one)
-        t = two
-    else:
-        s = set(two)
-        t = one
-    return list(func(s, t))
-
-
-def _set_compare2(one, two, func):
-    if len(one) < len(two):
-        if not isinstance(one, set):
-            s = set(one)
-        else:
-            s = one
-        t = two
-    else:
-        if not isinstance(two, set):
-            s = set(two)
-        else:
-            s = two
-        t = one
-    return list(func(s, t))
-
+    if len(one) > len(two):
+        one, two = two, one
+    if not isinstance(one, set):
+        one = set(one)
+    return list(func(one, two))
+_set_compare2 = _set_compare
 
 def change_tuple(tuple, index, data):
     if index < 0:
@@ -864,16 +831,3 @@ def formatli(li):  # I made to print out a number triangle from a euler problem
     for i in f:
         print(' ' * ((maxlen // 2) - int(i) // 2), end=' ')
         print(i)
-
-
-def test_set_cmpr(ttr=.2, firstset=True, secondset=False):
-    a = list(range(5))
-    b = list(range(15))
-    print(test_seconds(_set_compare, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference],
-                       time_to_run=ttr, loops=10000)[:2])
-    print(test_seconds(_set_compare, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference],
-                       time_to_run=ttr, loops=10000)[:2])
-    print(test_seconds(_set_compare2, [firstset and set(a) or a, secondset and set(b) or b, set.symmetric_difference],
-                       time_to_run=ttr, loops=10000)[:2])
-    print(test_seconds(_set_compare2, [firstset and set(b) or b, secondset and set(a) or a, set.symmetric_difference],
-                       time_to_run=ttr, loops=10000)[:2])
