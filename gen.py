@@ -493,12 +493,11 @@ def changebase(number, base=10):
 
 __basestr = list('0123456789ABCDEFGHIJKLMNOPQRSTUV')
 
-
 def binarybyte(number):  # direct method is fastest :]
-    return ((number // 128) & 1 and '1' or '0') + ((number // 64) & 1 and '1' or '0') + \
-           ((number // 32) & 1 and '1' or '0') + ((number // 16) & 1 and '1' or '0') + \
-           ((number // 8) & 1 and '1' or '0') + ((number // 4) & 1 and '1' or '0') + \
-           ((number // 2) & 1 and '1' or '0') + (number & 1 and '1' or '0')
+    return ('1' if (number // 128) & 1 else '0') + ('1' if (number // 64) & 1 else '0') + \
+           ('1' if (number // 32) & 1 else '0') + ('1' if (number // 16) & 1 else '0') + \
+           ('1' if (number // 8) & 1 else '0') + ('1' if (number // 4) & 1 else '0') + \
+           ('1' if (number // 2) & 1 else '0') + ('1' if number & 1 else '0')
 
 
 def encode(what, by):
