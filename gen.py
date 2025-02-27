@@ -542,25 +542,26 @@ def str_range(start, stop=None, step=1, str_len=1):
         top_len = start_len
     if top_len > str_len:
         str_len = top_len
-    return [i.zfill(str_len) for i in map(str, range(start, stop, step))]
+    return (str(i).zfill(str_len) for i in range(start, stop, step))
 
 
-def remove_duplicates(it, todo=None):
-    # takes in an iterable, and removes duplicate entries (makes it like a set)
-    # but stays in order
+def remove_duplicates(data, new_type=None):
+    # Takes in an iterable, and removes duplicate entries (makes it like a
+    # set), but stays in order.
     curind = 0
     done = set()
-    data2 = []
-    for i in it:
-        if i not in done:
-            done.add(i)
-            data2.append(i)
-    typeit = todo and todo or type(it)
-    if typeit == str:
-        return ''.join(data2)
-    if isinstance(data2, typeit):
-        return data2
-    return typeit(data2)
+    parsed_data = []
+    for element in data:
+        if element not in done:
+            done.add(element)
+            parsed_data.append(element)
+    if not new_type:
+        new_type = type(data)
+    if new_type == str:
+        return ''.join(parsed_data)
+    if isinstance(parsed_data, new_type):
+        return parsed_data
+    return new_type(parsed_data)
 
 
 def extras(it):
