@@ -49,7 +49,7 @@ class ResponseCache:
             response, is_bytes, eol = self.cache.get(url, (None, None, None))
             if self.debug:
                 if response:
-                    print(url, len(response), is_bytes, eol, time.time())
+                    print('retrieved from cache', url, len(response), is_bytes, eol, time.time())
                 else:
                     print('not in cache', url)
             if eol is not None and eol < time.time():
@@ -79,12 +79,12 @@ class ResponseCache:
         while 1:
             # waits for a value to come into the queue
             val = self.queue.get()
-            if self.debug:
-                print('told to save')
             if not val or _EXIT:
                 if self.debug:
                     print('exited')
                 return
+            if self.debug:
+                print('told to save')
             # waits for .1 additional seconds to allow additional save requests to pile up
             time.sleep(.1)
             # obtains the API lock so get_response() can't modify the object during the json dump
@@ -98,7 +98,7 @@ class ResponseCache:
                     val = self.queue.get()
                     if not val:
                         if self.debug:
-                            print('save aborted, exiting')
+                            print('wrapping up before exiting')
                         _EXIT = True
                         self.queue.put(0)
                         break
