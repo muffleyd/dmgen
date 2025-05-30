@@ -83,11 +83,11 @@ class GenTest(unittest.TestCase):
         self.assertEqual(gen.changebase(65535, 4), '33333333')
         self.assertEqual(gen.changebase(65536, 4), '100000000')
     
-    def test_binarybyte(self):
-        self.assertEqual(gen.binarybyte(255), '11111111')
-        self.assertEqual(gen.binarybyte(254), '11111110')
-        self.assertEqual(gen.binarybyte(25), '00011001')
-        self.assertEqual(gen.binarybyte(-1), '11111111')
+    def test_binary_byte(self):
+        self.assertEqual(gen.binary_byte(255), '11111111')
+        self.assertEqual(gen.binary_byte(254), '11111110')
+        self.assertEqual(gen.binary_byte(25), '00011001')
+        self.assertEqual(gen.binary_byte(-1), '11111111')
 
     def test_insertevery(self):
         val = '01100110011001100110011001100101'  # A 32-bit number.

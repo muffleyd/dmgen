@@ -493,11 +493,16 @@ def changebase(number, base=10):
 
 __basestr = list('0123456789ABCDEFGHIJKLMNOPQRSTUV')
 
-def binarybyte(number):  # direct method is fastest :]
-    return ('1' if (number // 128) & 1 else '0') + ('1' if (number // 64) & 1 else '0') + \
-           ('1' if (number // 32) & 1 else '0') + ('1' if (number // 16) & 1 else '0') + \
-           ('1' if (number // 8) & 1 else '0') + ('1' if (number // 4) & 1 else '0') + \
-           ('1' if (number // 2) & 1 else '0') + ('1' if number & 1 else '0')
+
+def binary_byte(number):
+    """Returns an 8-bit string representation of the number."""
+    return f'{number%256:08b}'
+
+
+def binarybyte(number):
+    import warnings
+    warnings.warn('binarybyte(number) is deprecated, use binary_byte(number)')
+    return binary_byte(number)
 
 
 def encode(what, by):
