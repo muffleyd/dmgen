@@ -291,7 +291,7 @@ def test_seconds_prnt(func, args=(), kwargs=None, ttr=None):
 def dims_from_pixels(pixels, format):
     # format is 4/3, 16/9, etc, or None for...
     if format is None:  # guessing
-        for form in (4 / 3, 5 / 4, 16 / 9, 16 / 10, 19 / 12):
+        for form in (4 / 3, 5 / 4, 16 / 9, 16 / 10, 19 / 12, 8 / 7):
             try:
                 return dims_from_pixels(pixels, form)
             except AssertionError:
