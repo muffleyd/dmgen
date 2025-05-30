@@ -11,9 +11,9 @@ import threading
 import queue
 import functools
 from collections import deque
-from . import timer
-from . import menu
-from . import lint
+from . import timer as _timer
+from . import menu as _menu
+from . import lint as _lint
 
 monotonic = time.monotonic
 
@@ -270,13 +270,13 @@ def dims_from_pixels(pixels, format):
 def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
     import warnings
     warnings.warn('gen.lint is deprecated, use lint.lint')
-    lint.lint(file, outputfile, ignore, extras, defaultignores)
+    _lint.lint(file, outputfile, ignore, extras, defaultignores)
 
 
 def lint_many(files=[], outputfolder=None, ignore=[], extras='', defaultignore=True):
     import warnings
     warnings.warn('gen.lint_many is deprecated, use lint.lint_many')
-    lint.lint_many(files, outputfolder, ignore, extras, defaultignore)
+    _lint.lint_many(files, outputfolder, ignore, extras, defaultignore)
 
 
 def default_of(ask, default, type):
@@ -555,13 +555,13 @@ def _return_print_dict(dictionary, spaces=0, between='\n'):
 def timer(*args, **kwargs):
     import warnings
     warnings.warn('gen.timer is deprecated, use timer.Timer')
-    return timer.Timer(*args, **kwargs)
+    return _timer.Timer(*args, **kwargs)
 
 
 def menu(*args, **kwargs):
     import warnings
     warnings.warn('gen.menu is deprecated, use menu.menu)')
-    return menu.menu(*args, **kwargs)
+    return _menu.menu(*args, **kwargs)
 
 
 def formatli(li):  # I made to print out a number triangle from a euler problem
