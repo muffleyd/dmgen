@@ -208,7 +208,6 @@ def path(i):
     return i.path if hasattr(i, 'path') else i
 
 # TODO Merge these two.
-
 def get_same_as_many_files(files1, files2, minsize=1):
     # there's probably some optimization in which list is smaller
     if not files1 or not files2:
