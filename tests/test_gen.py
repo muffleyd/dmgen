@@ -80,7 +80,9 @@ class GenTest(unittest.TestCase):
     def test_changebase(self):
         self.assertEqual(gen.changebase(255, 2), '11111111')
         self.assertEqual(gen.changebase(255, 16), 'FF')
+        self.assertEqual(gen.changebase(255, 32), '7V')
         self.assertEqual(gen.changebase(65535, 4), '33333333')
+        self.assertEqual(gen.changebase(65535, 32), '1VVV')
         self.assertEqual(gen.changebase(65536, 4), '100000000')
     
     def test_binary_byte(self):
@@ -94,10 +96,10 @@ class GenTest(unittest.TestCase):
         self.assertEqual(gen.insertevery(val, 8), '01100110 01100110 01100110 01100101')
 
     def test_str_range(self):
-        self.assertEqual(gen.str_range(10), ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
-        self.assertEqual(gen.str_range(9, 11), ['09', '10'])
-        self.assertEqual(gen.str_range(10, str_len=2), ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'])
-        self.assertEqual(gen.str_range(0, 10, str_len=2), gen.str_range(10, str_len=2))
+        self.assertEqual(list(gen.str_range(10)), ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+        self.assertEqual(list(gen.str_range(9, 11)), ['09', '10'])
+        self.assertEqual(list(gen.str_range(10, str_len=2)), ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'])
+        self.assertEqual(list(gen.str_range(0, 10, str_len=2)), list(gen.str_range(10, str_len=2)))
 
     def test_remove_duplicates(self):
         self.assertEqual(gen.remove_duplicates(list(range(10))), list(range(10)))
