@@ -179,7 +179,7 @@ def test_seconds(func, args=(), kwargs=None, time_to_run=TEST_SECONDS_TTR, loops
     :param func: The function to benchmark, called like so: func(*args, **kwargs).
     :param args: Unnamed arguments passed into func like func(*args).
     :param kwargs: Named arguments passed into func like func(**kwargs).
-    :param time_to_run: How long the benchmarking should continue.
+    :param time_to_run: How long in seconds the benchmarking should continue.
     :param loops: How many times to call func before checking if it's time to stop.
                   For extremely short-running functions this can be very important to fine-tune.
                   e.g. test_seconds(time.time, loops=100) will run 2.3x more times than test_seconds(time.time).
@@ -245,8 +245,8 @@ def test_seconds_prnt(func, args=(), kwargs=None, ttr=None):
     if kwargs is None:
         kwargs = {}
     a, b, c = test_seconds(func, args, kwargs, ttr)
-    print('(%s, %s, %s)' % (not isinstance(a, int) and round(a, 4) or a,
-                            not isinstance(b, int) and round(b, 4) or b,
+    print('(%s, %s, %s)' % (a if isinstance(a, int) else round(a, 4),
+                            b if isinstance(b, int) else round(b, 4),
                             c))
 
 
