@@ -13,6 +13,7 @@ import functools
 from collections import deque
 from . import timer
 from . import menu
+from . import lint
 
 monotonic = time.monotonic
 
@@ -266,46 +267,16 @@ def dims_from_pixels(pixels, format):
     return int(x), int(y)
 
 
-LINT_DEFAULT_IGNORES = ['C0103', 'C0111',
-                        'W0622', 'W0702', 'R0913',
-                        'W0401', 'W0703', 'W0603']
-
-
 def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
-    import pylint.lint
-    ignore = defaultignores and ignore + LINT_DEFAULT_IGNORES or ignore
-    file = file or sys.argv[0]
-    if outputfile is sys.stdout:
-        outputfile = ''
-    elif outputfile is None:
-        outputfile = os.path.splitext(file)[0] + '.lint.txt'
-    # do i really need this to be r'""%s" -m...', with 2 " at the start?
-    command = '""%s" -m pylint.lint --include-ids=y%s%s%s%s' \
-              % (sys.executable.replace('pythonw.exe', 'python.exe'),
-                 ignore and ' --disable=' + ','.join(ignore) or '',
-                 extras and ' %s ' % extras or '',
-                 ' "%s"' % file,
-                 outputfile and ' > "%s"' % outputfile or '')
-    command = ['--extension-pkg-whitelist=pygame']
-    if ignore:
-        command.append('--disable=' + ','.join(ignore))
-    if extras:
-        command.append(extras)
-    if outputfile:
-        command.append('--output=%s' % (outputfile))
-    command.append(file)
-    print(command)
-    pylint.lint.Run(command, exit=False)
+    import warnings
+    warnings.warn('gen.lint is deprecated, use lint.lint')
+    lint.lint(file, outputfile, ignore, extras, defaultignores)
 
 
 def lint_many(files=[], outputfolder=None, ignore=[], extras='', defaultignore=True):
-    for i in files:
-        f = os.path.join(outputfolder, os.path.split(i)[0])
-        if not os.path.exists(f):
-            os.makedirs(f)
-        lint(i, os.path.join(outputfolder, i + 'LINT.txt'), ignore, extras, defaultignore)
-
-# lint_many([i for i in os.listdir('.') if i[-3:] == '.py'], 'lint')
+    import warnings
+    warnings.warn('gen.lint_many is deprecated, use lint.lint_many')
+    lint.lint_many(files, outputfolder, ignore, extras, defaultignore)
 
 
 def default_of(ask, default, type):
