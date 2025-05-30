@@ -334,7 +334,7 @@ def lint(file=None, outputfile=None, ignore=[], extras='', defaultignores=True):
         command.append('--output=%s' % (outputfile))
     command.append(file)
     print(command)
-    pylint.lint.Run(command, do_exit=False)
+    pylint.lint.Run(command, exit=False)
 
 
 def lint_many(files=[], outputfolder=None, ignore=[], extras='', defaultignore=True):
