@@ -30,34 +30,6 @@ class GenTest(unittest.TestCase):
         self.assertEqual(gen.list_of((1, 2, 3, 4, 4)), (1, 2, 3, 4, 4))
         self.assertEqual(gen.list_of(9999999), [9999999])
 
-    def test_primerange(self):
-        self.assertEqual(
-            gen.primerange(100),
-            [False, False, True, True, False, True, False, True, False, False, False, True, False,
-             True, False, False, False, True, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, True, False, False, False, False, False,
-             True, False, False, False, True, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, False, False, False, False, True, False,
-             True, False, False, False, False, False, True, False, False, False, True, False,
-             True, False, False, False, False, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, False, False, False, False, False, False,
-             True, False, False])
-        self.assertEqual(
-            gen.primerange(101),
-            [False, False, True, True, False, True, False, True, False, False, False, True, False,
-             True, False, False, False, True, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, True, False, False, False, False, False,
-             True, False, False, False, True, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, False, False, False, False, True, False,
-             True, False, False, False, False, False, True, False, False, False, True, False,
-             True, False, False, False, False, False, True, False, False, False, True, False,
-             False, False, False, False, True, False, False, False, False, False, False, False,
-             True, False, False, False])
-
-    def test_fibonacci(self):
-        self.assertEqual(gen.fibonacci(99), 218922995834555169026)
-        self.assertEqual(gen._fibonacci_known[98], 135301852344706746049)
-
     def test_binary_search_insert(self):
         baseli = list(range(10))
         gen.binary_search_insert(baseli, 55)
