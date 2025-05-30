@@ -40,6 +40,7 @@ class PriorityQueue(Queue, _PriorityQueue):
 
 @dataclass(order=True)
 class PrioritizedItem:
+    super_priority: int
     priority: int
     item: Any=field(compare=False)
 
@@ -249,7 +250,7 @@ class threaded_worker:
         for _ in range(num):
             # Close now uses a higher priority than the normal data put so it's
             # processed ASAP.
-            self.pending.put(PrioritizedItem(now and 255 or 0, _ENDTHREAD))
+            self.pending.put(PrioritizedItem(255, 0, _ENDTHREAD))
         if wait and num >= self.numthreads:
             # cannot just .join the Queue because there may be other items
             # after the .close()
@@ -353,7 +354,7 @@ class threaded_worker:
                 self.results.append([this_lock, None, None])
             else:
                 thisindex = 1  # cannot eval to False, that ends the thread
-            self.pending.put(PrioritizedItem(0, (func, data, kwargs, alsoreturn, store, thisindex)))
+            self.pending.put(PrioritizedItem(0, thisindex, (func, data, kwargs, alsoreturn, store, thisindex)))
 
         if self.threads_as_needed:
             self.start(1)
