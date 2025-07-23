@@ -239,7 +239,8 @@ def find_best_compression(filename, threads=3, depth=5,
         if depth < 2 or (hasattr(depth, '__iter__') and 1 not in depth):
             size256, b_options, _ = check(worker, filename, output_directory,
                                           [{'b': 256}], options)
-            print(size256, options_to_string(options))
+            if verbose:
+                print(size256, options_to_string(options))
             raise NotAnException()
         b_size, b_options, every = check(worker, filename, output_directory,
                                          [{'b': 128}, {'b': 256}, {'b': 512}], options)
