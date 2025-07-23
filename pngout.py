@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import shutil
+import traceback
 import math
 import operator
 from .cores import CORES
@@ -322,6 +323,16 @@ def find_best_compression(filename, threads=3, depth=5,
 
 
 def do_many(files, depth=5, threads=CORES):
+    # do_many_yield yields everything, this only returns all the exceptions.
+    return [
+        (filename, *exception)
+        for filename, exception
+        in do_many_yield(files, depth, threads)
+        if exception
+    ]
+
+
+def do_many_yield(files, depth=5, threads=CORES):
     failed = []
     # pstdout, out = sys.stdout, open('output.txt','w')
     fdata = []
@@ -329,25 +340,23 @@ def do_many(files, depth=5, threads=CORES):
     with threaded_worker.threaded_worker(find_best_compression, threads, wait_at_end=True) as worker:
         with threaded_worker.threaded_worker(pngout_for_find_best_compression, threads) as inworker:
             for index, filename in enumerate(files):
+                worker.put(filename, inworker, depth, verbose=False)
                 fdata.append((filename, os.stat(filename)[6]))
-                worker.put(filename, inworker, depth, verbose=False, alsoreturn=index)
             total = len(fdata)
             print(f'0/{total}')
             for x in range(total):
-                filename = ''
-                front = f'{x + 1}/{total}'
+                # This touches the internals of threaded_worker :(
+                index = worker.completed_inds.get()
+                filename, size = fdata[index - 1]
+                front = f'{x + 1}/{total} {filename}'
                 try:
-                    options, also_return = worker.get()
-                    index = also_return[0]
-                    filename, size = fdata[index]
-                    front = f'{front} {filename} ({options_to_string(options)})'
-                except KeyboardInterrupt:
-                    raise
+                    options = worker.get(index)
                 except Exception as e:
-                    # filename isn't correct here, TODO find how to make it correct.
-                    failed.append((filename, e))
-                    print(f'{front}: error {str(e)}')
+                    yield filename, (e, traceback.format_exc())
+                    print(f'{front}: error {traceback.format_exc()}')
                     continue
+                yield filename, None
+                front = f'{front} ({options_to_string(options)})'
                 new_size = os.stat(filename)[6]
                 if new_size < size:
                     end_size += new_size
@@ -389,7 +398,6 @@ if __name__ == '__main__':
     try:
         main(*sys.argv[1:])
     except:
-        import traceback
         # open('pngout error log.txt','a').write(traceback.format_exc())
         print('EXCEPTION STARTED:')
         print(sys.argv[1:])

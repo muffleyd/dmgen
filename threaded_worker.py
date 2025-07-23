@@ -98,12 +98,17 @@ class threaded_worker:
     #              'allow_pending', 'wait_at_end', 'results', 'raise_onexc',
     #              'putlock', 'active_threads', 'threads_as_needed', 'isdone',
     #              'func', 'thisindex', 'pending', 'changethreads_lock')
-    def __init__(self, func=None,
-                 threads=THREADS_AS_NEEDED, max_pending=UNLIMITED_PENDING,
-                 max_done_stored=UNLIMITED_PENDING,
-                 onexc=lambda etype, value, tb: None,
-                 wait_at_end=False, raise_onexc=True,
-                 track=False):
+    def __init__(
+            self,
+            func=None,
+            threads=THREADS_AS_NEEDED,
+            max_pending=UNLIMITED_PENDING,
+            max_done_stored=UNLIMITED_PENDING,
+            onexc=lambda etype, value, tb: None,
+            wait_at_end=False,
+            raise_onexc=True,
+            track=False
+        ):
         """Starts the worker.
         func is the function that will be called by default in .put().
         threads is the number of threads to run together.
@@ -404,7 +409,12 @@ class threaded_worker:
             return
         if index is not None:
             # Not good, alter Queue.py for this.
-            self.completed_inds.remove(index)
+            try:
+                self.completed_inds.remove(index)
+            # It could have been removed by the user before this call to get().
+            # All we care about is that it's not in the completed_inds queue.
+            except ValueError:
+                pass
             self.pending_inds.remove(index)
         else:
             self.pending_inds.remove(_index)
