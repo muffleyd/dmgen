@@ -103,29 +103,37 @@ def do(filename, options='', tw=None):
 
 
 def do_many(files, options='', threads=None, verbose=True):
+    # do_many_yield yields everything, this only returns all the exceptions.
+    return [
+        (filename, *exception)
+        for filename, exception
+        in do_many_yield(files, options, threads, verbose)
+        if exception
+    ]
+
+
+def do_many_yield(files, options='', threads=None, verbose=True):
     # global worker #global for debugging purposes
     if isinstance(files, str):
         files = filegen.files_in_scandir(files)
     if not threads:
         threads = CORES
     todo = []
-    failed = []
     start_size = end_size = 0
     with threaded_worker.threaded_worker(do, threads, wait_at_end=True) as worker:
         with threaded_worker.threaded_worker(jpeg, threads, wait_at_end=True) as internal_worker:
             for filename in files:
-                todo.append(worker.put(filename, options, internal_worker))
+                todo.append((filename, worker.put(filename, options, internal_worker)))
             total = len(todo)
             if verbose:
                 print(f'0/{total}')
-            for ind in range(1, total + 1):
+            for original_filename, ind in todo:
                 try:
                     filename, out, size, new_size = worker.get(ind)
-                except KeyboardInterrupt:
-                    raise
                 except Exception as e:
-                    failed.append((ind, e, traceback.format_exc()))
+                    yield original_filename, (e, traceback.format_exc())
                     continue
+                yield filename, None
                 if new_size < size:
                     end_size += new_size
                     start_size += size
@@ -144,7 +152,6 @@ def do_many(files, options='', threads=None, verbose=True):
             print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
         else:
             print(f'{start_size} -> {end_size} ({100:.1f}%)')
-    return failed
 
 
 if __name__ == '__main__':
