@@ -6,12 +6,10 @@ from . import threaded_worker
 from . import filegen
 from .cores import CORES
 
-JPEGTRAN_EXE_PATH = ''
-if os.name == 'nt':
+JPEGTRAN_EXE_PATH = shutil.which('jpegtran') or ''
+if not os.path.exists(JPEGTRAN_EXE_PATH) and os.name == 'nt':
     myhome = os.environ.get('HOME') or os.environ.get('USERPROFILE')
     JPEGTRAN_EXE_PATH = os.path.join(myhome, 'Desktop', 'jpegtran.exe')
-if not os.path.exists(JPEGTRAN_EXE_PATH):
-    JPEGTRAN_EXE_PATH = shutil.which('jpegtran') or ''
 if not os.path.exists(JPEGTRAN_EXE_PATH):
     import warnings
     EXE_MISSING = 'jpegtran executable not found, set variable `JPEGTRAN_EXE_PATH` as file location'
