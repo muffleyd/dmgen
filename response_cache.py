@@ -4,7 +4,7 @@ import base64
 import json
 import threading
 from queue import Queue
-from dmgen import gen
+from dmgen.timer import Timer
 
 class ResponseCache:
     CACHE_FILENAME = '_response_cache.json'
@@ -107,9 +107,9 @@ class ResponseCache:
                 self.trim()
                 if self.debug:
                     print('saving')
-                with gen.timer(do_print=self.debug, before='dump to json '):
+                with Timer(do_print=self.debug, before='dump to json '):
                     data = json.dumps(self.cache)
-                with gen.timer(do_print=self.debug, before='write to file '):
+                with Timer(do_print=self.debug, before='write to file '):
                     with open(self.CACHE_FILENAME, 'w') as cache_file:
                         cache_file.write(data)
                 if self.debug:
