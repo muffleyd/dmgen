@@ -8,6 +8,7 @@ import traceback
 from collections import deque
 from . import threaded_worker
 from . import gen
+from .timer import Timer
 
 sepjoin = os.sep.join
 
