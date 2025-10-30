@@ -1,39 +1,81 @@
 import os
+from dataclasses import dataclass
+import sqlite3
 import time
-import base64
-import json
 import threading
-from queue import Queue
-from dmgen.timer import Timer
+from queue import Empty, Queue
+import traceback
 
+
+SAVE = 1
+CLOSE = 2
+
+
+@dataclass
 class ResponseCache:
-    CACHE_FILENAME = '_response_cache.json'
+    call_function: callable = None
+    debug: bool = False
+    cache_life: int = 36000
+    wait_for_close: bool = True
+    filename: str = '_response_cache.sqlite3'
 
-    def __init__(self, call_function=None, *, debug=False, cache_life=36000, wait_for_close=True):
-        self.call_function = call_function or self.value_not_cached
-        self.debug = debug
-        self.cache_life = cache_life
-        self.do_wait_for_close = wait_for_close
-        self.cache = {}
-        self.loaded = False
-        self.lock = threading.Lock()
-        self.queue = Queue()
+    def __post_init__(self):
+        if not self.call_function:
+            self.call_function = self.value_not_cached
+        self.db = None
         self.saver_thread = None
+        self.queue = Queue()
+        self.lock = threading.Lock()
 
     def __enter__(self):
-        self.load()
-        self.start()
-        return self
-
-    def __exit__(self, *args):
-        self.close()
-        if self.do_wait_for_close:
-            self.wait_for_close()
-
-    def start(self):
+        self.db = self.connect()
         if not self.saver_thread or not self.saver_thread.is_alive():
             self.saver_thread = threading.Thread(target=self._saver_thread, daemon=True)
             self.saver_thread.start()
+        return self
+
+    def __exit__(self, *args):
+        # Close the saver thread.
+        self.queue.put(CLOSE)
+        self.wait_for_close(self)
+        self.db.close()
+
+    def connect(self):
+        if not os.path.exists(self.filename):
+            self.create_db()
+        with self.lock:
+            if self.db:
+                # Test for a closed db connection.
+                try:
+                    self.db.cursor()
+                except Exception:
+                    self.db = None
+            if not self.db:
+                if self.debug:
+                    print('connecting to database', self.filename)
+                self.db = sqlite3.connect(self.filename, check_same_thread=False)
+        return self.db
+
+    def create_db(self):
+        db = sqlite3.connect(self.filename)
+        try:
+            c = db.cursor()
+            # A list of all data.
+            c.execute('CREATE TABLE data (key text, data text, time real)')
+            db.commit()
+        except:
+            try:
+                db.close()
+            except:
+                pass
+            os.remove(self.filename)
+            raise
+        else:
+            db.close()
+
+    # Requests that the api save thread makes a save.
+    def save(self):
+        self.queue.put(SAVE)
 
     # A default method to call during get_response which throws an exception if the value isn't already cached.
     def value_not_cached(self, url):
@@ -46,74 +88,80 @@ class ResponseCache:
             print('fetching', url)
         # todo include options
         with self.lock:
-            response, is_bytes, eol = self.cache.get(url, (None, None, None))
+            data = self.db.execute('SELECT data, time from data WHERE key = ?', [url]).fetchone()
+            if data:
+                response, eol = data
+            else:
+                response = eol = None
             if self.debug:
                 if response:
-                    print('retrieved from cache', url, len(response), is_bytes, eol, time.time())
+                    print('retrieved from cache', url, len(response), eol, time.time())
                 else:
                     print('not in cache', url)
             if eol is not None and eol < time.time():
-                del self.cache[url]
-                response = None
-        if response:
-            if is_bytes:
-                response = base64.b64decode(response)
-        else:
+                self.db.execute('DELETE from data WHERE key = ?', [url])
+                self.save()
+                response = eol = None
+        # @todo Allow response to be None.
+        if not response:
             retry = True
             while retry:
                 response, retry = call_function(url)
             with self.lock:
-                # To be saved in json, bytes must be converted to ascii.
-                is_bytes = isinstance(response, bytes)
-                self.cache[url] = (
-                    is_bytes and base64.b64encode(response).decode() or response,
-                    is_bytes,
-                    time.time() + self.cache_life
-                )
-            self.save()
+                args = [url, response, time.time() + self.cache_life]
+                self.db.execute('INSERT INTO data (key, data, time) VALUES (?, ?, ?)', args)
+                self.save()
         return response
 
-    # saving to the API is handled by a thread
     def _saver_thread(self):
-        _EXIT = False
-        while 1:
-            # waits for a value to come into the queue
-            val = self.queue.get()
-            if not val or _EXIT:
-                if self.debug:
-                    print('exited')
-                return
+        try:
+            self._saver_thread_inner()
+        except Exception as e:
             if self.debug:
-                print('told to save')
-            # waits for .1 additional seconds to allow additional save requests to pile up
-            time.sleep(.1)
-            # obtains the API lock so get_response() can't modify the object during the json dump
-            with self.lock:
+                print(traceback.format_exc())
+            raise
+
+    # Saving to the API is handled by a thread.
+    def _saver_thread_inner(self):
+        next_save_time = 0
+        save_flag = False
+        exit = False
+        while 1:
+            try:
+                # Waits for a value to come into the queue.
+                # Times out every 0.01 seconds to allow the deferred save to work.
+                val = self.queue.get(True, 0.01)
+            except Empty:
+                val = None
+            if val == CLOSE:
                 if self.debug:
-                    print('clearing queue')
-                # empty the queue in case there has been additional save requests
-                for _ in range(500):
-                    if self.queue.empty():
-                        break
-                    val = self.queue.get()
-                    if not val:
-                        if self.debug:
-                            print('wrapping up before exiting')
-                        _EXIT = True
-                        self.queue.put(0)
-                        break
+                    print('exit queued')
+                exit = True
+                # Set the next save time such that if the save flag is set it
+                # will save before ending the thread.
+                next_save_time = 0
+            if save_flag:
+                if time.monotonic() >= next_save_time:
+                    if self.debug:
+                        print('saving')
+                    with self.lock:
+                        self.db.commit()
+                    if self.debug:
+                        print('saved')
+                    save_flag = False
+            elif val == SAVE:
                 if self.debug:
-                    print('trimming')
-                self.trim()
+                    print('told to save')
+                save_flag = True
+                next_save_time = time.monotonic() + 0.1
+            if exit:
                 if self.debug:
-                    print('saving')
-                with Timer(do_print=self.debug, before='dump to json '):
-                    data = json.dumps(self.cache)
-                with Timer(do_print=self.debug, before='write to file '):
-                    with open(self.CACHE_FILENAME, 'w') as cache_file:
-                        cache_file.write(data)
+                    print('vacuuming')
+                with self.lock:
+                    self.db.execute('vacuum')
                 if self.debug:
-                    print('saved')
+                    print('exiting')
+                return
 
     def wait_for_close(self, timeout=10):
         if self.debug:
@@ -122,32 +170,3 @@ class ResponseCache:
         while self.saver_thread.is_alive() and time.monotonic() - start_time < timeout:
             time.sleep(0.01)
         return not self.saver_thread.is_alive()
-
-    # requests that the api save thread makes a save
-    def save(self):
-        self.queue.put(1)
-
-    def load(self, force=False):
-        if self.loaded and not force:
-            return
-        if os.path.exists(self.CACHE_FILENAME):
-            with open(self.CACHE_FILENAME, 'r') as cache_file:
-                self.cache = json.load(cache_file)
-        # Handle out-of-date data structure.
-        for key in list(self.cache.keys()):
-            if len(self.cache[key]) == 2:
-                response, end_of_life = self.cache[key]
-                self.cache[key] = (response, False, end_of_life)
-        self.trim()
-        self.loaded = True
-
-    def trim(self):
-        # clear old values
-        current_time = time.time()
-        for url in list(self.cache.keys()):
-            end_of_life = self.cache[url][-1]
-            if end_of_life < current_time:
-                del self.cache[url]
-
-    def close(self):
-        self.queue.put(0)
