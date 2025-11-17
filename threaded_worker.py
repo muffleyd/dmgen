@@ -391,39 +391,43 @@ class threaded_worker:
         # self.getlock.acquire()
         if not wait and not index:
             raise ValueError('wait may only be false if index is an index')
-        _index = index or self.completed_inds.get()
+        if not index:
+            index = self.get_completed_index()
+        return self.process(index, wait)
+
+    def process(self, index, wait=True):
         # things is = (lock, return_data, exception_flag)
-        # cannot do lock, rd, ef = results[_index] because the data and flag
+        # cannot do lock, rd, ef = results[index] because the data and flag
         # may not be finished when this is called (lock blocked!)
-        done = self.results[_index][0].acquire(wait)  # not not self.numthreads)
+        done = self.results[index][0].acquire(wait)  # not not self.numthreads)
         if wait and not done:
             raise ThreadNotComplete(index)
         # lock, data, exception_flag = things
         # data is the exception if exception_flag is True
         # otherwise it's (result, to_also_return)
-        things = self.results[_index][:]
+        things = self.results[index][:]
         # ensures the only copy is returned and can be gc'd
-        self.results[_index][:] = _EMPTY_LIST
+        self.results[index][:] = _EMPTY_LIST
         if things[2] == -1:  # worker closed
             things[2] = None
             return
-        if index is not None:
-            # Not good, alter Queue.py for this.
-            try:
-                self.completed_inds.remove(index)
-            # It could have been removed by the user before this call to get().
-            # All we care about is that it's not in the completed_inds queue.
-            except ValueError:
-                pass
-            self.pending_inds.remove(index)
-        else:
-            self.pending_inds.remove(_index)
+        # Try to remove it even if index was not passed in.
+        try:
+            self.completed_inds.remove(index)
+        # It could have been removed by the user before this call to get().
+        # All we care about is that it's not in the completed_inds queue.
+        except ValueError:
+            pass
+        self.pending_inds.remove(index)
         if things[2]:
             exc = things[1][0]
             raise exc
         if things[1][1] is None:
             return things[1][0]
         return things[1]
+
+    def get_completed_index(self):
+        return self.completed_inds.get()
 
     def _handle(self):
         """internal use only,
