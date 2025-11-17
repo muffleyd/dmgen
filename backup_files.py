@@ -7,7 +7,6 @@ import threading
 import traceback
 from collections import deque
 from . import threaded_worker
-from . import gen
 from .timer import Timer
 
 sepjoin = os.sep.join
@@ -179,8 +178,7 @@ def print_(worker, info):
         from . import filegen
 
         def mk_num(val, by=1024):
-            val //= by
-            return '%s%s' % (val < 0 and '-' or '', gen.rinsertevery(abs(val), 3, ','))
+            return f'{val // by:,}'
 
         def info_dir(where):
             size = 0
@@ -295,7 +293,7 @@ def main(copy, dest, excludes=[], cleanbasedir=False, orders='orders.txt', nicee
                     print('renamed "%s" -> "%s"' % (file1, file2))
         open(orders, 'w').close()
 
-    with gen.timer():
+    with Timer():
         with threaded_worker.threaded_worker(track=1) as worker:
             # docopy(copy, dest, excludes)
             t = threading.Thread(target=docopy, args=(copy, dest, excludes, cleanbasedir))

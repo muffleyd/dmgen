@@ -8,7 +8,6 @@ from io import StringIO
 
 import pygame
 
-from . import gen
 from . import webgen
 
 try:
@@ -206,6 +205,7 @@ def iter_surf_pieces(surface, pieces=1):
 
 
 def resize_image(filename):
+    from . import gen
     made_window = False
     try:
         if not pygame.display.get_init():

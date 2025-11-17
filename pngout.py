@@ -8,6 +8,7 @@ import operator
 from .cores import CORES
 from . import filegen
 from . import gen
+from . import timer
 from . import threaded_worker
 
 try:
@@ -213,7 +214,7 @@ def find_best_compression(filename, threads=3, depth=5,
     else:
         worker = threaded_worker.threaded_worker(pngout_for_find_best_compression, threads)
     if verbose:
-        timer = gen.timer().__enter__()
+        timer_object = timer.Timer().__enter__()
     try:
         if verbose:
             print(filename, output_directory, initial_size, depth, end=' ')
@@ -291,7 +292,7 @@ def find_best_compression(filename, threads=3, depth=5,
         pass
     finally:
         if verbose:
-            timer.__exit__()
+            timer_object.__exit__()
         if worker is not threads:
             worker.close(wait=1)
         try:
