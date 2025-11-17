@@ -12,33 +12,41 @@ CLOSE = 2
 
 
 @dataclass
-class ResponseCache:
-    call_function: callable = None
-    debug: bool = False
+class Sqlite3Storage:
     cache_life: int = 36000
-    wait_for_close: bool = True
     filename: str = '_response_cache.sqlite3'
+    wait_for_close: bool = True
+    debug: bool = False
 
     def __post_init__(self):
-        if not self.call_function:
-            self.call_function = self.value_not_cached
         self.db = None
         self.saver_thread = None
         self.queue = Queue()
         self.lock = threading.Lock()
+        self.running = False
 
-    def __enter__(self):
+    def start(self):
+        if self.running:
+            return
         self.db = self.connect()
         if not self.saver_thread or not self.saver_thread.is_alive():
             self.saver_thread = threading.Thread(target=self._saver_thread, daemon=True)
             self.saver_thread.start()
-        return self
+        self.running = True
 
-    def __exit__(self, *args):
+    def end(self):
         # Close the saver thread.
         self.queue.put(CLOSE)
         self.wait_for_close(self)
         self.db.close()
+        self.running = False
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.end()
 
     def connect(self):
         if not os.path.exists(self.filename):
@@ -76,17 +84,8 @@ class ResponseCache:
     # Requests that the api save thread makes a save.
     def save(self):
         self.queue.put(SAVE)
-
-    # A default method to call during get_response which throws an exception if the value isn't already cached.
-    def value_not_cached(self, url):
-        raise ValueError('Value not in cache and no response function was provided.')
-
-    def get_response(self, url, call_function=None):
-        if not call_function:
-            call_function = self.call_function
-        if self.debug:
-            print('fetching', url)
-        # todo include options
+    
+    def get(self, url):
         with self.lock:
             data = self.db.execute('SELECT data, time from data WHERE key = ?', [url]).fetchone()
             if data:
@@ -102,16 +101,17 @@ class ResponseCache:
                 self.db.execute('DELETE from data WHERE key = ?', [url])
                 self.save()
                 response = eol = None
-        # @todo Allow response to be None.
-        if not response:
-            retry = True
-            while retry:
-                response, retry = call_function(url)
-            with self.lock:
-                args = [url, response, time.time() + self.cache_life]
-                self.db.execute('INSERT INTO data (key, data, time) VALUES (?, ?, ?)', args)
-                self.save()
-        return response
+            # @todo Allow response to be None.
+            if response:
+                return True, response
+        return False, None
+
+    def set(self, url, response):
+        with self.lock:
+            args = [url, response, time.time() + self.cache_life]
+            self.db.execute('INSERT INTO data (key, data, time) VALUES (?, ?, ?)', args)
+            self.save()
+
 
     def _saver_thread(self):
         try:
@@ -170,3 +170,46 @@ class ResponseCache:
         while self.saver_thread.is_alive() and time.monotonic() - start_time < timeout:
             time.sleep(0.01)
         return not self.saver_thread.is_alive()
+
+
+
+class ResponseCache:
+    def __init__(
+        self,
+        call_function: callable = None,
+        *,
+        debug = False,
+        storage = None,
+        storage_params: dict | None = None
+    ):
+        self.call_function = call_function or self.value_not_cached
+        self.debug = debug
+        if not storage:
+            params = {'debug': debug} | (storage_params or {})
+            storage = Sqlite3Storage(**params)
+        self.storage = storage
+
+    def __enter__(self):
+        self.storage.start()
+        return self
+    
+    def __exit__(self, *args):
+        self.storage.end()
+
+    # A default method to call during get_response which throws an exception if the value isn't already cached.
+    def value_not_cached(self, url):
+        raise ValueError('Value not in cache and no response function was provided.')
+
+    def get_response(self, url, call_function=None):
+        if not call_function:
+            call_function = self.call_function
+        if self.debug:
+            print('fetching', url)
+        # todo include options
+        cached, response = self.storage.get(url)
+        if not cached:
+            retry = True
+            while retry:
+                response, retry = call_function(url)
+            self.storage.set(url, response)
+        return response
