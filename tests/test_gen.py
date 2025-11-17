@@ -8,14 +8,18 @@ class GenTest(unittest.TestCase):
         import sys
         from io import StringIO
         new_stdin = StringIO('1\n1')
-        old_stdin, sys.stdin = sys.stdin, new_stdin
+        old_stdin = sys.stdin
+        old_stdout = sys.stdout
         try:
+            sys.stdin = new_stdin
+            sys.stdout = StringIO()
             self.assertEqual(gen.default_of('give me a 1 (int)! ', float, int), 1)
             val = gen.default_of('give me a 1 (float)! ', float, float)
             self.assertEqual(type(val), float)
             self.assertEqual(val, 1.0)
         finally:
             sys.stdin = old_stdin
+            sys.stdout = old_stdout
     
     def test_count(self):
         self.assertEqual(gen.count([1, 4, 2, 3, 3, 1, 2], 1), 2)
