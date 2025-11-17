@@ -36,7 +36,7 @@ else:
     PREFIX = ''
 
 
-def oxipng(input_object, options=None, optimize=True):
+def oxipng(filename, options=None, optimize=True):
     # handle options spacing + slashes yourself please
     """Runs oxipng on filename to output_filename (if given, else it's smart).
     Fill this out with the oxipng executable options."""
@@ -64,7 +64,8 @@ def oxipng(input_object, options=None, optimize=True):
     )
     if VERBOSE:
         print(out)
-    proc = subprocess.run(out, shell=True, stdin=input_object, capture_output=True)
+    with open(filename, 'rb') as input_object:
+        proc = subprocess.run(out, shell=True, stdin=input_object, capture_output=True)
     if VERBOSE:
         print('success' if proc.returncode == 0 else 'error', len(proc.stdout), len(proc.stderr))
         print(proc.stderr)
@@ -129,8 +130,10 @@ def do(input_filename, output_filename=None, options=None, validate=True):
     if output_filename is None:
         output_filename = input_filename
     initial_size = size = stat[6]
-    with open(input_filename, 'rb') as file_object:
-        error, output, stderr = oxipng(file_object, options)
+    # TODO:
+    #  Run with and without -z. -z is usually but not alawys better, running both adds ~15% runtime.
+    #  Run with various --brute-lines values. Not predictable, large impact.
+    error, output, stderr = oxipng(input_filename, options)
     if error:
         raise Exception(f'Error while processing file "{input_filename}" -> "{options}"\n{stderr}')
     new_size = len(output)
@@ -186,20 +189,22 @@ def do_many_yield(files, options=None, threads=None, verbose=True):
         total = len(todo)
         if verbose:
             print(f'0/{total}')
-        for original_filename, index in todo:
+        for x in range(total):
+            index = worker.get_completed_index()
+            filename, _ = todo[index - 1]
             try:
                 filename, size, new_size = worker.get(index)
             except Exception as e:
                 print(str(e)[:80])
                 print(traceback.format_exc())
-                yield original_filename, (e, traceback.format_exc())
+                yield filename, (e, traceback.format_exc())
                 continue
             yield filename, None
             if new_size < size:
                 end_size += new_size
                 start_size += size
             if verbose:
-                front = f'{index}/{total} {filename}:'
+                front = f'{x + 1}/{total} {filename}:'
                 if new_size < size:
                     print(f'{front} {new_size - size} {100 * new_size / size:.1f}%')
                 elif new_size == size:
