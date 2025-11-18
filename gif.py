@@ -29,7 +29,7 @@ def check_delayval(value):
     # raise ValueError('value must be int from 1 to 65535')
 
 
-class Gif(object):
+class Gif:
     """class to alter gif frame timing"""
 
     def __init__(self, filename):
@@ -40,13 +40,14 @@ class Gif(object):
                 path = os.path.abspath(filename)
             print('loading', path)
         self.filename = filename
-        self.data = data = open(filename, 'rb').read()
+        with open(filename, 'rb') as file:
+            self.data = data = file.read()
         # assert self.data[:6] == 'GIF89a'
         self.dims = (ord16(data[6:8]), ord16(data[8:10]))
         self.frame_delays()
 
     def __repr__(self):
-        return '<Gif: "%s" %s>' % (self.filename, self.dims)
+        return f'<Gif: "{self.filename}" {self.dims}>'
 
     def get_delays(self):
         for i in self.frames:
@@ -84,9 +85,9 @@ class Gif(object):
             last += frame
             values.setdefault(frame, [])
             values[frame].append(i)
-        for i in values:
-            self.set_delays(i, values[i], False)
-        print('fps set to %d' % value)
+        for delay, indexes in values.items():
+            self.set_delays(delay, indexes, False)
+        print(f'fps set to {value}')
         self.save()
 
     def set_delays(self, value, indexs=None, save=True):
@@ -112,7 +113,8 @@ class Gif(object):
     def save(self):
         if VERBOSE:
             print('saving', self)
-        open(self.filename, 'wb').write(self.data)
+        with open(self.filename, 'wb') as file:
+            file.write(self.data)
 
 
 def main():

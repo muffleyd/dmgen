@@ -84,7 +84,7 @@ class Sqlite3Storage:
     # Requests that the api save thread makes a save.
     def save(self):
         self.queue.put(SAVE)
-    
+
     def get(self, url):
         with self.lock:
             data = self.db.execute('SELECT data, time from data WHERE key = ?', [url]).fetchone()
@@ -116,7 +116,7 @@ class Sqlite3Storage:
     def _saver_thread(self):
         try:
             self._saver_thread_inner()
-        except Exception as e:
+        except Exception:
             if self.debug:
                 print(traceback.format_exc())
             raise
@@ -192,7 +192,7 @@ class ResponseCache:
     def __enter__(self):
         self.storage.start()
         return self
-    
+
     def __exit__(self, *args):
         self.storage.end()
 

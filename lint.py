@@ -1,14 +1,19 @@
 import os
 import sys
+import pylint.lint
+
 
 LINT_DEFAULT_IGNORES = ['C0103', 'C0111',
                         'W0622', 'W0702', 'R0913',
                         'W0401', 'W0703', 'W0603']
 
 
-def lint(file=None, output_file=None, ignore=[], extras='', default_ignores=True):
-    import pylint.lint
-    ignore = default_ignores and ignore + LINT_DEFAULT_IGNORES or ignore
+def lint(file=None, output_file=None, ignore=None, extras='', default_ignores=True):
+    if ignore is None:
+        ignore = []
+    if default_ignores:
+        # Do not use += as it is an in-place modification.
+        ignore = ignore + LINT_DEFAULT_IGNORES
     file = file or sys.argv[0]
     if output_file is sys.stdout:
         output_file = ''
@@ -33,7 +38,9 @@ def lint(file=None, output_file=None, ignore=[], extras='', default_ignores=True
     pylint.lint.Run(command, exit=False)
 
 
-def lint_many(files=[], output_folder=None, ignore=[], extras='', default_ignore=True):
+def lint_many(files=None, output_folder=None, ignore=None, extras='', default_ignore=True):
+    if files is None:
+        files = []
     for i in files:
         f = os.path.join(output_folder, os.path.split(i)[0])
         if not os.path.exists(f):

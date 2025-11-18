@@ -355,8 +355,7 @@ def _files_in_scandir(directory, include, include_end, exclude):
                 continue
         yield dir_entry
     for directory in directories:
-        for i in _files_in_scandir(directory, include, include_end, exclude):
-            yield i
+        yield from _files_in_scandir(directory, include, include_end, exclude)
 
 
 def list_folders(directory='.'):
@@ -472,13 +471,12 @@ def split_file(file, blocks):
 def merge_files(files, read=2 ** 15):
     with open('.'.join(files[0].split('.')[:-1]), 'wb') as f:
         for i in files:
-            r = open(i, 'rb')
-            while 1:
-                d = r.read(read)
-                if not d:
-                    r.close()
-                    break
-                f.write(d)
+            with open(i, 'rb') as r:
+                while 1:
+                    d = r.read(read)
+                    if not d:
+                        break
+                    f.write(d)
 
 
 def hashfile(hash_type, filename, block_size=None):

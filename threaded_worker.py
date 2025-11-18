@@ -22,7 +22,6 @@ def partial(target, *args, **keywords):
 
 partial.__doc__ = _partial.__doc__
 from queue import Queue as _Queue, PriorityQueue as _PriorityQueue
-from time import monotonic as time
 class Queue(_Queue):
     def get(self, block=True, timeout=None):
         z = _Queue.get(self, block, timeout)
@@ -486,7 +485,7 @@ def thread_map(data, func, toput=None, threads=1, *args, **kwargs):
                 data = d
             tw.put(data, alsoreturn=d, *args, **kwargs)
             todo += 1
-        for i in range(todo):
+        for _ in range(todo):
             yield tw.get()
 
 

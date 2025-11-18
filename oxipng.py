@@ -65,7 +65,7 @@ def oxipng(filename, options=None, optimize=True):
     if VERBOSE:
         print(out)
     with open(filename, 'rb') as input_object:
-        proc = subprocess.run(out, shell=True, stdin=input_object, capture_output=True)
+        proc = subprocess.run(out, shell=True, stdin=input_object, capture_output=True, check=False)
     if VERBOSE:
         print('success' if proc.returncode == 0 else 'error', len(proc.stdout), len(proc.stderr))
         print(proc.stderr)

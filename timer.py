@@ -8,6 +8,7 @@ class Timer:
         self.after_print = after
         self.newline = newline
         self.runtime = None
+        self.start = None
 
     def get_runtime(self):
         if self.runtime is None:
@@ -37,5 +38,6 @@ class Timer:
 
     def __exit__(self, *exc):
         self.runtime = monotonic() - self.start
+        self.start = None
         if self.do_print:
             self.print_me()

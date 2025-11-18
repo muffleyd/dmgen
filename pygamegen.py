@@ -4,6 +4,7 @@ import threading
 import time
 import struct
 import array
+import contextlib
 from io import StringIO
 
 import pygame
@@ -1011,9 +1012,8 @@ def tostring(surf, format=None, flipped=False, justdata=False):
 
 
 def loadfromstring(f):
-    if isinstance(f, str):
-        f = open(f, 'rb')
-    return fromstring(f.read())
+    with (open(f, 'rb') if isinstance(f, str) else contextlib.nullcontext(f)) as file:
+        return fromstring(file.read())
 
 
 def fromstringF(f):

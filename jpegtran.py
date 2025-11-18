@@ -34,7 +34,7 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
         raise FileNotFoundError('JPEGTRAN_EXE_PATH not set')
     if '-copy ' not in options:
         options = f'-copy none {options}'
-    optimize_str = optimize and '-optimize' or ''
+    optimize_str = '-optimize' if optimize else ''
     out = (
         f'{PREFIX} {JPEGTRAN_EXE_PATH} {optimize_str} {options} '
         f'-outfile "{output_filename or filename}" "{filename}"'

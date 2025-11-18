@@ -19,7 +19,7 @@ def gif(filename, destfilename, options=None):
     if not GIFOUT_EXE_PATH:
         raise FileNotFoundError('GIFOUT_EXE_PATH not set')
     z = os.popen('start /LOW /B /WAIT %s %s %s > "%s"'
-                 % (GIFOUT_EXE_PATH, options == None and "-O=3" or options,
+                 % (GIFOUT_EXE_PATH, options is None and "-O=3" or options,
                     filename, destfilename))
     # print 'end %s'%filename
     return z
@@ -55,7 +55,7 @@ def main(filename, *options):
             # print '%s %s'%(filename, tempcopy_filename)
             os.rename(filename, tempcopy_filename)
             try:
-                for i in range(10):
+                for _ in range(10):
                     try:
                         os.rename(tofilename, filename)
                         break
@@ -78,7 +78,4 @@ def main(filename, *options):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         sys.exit(2)
-    try:
-        sys.exit(main(*sys.argv[1:]))
-    except:
-        raise
+    sys.exit(main(*sys.argv[1:]))
