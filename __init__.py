@@ -11,6 +11,7 @@ __all__ = [
     'jpeg_crop',
     'make_png',
     'opt_gif',
+    'oxipng',
     'p7zip',
     'pngout',
     'pygamegen',
