@@ -62,10 +62,18 @@ def oxipng(filename, options=None, optimize=True):
     out = (
         f'{PREFIX} {OXIPNG_EXE_PATH} {options_to_string(options)} --force --stdout -'
     )
+    out = [i for i in [
+        *(PREFIX.split(' ')),
+        OXIPNG_EXE_PATH,
+        *(options_to_string(options).split(' ')),
+        '--force',
+        '--stdout',
+        '-'
+    ] if i]
     if VERBOSE:
         print(out)
     with open(filename, 'rb') as input_object:
-        proc = subprocess.run(out, shell=True, stdin=input_object, capture_output=True, check=False)
+        proc = subprocess.run(out, stdin=input_object, capture_output=True, check=False)
     if VERBOSE:
         print('success' if proc.returncode == 0 else 'error', len(proc.stdout), len(proc.stderr))
         print(proc.stderr)

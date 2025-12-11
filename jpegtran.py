@@ -35,13 +35,19 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
     if '-copy ' not in options:
         options = f'-copy none {options}'
     optimize_str = '-optimize' if optimize else ''
-    out = (
-        f'{PREFIX} {JPEGTRAN_EXE_PATH} {optimize_str} {options} '
-        f'-outfile "{output_filename or filename}" "{filename}"'
-    )
-    p = subprocess.Popen(out, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.wait()
-    return output_filename or filename, p.stdout.read(), p.stderr.read()
+    destination_filename = output_filename or filename
+    out = [i for i in [
+        *(PREFIX.split(' ')),
+        JPEGTRAN_EXE_PATH,
+        *(optimize_str.split(' ')),
+        *(options.split(' ')),
+        '-outfile',
+        destination_filename,
+        filename,
+    ] if i]
+    with subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
+        p.wait()
+        return destination_filename, p.stdout.read(), p.stderr.read()
 
 
 def do2(input_filename, output_filename=None, options='', tw=None):
