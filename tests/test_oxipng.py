@@ -18,6 +18,7 @@ option_sets = {
         '--spam': True,
         '--eggs': True,
     },
+    '': {},
 }
 
 
@@ -25,10 +26,15 @@ class OxipngTest(unittest.TestCase):
     def test_string_to_options(self):
         for option_string, option_dict in option_sets.items():
             self.assertEqual(oxipng.string_to_options(option_string), option_dict, option_string)
+        self.assertEqual(oxipng.string_to_options('--foo  1'), {'--foo': '1'}, 'Extra space handled.')
     
     def test_options_to_string(self):
         for option_string, option_dict in option_sets.items():
             self.assertEqual(oxipng.options_to_string(option_dict), option_string, option_string)
+            self.assertEqual(oxipng.options_to_string(option_string), option_string, option_string)
+        self.assertEqual(oxipng.options_to_string(None), '')
+        with self.assertRaises(ValueError, msg='Invalid type.'):
+            oxipng.options_to_string(['--foo'])
 
     BASE_PNG_FILENAME = os.path.join(os.path.dirname(__file__), '1x1.png')
     
