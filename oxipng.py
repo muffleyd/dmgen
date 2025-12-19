@@ -117,11 +117,8 @@ def validate_image(one, two):
         print('validating images')
     if not CAN_VALIDATE:
         raise Exception('Required packages for validation are not found.')
-    one.seek(0)
     image_one = pygame.image.load(one)
-    two = BytesIO(two)
-    two.seek(0)
-    image_two = pygame.image.load(two, '.png')
+    image_two = pygame.image.load(two)
     same = compare_surfs(image_one, image_two)
     return same
 
@@ -150,9 +147,8 @@ def do(input_filename, output_filename=None, options=None, validate=True):
         print(new_size, size)
     if new_size and new_size < size:
         if validate:
-            with open(input_filename, 'rb') as file_object:
-                if not validate_image(file_object, output):
-                    raise Exception(f'Processed file is not identical to source file: {input_filename}')
+            if not validate_image(input_filename, BytesIO(output)):
+                raise Exception(f'Processed file is not identical to source file: {input_filename}')
         if os.path.exists(output_filename):
             if VERBOSE:
                 print('overwriting')
