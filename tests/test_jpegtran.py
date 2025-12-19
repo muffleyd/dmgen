@@ -29,8 +29,8 @@ class JpegtranTest(unittest.TestCase):
             file = contextlib.nullcontext()
         with file:
             with tempfile.NamedTemporaryFile('wb', suffix=output_filename or '.jpg') as f:
-                jpegtran.jpeg(filename, f.name, options, optimize)
-                self.assertGreater(os.stat(f.name).st_size, 0)
+                return_code, out, err = jpegtran.jpeg(filename, f.name, options)
+                self.assertGreater(len(out), 0, f'Error on filename {filename}')
 
 
 if __name__ == "__main__":

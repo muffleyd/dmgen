@@ -1,10 +1,19 @@
+from io import BytesIO
 import os
 import shutil
 import subprocess
+import tempfile
 import traceback
 from . import threaded_worker
 from . import filegen
 from .cores import CORES
+try:
+    import pygame
+    from .pygamegen import compare_surfs
+except ImportError:
+    CAN_VALIDATE = False
+else:
+    CAN_VALIDATE = True
 
 JPEGTRAN_EXE_PATH = shutil.which('jpegtran') or ''
 if not os.path.exists(JPEGTRAN_EXE_PATH) and os.name == 'nt':
@@ -35,22 +44,27 @@ def jpeg(filename, output_filename=None, options='', optimize=True):
     if '-copy ' not in options:
         options = f'-copy none {options}'
     optimize_str = '-optimize' if optimize else ''
-    destination_filename = output_filename or filename
     out = [i for i in [
         *(PREFIX.split(' ')),
         JPEGTRAN_EXE_PATH,
-        *(optimize_str.split(' ')),
+        optimize_str,
         *(options.split(' ')),
-        '-outfile',
-        destination_filename,
-        filename,
     ] if i]
-    with subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
-        p.wait()
-        return destination_filename, p.stdout.read(), p.stderr.read()
+    with open(filename, 'rb') as input_object:
+        proc = subprocess.run(out, stdin=input_object, capture_output=True, check=False)
+    return proc.returncode, proc.stdout, proc.stderr
 
 
-def do2(input_filename, output_filename=None, options='', tw=None):
+def validate_image(one, two):
+    if not CAN_VALIDATE:
+        raise Exception('Required packages for validation are not found.')
+    image_one = pygame.image.load(one)
+    image_two = pygame.image.load(two)
+    same = compare_surfs(image_one, image_two)
+    return same
+
+
+def do2(input_filename, output_filename=None, options='', tw=None, validate=True):
     if hasattr(input_filename, 'stat'):
         stat = input_filename.stat()
         input_filename = input_filename.path
@@ -58,48 +72,55 @@ def do2(input_filename, output_filename=None, options='', tw=None):
         stat = os.stat(input_filename)
     if output_filename is None:
         output_filename = input_filename
-    initial_size = size = stat[6]
-    directory, filename = os.path.split(input_filename)
-    if filegen.TEMPfolder:
-        directory = filegen.TEMPfolder
-    temp1 = filegen.unused_filename('_' + filename, folder=directory)
-    temp2 = filegen.unused_filename('_prog_' + filename, [temp1], folder=directory)
+    initial_size = stat.st_size
     if tw is None:
         _tw = threaded_worker.threaded_worker(jpeg, min(2, CORES), wait_at_end=True)
     else:
         _tw = tw
     try:
-        gets = (_tw.put(input_filename, temp1, options, func=_tw.func or jpeg),
-                _tw.put(input_filename, temp2, '-progressive ' + options, func=_tw.func or jpeg))
-        new_file = None
-        out = None
+        gets = (_tw.put(input_filename, None, options, func=_tw.func or jpeg),
+                _tw.put(input_filename, None, '-progressive ' + options, func=_tw.func or jpeg))
         new_size = None
+        new_contents = None
         for get in gets:
-            temp, out, err = _tw.get(get)
-            if err or out:
-                raise Exception(f'Error while processing file "{input_filename}" -> "{temp}"\n{err or out}')
-            if os.path.exists(temp):
-                new_size = os.stat(temp)[6]
-                if new_size and new_size < size:
-                    new_file = temp
-                    size = new_size
-            if err:
-                out += '\nError: ' + err
-        if new_file:
-            os.remove(input_filename)
-            shutil.move(new_file, output_filename)
+            return_code, out, err = _tw.get(get)
+            if return_code or err or not out:
+                raise Exception(f'Error while processing file "{input_filename}"\n{return_code=}, out={len(out)}, {err=}')
+            size = len(out)
+            if size and (not new_size or size < new_size):
+                if validate:
+                    if not validate_image(input_filename, BytesIO(out)):
+                        raise Exception(f'Processed file is not identical to source file: {input_filename}')
+                new_contents = out
+                new_size = size
+        overwrite_input_file = os.path.abspath(output_filename) == os.path.abspath(input_filename)
+        write_file = True
+        if (
+            not new_contents or
+            not new_size or (
+                overwrite_input_file and
+                new_size >= initial_size
+            )
+        ):
+            write_file = False
+        if write_file:
+            file_times = (
+                stat.st_atime_ns,
+                stat.st_mtime_ns,
+            )
+            if overwrite_input_file:
+                with tempfile.NamedTemporaryFile() as temp_file:
+                    temp_file.write(new_contents)
+                    os.utime(temp_file.name, ns=file_times)
+                    shutil.move(temp_file.name, output_filename)
+            else:
+                with open(output_filename, 'wb') as output_file:
+                    output_file.write(new_contents)
+                os.utime(output_filename, ns=file_times)
     finally:
         if tw is None:
             _tw.__exit__()
-        try:
-            if os.path.exists(temp1):
-                os.remove(temp1)
-            if os.path.exists(temp2):
-                os.remove(temp2)
-        except Exception:
-            print(f'{input_filename} {temp1} {temp2}')
-            raise
-    return input_filename, out, initial_size, new_size
+    return input_filename, initial_size, new_size
 
 
 def do(filename, options='', tw=None):
@@ -133,7 +154,7 @@ def do_many_yield(files, options='', threads=None, verbose=True):
                 print(f'0/{total}')
             for original_filename, ind in todo:
                 try:
-                    filename, out, size, new_size = worker.get(ind)
+                    filename, size, new_size = worker.get(ind)
                 except Exception as e:
                     yield original_filename, (e, traceback.format_exc())
                     continue
@@ -149,8 +170,6 @@ def do_many_yield(files, options='', threads=None, verbose=True):
                         print(f'{front} no diff')
                     else:
                         print(f'{front} worse')
-                    if out:
-                        print('output:', out)
     if verbose:
         if start_size:
             print(f'{start_size} -> {end_size} ({100 * end_size / start_size:.1f}%)')
