@@ -185,17 +185,17 @@ def do_many_yield(files, options=None, threads=None, verbose=True):
         files = filegen.files_in_scandir(files)
     if not threads:
         threads = CORES
-    todo = []
+    todo = {}
     start_size = end_size = 0
     with threaded_worker.threaded_worker(do, threads, wait_at_end=True) as worker:
         for filename in files:
-            todo.append((filename, worker.put(filename, None, options)))
+            todo[worker.put(filename, None, options)] = filename
         total = len(todo)
         if verbose:
             print(f'0/{total}')
-        for x in range(total):
+        for x in range(1, total + 1):
             index = worker.get_completed_index()
-            filename, _ = todo[index - 1]
+            filename = todo.pop(index)
             try:
                 filename, size, new_size = worker.get(index)
             except Exception as e:
@@ -208,11 +208,11 @@ def do_many_yield(files, options=None, threads=None, verbose=True):
                 end_size += new_size
                 start_size += size
             if verbose:
-                front = f'{x + 1}/{total} {filename}:'
+                front = f'{x}/{total} {filename}:'
                 if new_size < size:
-                    print(f'{front} {new_size - size} {100 * new_size / size:.1f}%')
+                    print(f'{front} ({new_size} < {size}, {new_size - size}) {100 * new_size / size:.1f}%')
                 elif new_size == size:
-                    print(f'{front} no diff')
+                    print(f'{front} no diff ({new_size} = {size})')
                 else:
                     print(f'{front} worse ({new_size} > {size})')
     if verbose:
