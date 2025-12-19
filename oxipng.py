@@ -2,6 +2,7 @@ from io import BytesIO
 import os
 import shutil
 import subprocess
+import tempfile
 import traceback
 from . import threaded_worker
 from . import filegen
@@ -155,19 +156,18 @@ def do(input_filename, output_filename=None, options=None, validate=True):
         if os.path.exists(output_filename):
             if VERBOSE:
                 print('overwriting')
-            temp = filegen.unused_filename('_' + os.path.split(input_filename)[1])
-            with open(temp, 'wb') as temp_file:
+            with tempfile.NamedTemporaryFile() as temp_file:
                 temp_file.write(output)
-            os.utime(temp, ns=file_times)
-            shutil.move(temp, output_filename)
-            if VERBOSE:
-                print('done')
+                os.utime(temp_file.name, ns=file_times)
+                shutil.move(temp_file.name, output_filename)
         else:
             if VERBOSE:
                 print('writing')
             with open(output_filename, 'wb') as output_file:
                 output_file.write(output)
             os.utime(output_filename, ns=file_times)
+        if VERBOSE:
+            print('done')
         size = new_size
 
     return input_filename, initial_size, new_size
